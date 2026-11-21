@@ -46,11 +46,15 @@ $flash_messages = flash_pull();
     </button>
     <a class="app-topbar__brand" href="<?= e(url('dashboard.php')) ?>">WebGIS Galian C — Kota Sorong</a>
     <span class="app-topbar__spacer"></span>
+    <?php $topbar_user = current_user(); ?>
     <div class="app-topbar__user">
-      <?php if (!empty($_SESSION['nama_lengkap'])): ?>
-        <span class="app-topbar__user-name"><?= e((string) $_SESSION['nama_lengkap']) ?></span>
+      <?php if ($topbar_user !== null): ?>
+        <span class="app-topbar__user-name"><?= e($topbar_user['nama_lengkap']) ?></span>
       <?php endif; ?>
-      <a href="<?= e(url('logout.php')) ?>">Keluar</a>
+      <form method="post" action="<?= e(url('logout.php')) ?>" class="logout-form">
+        <?= csrf_field() ?>
+        <button type="submit" class="btn-link">Keluar</button>
+      </form>
     </div>
   </header>
   <div class="app-sidebar-backdrop" hidden></div>

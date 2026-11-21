@@ -8,15 +8,17 @@ if (!defined('APP_BOOTSTRAPPED')) {
 }
 
 /**
- * includes/sidebar.php — menu navigasi per peran (T-04, PRD bagian 9).
+ * includes/sidebar.php — menu navigasi per peran (T-04/T-06, PRD bagian 9).
  * Hanya di-require dari includes/header.php saat $layout === 'app'.
  *
- * $_SESSION['role'] belum tentu terisi sebelum T-06 (login) berjalan; default
- * ke 'admin' di sini murni agar halaman bisa dirender/diuji sebelum T-06 ada,
- * BUKAN keputusan otorisasi -- guard akses sesungguhnya adalah tugas T-06.
+ * Membaca peran lewat current_user() (T-06), bukan $_SESSION langsung --
+ * default 'admin' kalau null tetap dipertahankan untuk tests/ui_preview.php
+ * (lihat berkas itu), BUKAN keputusan otorisasi; guard akses sesungguhnya
+ * ada di require_login()/require_role(), dijalankan sebelum sidebar ini di-require.
  */
 
-$role = $_SESSION['role'] ?? 'admin';
+$sidebar_user = current_user();
+$role = $sidebar_user['role'] ?? 'admin';
 $active_menu = $active_menu ?? '';
 
 $menu_admin = [
@@ -50,7 +52,10 @@ $menu_items = $role === 'kontraktor' ? $menu_kontraktor : $menu_admin;
     </li>
     <?php endforeach; ?>
     <li>
-      <a class="app-sidebar__link" href="<?= e(url('logout.php')) ?>">Logout</a>
+      <form method="post" action="<?= e(url('logout.php')) ?>" class="logout-form">
+        <?= csrf_field() ?>
+        <button type="submit" class="app-sidebar__link app-sidebar__link--button">Logout</button>
+      </form>
     </li>
   </ul>
 </nav>

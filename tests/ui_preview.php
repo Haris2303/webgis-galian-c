@@ -5,19 +5,19 @@ declare(strict_types=1);
 /**
  * tests/ui_preview.php — pratinjau komponen UI T-04, BUKAN bagian dari PRD.
  *
- * login.php, dashboard.php, dan halaman lain yang dipakai PRD bagian 9 belum
- * dibangun (menyusul T-06/T-08/T-20) sehingga kriteria selesai T-04 ("Jalankan
- * Lighthouse pada login dan dashboard") tidak punya target nyata untuk
- * diaudit. Berkas ini mensimulasikan tata letak login & dashboard dari PRD
- * memakai includes/header.php + sidebar.php + footer.php yang sama, supaya
- * CSS/markup T-04 bisa diuji manual (360/768/1280px, keyboard-only) dan lewat
- * Lighthouse SEKARANG, sebelum halaman aslinya ada.
+ * dashboard.php belum dibangun (menyusul T-08/T-20) sehingga kriteria selesai
+ * T-04 ("Jalankan Lighthouse pada ... dashboard") tidak punya target nyata.
+ * Berkas ini mensimulasikan tata letak dashboard dari PRD memakai
+ * includes/header.php + sidebar.php + footer.php yang sama, supaya CSS/markup
+ * T-04 bisa diuji manual dan lewat Lighthouse SEKARANG, sebelum halaman
+ * aslinya ada. login.php SUDAH nyata sejak T-06 -- gunakan itu langsung,
+ * bukan mode view=login di sini (sudah dihapus).
  *
  * Harus 404 di luar APP_ENV=dev (lihat cek di bawah) dan WAJIB dihapus atau
- * diganti pengujian ke halaman asli begitu T-06/T-08/T-20 selesai — lihat
- * "Risiko tersisa" pada laporan T-04.
+ * diganti pengujian ke halaman asli begitu T-08/T-20 selesai — lihat
+ * "Risiko tersisa" pada laporan T-04/T-06.
  *
- * Akses: /tests/ui_preview.php?view=login|dashboard|components&role=admin|kontraktor
+ * Akses: /tests/ui_preview.php?view=dashboard|components&role=admin|kontraktor
  */
 
 if (!defined('APP_BOOTSTRAPPED')) {
@@ -30,13 +30,18 @@ if (APP_ENV !== 'dev') {
 }
 
 $view = $_GET['view'] ?? 'components';
-if (!in_array($view, ['login', 'dashboard', 'components'], true)) {
+if (!in_array($view, ['dashboard', 'components'], true)) {
     $view = 'components';
 }
 
+// user_id palsu (bukan ID nyata mana pun) HANYA supaya current_user() (T-06)
+// mengembalikan array, bukan null, saat preview ini dipakai tanpa login asli.
 $simulated_role = ($_GET['role'] ?? 'admin') === 'kontraktor' ? 'kontraktor' : 'admin';
+$_SESSION['user_id'] = 999999;
 $_SESSION['role'] = $simulated_role;
 $_SESSION['nama_lengkap'] = $simulated_role === 'admin' ? 'Admin Dinas Perindustrian' : 'Yohanes Kambu';
+$_SESSION['username'] = 'preview';
+$_SESSION['kontraktor_id'] = null;
 
 // Demo flash message baca-sekali: klik link -> set + redirect -> tampil SEKALI.
 if (isset($_GET['set_flash'])) {
@@ -48,35 +53,6 @@ if (isset($_GET['set_flash'])) {
     ][$jenis_flash];
     flash($jenis_flash, $pesan_flash);
     redirect('tests/ui_preview.php?view=' . $view . '&role=' . $simulated_role);
-}
-
-if ($view === 'login') {
-    $page_title = 'Masuk ke Sistem';
-    $layout = 'auth';
-    require __DIR__ . '/../includes/header.php';
-    ?>
-    <div class="auth-box">
-      <h1 class="auth-box__title">WebGIS Galian C — Kota Sorong</h1>
-      <p class="auth-box__subtitle">Masuk ke Sistem</p>
-      <form method="post" action="#" novalidate>
-        <?= csrf_field() ?>
-        <div class="field field--invalid">
-          <label class="field__label" for="username">Username</label>
-          <input class="input" type="text" id="username" name="username" autocomplete="username" aria-describedby="username-error" aria-invalid="true">
-          <p class="field__error" id="username-error">Username atau password salah.</p>
-        </div>
-        <div class="field">
-          <label class="field__label" for="password">Password</label>
-          <input class="input" type="password" id="password" name="password" autocomplete="current-password">
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary btn--block">Login</button>
-        </div>
-      </form>
-    </div>
-    <?php
-    require __DIR__ . '/../includes/footer.php';
-    exit;
 }
 
 if ($view === 'dashboard') {
@@ -145,9 +121,8 @@ require __DIR__ . '/../includes/header.php';
 <p>
   Pratinjau peran saat ini: <strong><?= e($simulated_role) ?></strong>.
   Ganti via <code>?role=admin</code> atau <code>?role=kontraktor</code>.
-  Lihat juga <a href="<?= e(url('tests/ui_preview.php?view=login')) ?>">tampilan login</a>,
-  <a href="<?= e(url('tests/ui_preview.php?view=dashboard&role=' . $simulated_role)) ?>">tampilan dashboard</a>, dan
-  <a href="<?= e(url('tests/security_preview.php')) ?>">pratinjau keamanan T-05</a> (login/logout/CSRF/throttle sungguhan).
+  Lihat juga <a href="<?= e(url('login.php')) ?>">halaman login</a> (asli, T-06) dan
+  <a href="<?= e(url('tests/ui_preview.php?view=dashboard&role=' . $simulated_role)) ?>">tampilan dashboard</a> (masih pratinjau, dashboard.php asli menyusul T-08/T-20).
 </p>
 
 <section class="card">

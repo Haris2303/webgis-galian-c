@@ -232,6 +232,28 @@ summary:focus-visible {
   color: #fff;
 }
 
+.logout-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* Tombol logout: visualnya harus identik dengan link biasa -- logout.php
+   wajib POST (T-06), jadi elemennya <button> di dalam <form>, bukan <a>. */
+.btn-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: #fff;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn-link:hover {
+  text-decoration: none;
+}
+
 /* Tombol hamburger: hanya terlihat < 768px (lihat breakpoint di bawah). */
 .hamburger-btn {
   display: none;
@@ -319,6 +341,25 @@ summary:focus-visible {
 .app-sidebar__link:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+}
+
+/* Tombol di dalam .logout-form harus tampak identik dengan link menu lain,
+   walau elemennya <button> (logout wajib POST, T-06) bukan <a>. .logout-form
+   dibuat block/full-width KHUSUS di konteks sidebar -- di topbar (header.php)
+   ia tetap inline-flex seperti definisi aslinya. */
+.app-sidebar .logout-form {
+  display: block;
+  width: 100%;
+}
+
+.app-sidebar__link--button {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 /* Penanda halaman aktif TIDAK hanya warna: tebal + border kiri + aria-current,

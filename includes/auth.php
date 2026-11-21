@@ -8,23 +8,30 @@ if (!defined('APP_BOOTSTRAPPED')) {
 }
 
 /**
- * includes/auth.php — fondasi keamanan (T-05, PRD bagian 11): header
- * keamanan, session hardening, dan throttling login. Di-require sekali dari
- * bootstrap.php, SETELAH error handler terpasang (lihat urutan di sana).
- *
- * CATATAN: require_login()/require_role() (guard RBAC per halaman) SENGAJA
- * TIDAK ada di sini — itu artefak T-06 ("Login/logout, RBAC dua peran"),
- * yang butuh tabel menu/rute per peran yang belum didesain T-05. auth.php
- * hanya menyediakan mekanisme sesi (login/logout/baca user aktif), bukan
- * keputusan otorisasi per halaman.
+ * includes/auth.php — fondasi keamanan (T-05) + autentikasi/otorisasi (T-06,
+ * PRD bagian 2 & 5). Di-require sekali dari bootstrap.php, SETELAH error
+ * handler terpasang (lihat urutan di sana).
  */
 
 require_once __DIR__ . '/repo/login_attempts.php';
+require_once __DIR__ . '/repo/users.php';
+require_once __DIR__ . '/repo/lokasi.php';
+require_once __DIR__ . '/repo/aktivitas.php';
 
 define('LOGIN_THROTTLE_MAX_ATTEMPTS', 5);
 define('LOGIN_THROTTLE_WINDOW_MINUTES', 15);
 define('SESSION_IDLE_TIMEOUT_SECONDS', 30 * 60);
 define('SESSION_ABSOLUTE_TIMEOUT_SECONDS', 8 * 60 * 60);
+
+/**
+ * Hash bcrypt VALID tapi sengaja tidak akan pernah cocok dengan password apa
+ * pun yang masuk akal. Nilainya sendiri tidak penting -- yang penting formatnya
+ * bcrypt cost=10 yang sama dengan hash asli (database/make_seed_hash.php),
+ * supaya password_verify() terhadapnya makan waktu SETARA dengan verifikasi
+ * sungguhan. Dipakai login.php saat username tidak ditemukan, agar waktu
+ * respons tidak membocorkan apakah username itu ada (timing attack).
+ */
+define('DUMMY_PASSWORD_HASH', '$2y$10$Cp7gxfO0sJLKEPbE8lglbub0DWrBvEz0M0AnYuCbwbAvaUbjnAkZm');
 
 /**
  * Nonce CSP per request, dipakai header Content-Security-Policy (di bawah)
@@ -173,8 +180,12 @@ function auth_logout(): void
     }
 }
 
-/** Data user yang sedang login dari session, atau null bila belum login. */
-function auth_user(): ?array
+/**
+ * Data user yang sedang login dari session, atau null bila belum login.
+ * Nama current_user() (bukan auth_user() seperti draf awal T-05) mengikuti
+ * spesifikasi artefak T-06 secara literal -- lihat Keputusan T-06.
+ */
+function current_user(): ?array
 {
     if (empty($_SESSION['user_id'])) {
         return null;
@@ -187,6 +198,155 @@ function auth_user(): ?array
         'kontraktor_id' => $_SESSION['kontraktor_id'] ?? null,
         'nama_lengkap' => $_SESSION['nama_lengkap'] ?? '',
     ];
+}
+
+/**
+ * Path relatif (tanpa BASE_URL) dari permintaan saat ini, format sama dengan
+ * yang diterima url()/redirect() -- "dashboard.php", "lokasi/index.php?id=3".
+ * Dipakai require_login() untuk membangun ?next= saat mengarahkan ke login.php.
+ */
+function current_request_path(): string
+{
+    $base_path = rtrim((string) parse_url(BASE_URL, PHP_URL_PATH), '/');
+
+    $request_uri = $_SERVER['REQUEST_URI'] ?? '/';
+    $request_path = (string) (parse_url($request_uri, PHP_URL_PATH) ?? '/');
+    $query = parse_url($request_uri, PHP_URL_QUERY);
+
+    $relative = ($base_path !== '' && str_starts_with($request_path, $base_path))
+        ? substr($request_path, strlen($base_path))
+        : $request_path;
+    $relative = ltrim($relative, '/');
+
+    return $relative . ($query ? '?' . $query : '');
+}
+
+/**
+ * Validasi ?next= agar hanya menerima path internal relatif (PRD/edge case
+ * T-06: cegah open redirect). Aturan, semua WAJIB lolos:
+ * - tidak ada ':'            -> otomatis menolak skema apa pun (http:, https:,
+ *                                javascript:, data:), termasuk "//host" (dianggap
+ *                                protocol-relative oleh browser, bukan path).
+ * - tidak diawali '/'        -> harus relatif terhadap BASE_URL (lewat url()),
+ *                                bukan root domain -- yang juga berarti path ke
+ *                                luar proyek ini tidak mungkin lolos.
+ * - tidak mengandung '..'    -> cegah traversal.
+ * - whitelist karakter       -> hanya huruf/angka/`_-./` untuk path dan
+ *                                `?=&%` untuk query sederhana.
+ * Mengembalikan null bila gagal validasi (caller jatuh ke default dashboard.php).
+ */
+function validate_next_path(?string $next): ?string
+{
+    if ($next === null || $next === '') {
+        return null;
+    }
+
+    if (strpos($next, ':') !== false || str_starts_with($next, '/') || strpos($next, '..') !== false) {
+        return null;
+    }
+
+    if (!preg_match('#^[A-Za-z0-9_\-./]+(?:\?[A-Za-z0-9_\-.=&%]*)?$#', $next)) {
+        return null;
+    }
+
+    return $next;
+}
+
+/**
+ * Pastikan ada user login; redirect ke login.php (dengan ?next= ke halaman
+ * ini) bila belum. Mengecek ULANG is_active ke DB setiap panggilan -- bukan
+ * hanya sekali saat login -- supaya akun yang dinonaktifkan admin saat sesi
+ * masih berjalan langsung ter-logout di request berikutnya (edge case T-06),
+ * bukan menunggu sesi kedaluwarsa sendiri. Cache-Control: no-store dipasang
+ * di SINI (bukan hanya di logout.php) karena ini yang benar-benar mencegah
+ * tombol Back menampilkan halaman terproteksi dari cache browser -- header
+ * pada respons logout.php sendiri tidak memengaruhi cache halaman SEBELUMNYA.
+ */
+function require_login(): array
+{
+    if (!headers_sent()) {
+        header('Cache-Control: no-store');
+    }
+
+    $user = current_user();
+
+    if ($user !== null) {
+        $fresh = repo_user_find($user['id']);
+        if ($fresh === null || (int) $fresh['is_active'] !== 1) {
+            auth_logout();
+            flash('error', 'Akun Anda tidak lagi aktif. Silakan masuk kembali atau hubungi admin.');
+            redirect('login.php');
+        }
+
+        return $user;
+    }
+
+    $next = current_request_path();
+    redirect('login.php' . ($next !== '' ? '?next=' . rawurlencode($next) : ''));
+}
+
+/**
+ * Pastikan user login DAN berperan salah satu dari $roles. Mengembalikan 403
+ * EKSPLISIT bila peran tidak cocok -- BUKAN redirect diam-diam (spesifikasi
+ * T-06 secara eksplisit melarang itu, dibedakan dari require_login() yang
+ * memang mengarahkan ke login.php karena belum login sama sekali).
+ */
+function require_role(string|array $roles): array
+{
+    $user = require_login();
+
+    $allowed = is_array($roles) ? $roles : [$roles];
+    if (!in_array($user['role'], $allowed, true)) {
+        abort(403);
+    }
+
+    return $user;
+}
+
+/**
+ * Satu-satunya titik otorisasi data untuk lokasi_tambang (PRD bagian 2 & 5).
+ * Admin: boleh asal lokasinya memang ada. Kontraktor: hanya bila lokasi itu
+ * milik PERUSAHAANNYA (kontraktor_id), bukan admin ATAU kontraktor lain.
+ * Mengembalikan false baik untuk ID yang tidak ada maupun ID milik pihak
+ * lain -- caller cukup `if (!can_access_lokasi($user, $id)) abort(404);`,
+ * sehingga responsnya identik untuk kedua kasus (edge case T-06: cegah
+ * kebocoran informasi lewat perbedaan respons).
+ */
+function can_access_lokasi(array $user, int $lokasi_id): bool
+{
+    $lokasi = repo_lokasi_find($lokasi_id);
+    if ($lokasi === null) {
+        return false;
+    }
+
+    if ($user['role'] === 'admin') {
+        return true;
+    }
+
+    return (int) $lokasi['kontraktor_id'] === (int) ($user['kontraktor_id'] ?? 0);
+}
+
+/**
+ * Satu-satunya titik otorisasi data untuk aktivitas_tambang. Kepemilikan
+ * ditentukan lewat kontraktor_id PERUSAHAAN (via lokasi_tambang), bukan
+ * aktivitas_tambang.user_id individu -- lihat Keputusan T-06: PRD bagian 2
+ * menulis "aktivitas yang ia input sendiri" tapi memberi contoh filter
+ * `WHERE kontraktor_id = ?`; kontraktor_id dipilih karena itu yang akan
+ * tetap benar bila satu perusahaan kontraktor punya lebih dari satu akun
+ * (FR-12 tidak melarangnya), sementara user_id akan salah dalam kasus itu.
+ */
+function can_access_aktivitas(array $user, int $aktivitas_id): bool
+{
+    $aktivitas = repo_aktivitas_find($aktivitas_id);
+    if ($aktivitas === null) {
+        return false;
+    }
+
+    if ($user['role'] === 'admin') {
+        return true;
+    }
+
+    return can_access_lokasi($user, (int) $aktivitas['lokasi_id']);
 }
 
 /**
