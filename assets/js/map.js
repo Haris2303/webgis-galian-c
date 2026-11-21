@@ -1,5 +1,5 @@
 /**
- * assets/js/map.js — WebGIS Galian C Kota Sorong (T-13/T-14, FR-17/18/19)
+ * assets/js/map.js — WebGIS Galian C Kota Sorong (T-13/T-14/T-15, FR-17/18/19/20)
  * Modul peta inti: initWebGISMap(containerId, options), dipakai peta.php dan
  * (nanti) pratinjau dashboard. Semua konfigurasi masuk lewat objek options
  * (dibaca pemanggil dari data-* attribute, bukan skrip inline -- CSP proyek
@@ -10,6 +10,12 @@
  * textContent), TIDAK PERNAH innerHTML dari data server -- satu-satunya
  * innerHTML di berkas ini adalah markup SVG yang kita bangun sendiri
  * (shapeMarkup), bukan nilai dari API.
+ *
+ * Pencarian & filter (T-15) seluruhnya dibangun sebagai L.Control dinamis
+ * (bukan markup tambahan di peta.php) -- kontrol legenda (T-13) dan filter
+ * status DIGABUNG jadi satu widget supaya keduanya TIDAK PERNAH tidak
+ * sinkron (spesifikasi T-15: "tersinkron dengan legenda"); tidak ada dua
+ * sumber kebenaran status yang bisa berbeda.
  */
 (function (global) {
   'use strict';
@@ -19,7 +25,9 @@
   var MAX_ZOOM = 19;
   var SIDEBAR_TRANSITION_MS = 300; // > --transition-base (220ms, style.css) + jeda aman
   var DETAIL_CACHE_TTL_MS = 60000; // spesifikasi T-14: cache per id 60 detik
-  var DEEP_LINK_ZOOM = 16; // spesifikasi T-14
+  var DEEP_LINK_ZOOM = 16; // spesifikasi T-14, dipakai ulang untuk "pilih hasil cari" (T-15)
+  var SEARCH_DEBOUNCE_MS = 250; // spesifikasi T-15
+  var SEARCH_MIN_CHARS = 2; // spesifikasi T-15
 
   function cssVar(name, fallback) {
     try {
@@ -76,29 +84,6 @@
       iconAnchor: [13, 13],
       popupAnchor: [0, -14],
     });
-  }
-
-  function buildLegendControl() {
-    var LegendControl = L.Control.extend({
-      options: { position: 'bottomright' },
-      onAdd: function () {
-        var container = L.DomUtil.create('div', 'map-legend');
-        var title = L.DomUtil.create('strong', 'map-legend__title', container);
-        title.textContent = 'Status Izin';
-        var list = L.DomUtil.create('ul', 'map-legend__list', container);
-        STATUS_ORDER.forEach(function (key) {
-          var cfg = STATUS_CONFIG[key];
-          var item = L.DomUtil.create('li', 'map-legend__item', list);
-          var icon = L.DomUtil.create('span', 'map-legend__icon', item);
-          icon.innerHTML = shapeMarkup(cfg.shape, cfg.color, 1);
-          var label = L.DomUtil.create('span', 'map-legend__label', item);
-          label.textContent = cfg.label;
-        });
-        L.DomEvent.disableClickPropagation(container);
-        return container;
-      },
-    });
-    return new LegendControl();
   }
 
   function createToast(afterElement) {
@@ -442,8 +427,14 @@
       .catch(function () { return null; });
   }
 
-  function renderMarkers(markerLayer, groups, handlers) {
-    var idIndex = {};
+  // idIndex SELALU objek yang SAMA (dimutasi di tempat, tidak pernah diganti
+  // referensinya) -- T-15 menambahkan render ulang berkali-kali (tiap filter
+  // berubah), dan setiap closure lain (kontrol cari, deep-link) yang sudah
+  // memegang referensi idIndex harus otomatis melihat isi terbaru tanpa perlu
+  // diberi tahu ulang.
+  function renderMarkers(markerLayer, groups, handlers, idIndex) {
+    Object.keys(idIndex).forEach(function (key) { delete idIndex[key]; });
+
     groups.forEach(function (group) {
       var firstItem = group.items[0] || {};
       var icon = buildDivIcon(firstItem.status_izin, group.items.length);
@@ -467,7 +458,33 @@
         }
       });
     });
-    return idIndex;
+  }
+
+  // --- Filter status (T-15, FR-20): state di query string ?status=a,b ---
+
+  function parseActiveStatusesFromUrl() {
+    var raw = new URLSearchParams(window.location.search).get('status');
+    if (!raw) {
+      return new Set(STATUS_ORDER);
+    }
+    var parsed = raw.split(',')
+      .map(function (s) { return s.trim(); })
+      .filter(function (s) { return STATUS_ORDER.indexOf(s) !== -1; });
+    return parsed.length > 0 ? new Set(parsed) : new Set(STATUS_ORDER);
+  }
+
+  function syncStatusQueryString(activeStatuses) {
+    var params = new URLSearchParams(window.location.search);
+    if (activeStatuses.size === STATUS_ORDER.length) {
+      // Semua status aktif = kondisi default -- tidak perlu ditulis di URL,
+      // tautan yang dibagikan tetap bersih kalau filter tidak dipakai.
+      params.delete('status');
+    } else {
+      params.set('status', STATUS_ORDER.filter(function (s) { return activeStatuses.has(s); }).join(','));
+    }
+    var query = params.toString();
+    var newUrl = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
+    window.history.replaceState(null, '', newUrl);
   }
 
   function initWebGISMap(containerId, options) {
@@ -493,6 +510,7 @@
     var zoom = opts.zoom || DEFAULT_ZOOM;
     var showLegend = opts.showLegend !== false;
     var showLayerControl = opts.showLayerControl !== false;
+    var showSearch = opts.showSearch !== false;
 
     var map = L.map(container, { tap: true }).setView(center, zoom);
 
@@ -517,19 +535,17 @@
     observeResize(map, container);
     watchSidebarToggle(map);
 
-    if (showLegend) {
-      buildLegendControl().addTo(map);
-    }
-
-    // --- State popup detail (T-14): cache per id (TTL 60dtk) + AbortController
-    // supaya klik marker beruntun tidak pernah menampilkan data lokasi yang
-    // salah (kriteria selesai T-14 eksplisit). requestSeq adalah jaring
-    // pengaman KEDUA di atas AbortController: walau sebuah fetch lama
-    // SEMPAT selesai sebelum abort-nya diproses browser, hasilnya tetap
-    // dibuang kalau sudah ada klik yang lebih baru. ---
+    // --- State bersama T-14 (popup detail) & T-15 (cari/filter). Semua
+    // dideklarasikan di sini (bukan modul-level) karena setiap instance peta
+    // (kalau kelak dipakai juga di pratinjau dashboard) butuh state sendiri. ---
     var detailCache = {};
     var requestSeq = 0;
-    var activeAbort = null;
+    var activeDetailAbort = null;
+    var idIndex = {};
+    var allFeatures = [];
+    var activeStatuses = parseActiveStatusesFromUrl();
+    var filterCheckboxes = {};
+    var filterCountEl = null;
 
     function openDetailPopup(marker, id) {
       if (id === undefined || id === null) {
@@ -540,8 +556,8 @@
       var popup = L.popup().setContent(buildSkeleton());
       marker.bindPopup(popup).openPopup();
 
-      if (activeAbort) {
-        activeAbort.abort();
+      if (activeDetailAbort) {
+        activeDetailAbort.abort();
       }
 
       var cached = detailCache[id];
@@ -552,7 +568,7 @@
 
       var mySeq = ++requestSeq;
       var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      activeAbort = controller;
+      activeDetailAbort = controller;
 
       fetchJson(opts.detailUrl + '?id=' + encodeURIComponent(String(id)), controller ? controller.signal : undefined)
         .then(function (data) {
@@ -579,6 +595,348 @@
         });
     }
 
+    function syncFilterCheckboxUI() {
+      STATUS_ORDER.forEach(function (key) {
+        if (filterCheckboxes[key]) {
+          filterCheckboxes[key].checked = activeStatuses.has(key);
+        }
+      });
+    }
+
+    // Render ulang marker dari allFeatures (SUDAH di memori, T-15: "bekerja
+    // di sisi klien", nol request baru) sesuai activeStatuses saat ini.
+    // markerLayer.clearLayers() otomatis menutup popup manapun yang masih
+    // terbuka pada marker yang dihapus -- ini SENGAJA jadi cara kita
+    // menangani edge case wajib T-15 "filter menyembunyikan lokasi yang
+    // sedang popup terbuka": popupnya ikut hilang, bukan jadi floating/basi.
+    function renderFiltered(shouldFitBounds) {
+      var filtered = allFeatures.filter(function (f) {
+        return activeStatuses.has(f.properties.status_izin);
+      });
+
+      markerLayer.clearLayers();
+      var groups = groupByCoordinate(filtered);
+      renderMarkers(markerLayer, groups, { onOpenDetail: openDetailPopup }, idIndex);
+
+      if (filterCountEl) {
+        filterCountEl.textContent = filtered.length + ' lokasi tampil.';
+      }
+
+      syncStatusQueryString(activeStatuses);
+
+      if (shouldFitBounds && groups.length > 0) {
+        var bounds = L.latLngBounds(groups.map(function (g) { return [g.lat, g.lng]; }));
+        map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
+      }
+    }
+
+    // Kontrol gabungan legenda + filter (T-13 + T-15) -- SATU widget supaya
+    // tidak ada dua tempat yang bisa menunjukkan status aktif berbeda.
+    function buildLegendFilterControl() {
+      var LegendFilterControl = L.Control.extend({
+        options: { position: 'bottomright' },
+        onAdd: function () {
+          var container = L.DomUtil.create('div', 'map-legend');
+          var title = L.DomUtil.create('strong', 'map-legend__title', container);
+          title.textContent = 'Status Izin';
+
+          var list = L.DomUtil.create('ul', 'map-legend__list', container);
+          STATUS_ORDER.forEach(function (key) {
+            var cfg = STATUS_CONFIG[key];
+            var item = L.DomUtil.create('li', 'map-legend__item', list);
+
+            var label = document.createElement('label');
+            label.className = 'map-legend__checkbox-label';
+
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'map-legend__checkbox';
+            checkbox.checked = activeStatuses.has(key);
+            checkbox.addEventListener('change', function () {
+              if (checkbox.checked) {
+                activeStatuses.add(key);
+              } else {
+                activeStatuses.delete(key);
+              }
+              renderFiltered(false); // toggle filter TIDAK memindah/zoom ulang peta
+            });
+            filterCheckboxes[key] = checkbox;
+            label.appendChild(checkbox);
+
+            var icon = document.createElement('span');
+            icon.className = 'map-legend__icon';
+            icon.innerHTML = shapeMarkup(cfg.shape, cfg.color, 1); // markup sendiri, bukan data API
+            label.appendChild(icon);
+
+            var text = document.createElement('span');
+            text.className = 'map-legend__label';
+            text.textContent = cfg.label;
+            label.appendChild(text);
+
+            item.appendChild(label);
+          });
+
+          filterCountEl = L.DomUtil.create('p', 'map-legend__count', container);
+
+          L.DomEvent.disableClickPropagation(container);
+          return container;
+        },
+      });
+      return new LegendFilterControl();
+    }
+
+    // Kotak pencarian autocomplete (T-15, FR-20): skeleton pola ARIA
+    // combobox/listbox, debounce, AbortController + token urutan (idiom yang
+    // sama dengan openDetailPopup di atas) supaya respons lama tidak pernah
+    // menimpa respons baru.
+    function buildSearchControl() {
+      var SearchControl = L.Control.extend({
+        options: { position: 'topleft' },
+        onAdd: function () {
+          var container = L.DomUtil.create('div', 'map-search leaflet-bar');
+          container.setAttribute('role', 'search');
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'map-search__input';
+          input.placeholder = 'Cari nama lokasi...';
+          input.autocomplete = 'off';
+          input.maxLength = 150; // samakan dengan nama_lokasi varchar(150), database/schema.sql
+          input.setAttribute('role', 'combobox');
+          input.setAttribute('aria-autocomplete', 'list');
+          input.setAttribute('aria-expanded', 'false');
+          input.setAttribute('aria-haspopup', 'listbox');
+          var listboxId = 'map-search-listbox-' + Math.random().toString(36).slice(2, 8);
+          input.setAttribute('aria-controls', listboxId);
+          container.appendChild(input);
+
+          var listbox = document.createElement('ul');
+          listbox.id = listboxId;
+          listbox.className = 'map-search__listbox';
+          listbox.setAttribute('role', 'listbox');
+          listbox.hidden = true;
+          container.appendChild(listbox);
+
+          var statusEl = document.createElement('p');
+          statusEl.className = 'sr-only';
+          statusEl.setAttribute('aria-live', 'polite');
+          container.appendChild(statusEl);
+
+          var debounceTimer = null;
+          var searchSeq = 0;
+          var searchAbort = null;
+          var results = [];
+          var highlighted = -1;
+
+          function closeListbox() {
+            listbox.textContent = '';
+            listbox.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+            highlighted = -1;
+          }
+
+          function setHighlighted(idx) {
+            var options = listbox.querySelectorAll('.map-search__option');
+            options.forEach(function (opt) {
+              opt.classList.remove('is-highlighted');
+              opt.setAttribute('aria-selected', 'false');
+            });
+            if (idx >= 0 && idx < options.length) {
+              highlighted = idx;
+              options[idx].classList.add('is-highlighted');
+              options[idx].setAttribute('aria-selected', 'true');
+              input.setAttribute('aria-activedescendant', options[idx].id);
+              options[idx].scrollIntoView({ block: 'nearest' });
+            } else {
+              highlighted = -1;
+              input.removeAttribute('aria-activedescendant');
+            }
+          }
+
+          function renderResults() {
+            listbox.textContent = '';
+            if (results.length === 0) {
+              listbox.hidden = true;
+              input.setAttribute('aria-expanded', 'false');
+              return;
+            }
+            results.forEach(function (item, idx) {
+              var li = document.createElement('li');
+              li.id = listboxId + '-opt-' + idx;
+              li.setAttribute('role', 'option');
+              li.className = 'map-search__option';
+              li.textContent = item.nama_lokasi; // textContent -- aman dari XSS walau nama berisi markup
+              li.addEventListener('click', function () {
+                pickResult(idx);
+              });
+              listbox.appendChild(li);
+            });
+            listbox.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            setHighlighted(0);
+          }
+
+          function flyToLokasi(item) {
+            // Kombinasi cari + filter wajib tetap bekerja (spesifikasi T-15):
+            // hasil cari yang statusnya sedang difilter OFF tetap harus BISA
+            // dituju -- aktifkan kembali filter status itu dulu.
+            if (!activeStatuses.has(item.status_izin)) {
+              activeStatuses.add(item.status_izin);
+              syncFilterCheckboxUI();
+              renderFiltered(false);
+            }
+            var targetZoom = Math.max(map.getZoom(), DEEP_LINK_ZOOM);
+            map.flyTo([item.lat, item.lng], targetZoom);
+            var entry = idIndex[item.id];
+            if (entry) {
+              openDetailPopup(entry.marker, item.id);
+            }
+          }
+
+          function pickResult(idx) {
+            var item = results[idx];
+            if (!item) {
+              return;
+            }
+            input.value = item.nama_lokasi;
+            closeListbox();
+            flyToLokasi(item);
+          }
+
+          function runSearch(query) {
+            if (searchAbort) {
+              searchAbort.abort();
+            }
+            var mySeq = ++searchSeq;
+            var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            searchAbort = controller;
+
+            fetchJson(opts.cariUrl + '?q=' + encodeURIComponent(query), controller ? controller.signal : undefined)
+              .then(function (data) {
+                if (mySeq !== searchSeq) {
+                  return; // ada pengetikan lebih baru -- buang hasil basi (edge case wajib T-15)
+                }
+                results = Array.isArray(data) ? data : [];
+                renderResults();
+                statusEl.textContent = results.length > 0
+                  ? (results.length + ' hasil ditemukan untuk "' + query + '".')
+                  : ('Tidak ada hasil untuk "' + query + '".'); // edge case wajib T-15: hasil kosong
+              })
+              .catch(function (err) {
+                if (err && err.name === 'AbortError') {
+                  return;
+                }
+                if (mySeq !== searchSeq) {
+                  return;
+                }
+                results = [];
+                renderResults();
+                statusEl.textContent = 'Gagal memuat hasil pencarian.';
+              });
+          }
+
+          input.addEventListener('input', function () {
+            var query = input.value.trim();
+            if (debounceTimer) {
+              window.clearTimeout(debounceTimer);
+            }
+            if (query.length < SEARCH_MIN_CHARS) {
+              // Edge case wajib T-15: input pendek/dikosongkan -- jangan fetch
+              // sama sekali, bukan hanya menunda.
+              if (searchAbort) {
+                searchAbort.abort();
+              }
+              results = [];
+              closeListbox();
+              statusEl.textContent = '';
+              return;
+            }
+            debounceTimer = window.setTimeout(function () {
+              runSearch(query);
+            }, SEARCH_DEBOUNCE_MS);
+          });
+
+          input.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowDown') {
+              if (!listbox.hidden) {
+                event.preventDefault();
+                setHighlighted(Math.min(highlighted + 1, results.length - 1));
+              }
+            } else if (event.key === 'ArrowUp') {
+              if (!listbox.hidden) {
+                event.preventDefault();
+                setHighlighted(Math.max(highlighted - 1, 0));
+              }
+            } else if (event.key === 'Enter') {
+              if (!listbox.hidden && highlighted >= 0) {
+                event.preventDefault();
+                pickResult(highlighted);
+              }
+            } else if (event.key === 'Escape') {
+              if (!listbox.hidden) {
+                event.preventDefault();
+                closeListbox();
+              }
+            }
+          });
+
+          L.DomEvent.disableClickPropagation(container);
+          L.DomEvent.disableScrollPropagation(container);
+
+          return container;
+        },
+      });
+      return new SearchControl();
+    }
+
+    if (showLegend) {
+      buildLegendFilterControl().addTo(map);
+    }
+    if (showSearch && opts.cariUrl) {
+      buildSearchControl().addTo(map);
+    }
+
+    function applyDeepLink() {
+      // Edge case wajib T-14: id tidak ada / bukan angka -- diam saja (tautan
+      // lama/salah ketik), bukan error yang mengganggu pengguna.
+      var raw = new URLSearchParams(window.location.search).get('lokasi');
+      if (!raw || !/^[1-9][0-9]*$/.test(raw)) {
+        return;
+      }
+      var id = parseInt(raw, 10);
+
+      var feature = allFeatures.filter(function (f) { return f.properties && f.properties.id === id; })[0];
+      if (feature) {
+        // Sama seperti hasil cari (T-15): deep-link ke lokasi yang statusnya
+        // sedang difilter OFF tetap harus membukanya, bukan diam-diam gagal.
+        if (!activeStatuses.has(feature.properties.status_izin)) {
+          activeStatuses.add(feature.properties.status_izin);
+          syncFilterCheckboxUI();
+          renderFiltered(false);
+        }
+        var entry = idIndex[id];
+        if (entry) {
+          map.setView([entry.lat, entry.lng], DEEP_LINK_ZOOM);
+          openDetailPopup(entry.marker, id);
+        }
+        return;
+      }
+
+      // id berformat valid tapi tidak ada di antara data yang sudah termuat
+      // sama sekali -- coba ambil langsung; kalau API juga bilang tidak ada,
+      // beri tahu lewat toast (bukan membiarkan tautan terlihat tidak berefek).
+      fetchJson(opts.detailUrl + '?id=' + id).then(function (data) {
+        if (!data || !data.koordinat) {
+          return;
+        }
+        map.setView([data.koordinat.lat, data.koordinat.lng], DEEP_LINK_ZOOM);
+        L.popup([data.koordinat.lat, data.koordinat.lng]).setContent(buildDetailContent(data)).openOn(map);
+      }).catch(function () {
+        showToast('Lokasi pada tautan (?lokasi=' + id + ') tidak ditemukan.');
+      });
+    }
+
     var lokasiPromise = fetchJson(opts.lokasiUrl);
     var areaPromise = opts.areaUrl ? fetchJson(opts.areaUrl) : Promise.resolve(null);
     var boundaryPromise = opts.boundaryUrl ? fetchStaticGeojson(opts.boundaryUrl) : Promise.resolve(null);
@@ -603,8 +961,8 @@
         createOverlay(container, 'Belum ada data lokasi tambang untuk ditampilkan.', 'empty');
       }
 
-      var groups = groupByCoordinate(features);
-      var idIndex = renderMarkers(markerLayer, groups, { onOpenDetail: openDetailPopup });
+      allFeatures = features;
+      renderFiltered(true); // render pertama -- fitBounds ke hasil (ter-filter sesuai URL) boleh
 
       if (opts.areaUrl) {
         if (areaResult.status === 'fulfilled' && areaResult.value) {
@@ -624,49 +982,14 @@
         L.control.layers(null, overlays, { position: 'topright', collapsed: false }).addTo(map);
       }
 
-      if (groups.length > 0) {
-        var bounds = L.latLngBounds(groups.map(function (g) { return [g.lat, g.lng]; }));
-        map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
-      }
-
-      // Deep-link ?lokasi=ID (spesifikasi T-14) -- dijalankan TERAKHIR supaya
-      // setView zoom 16 di bawah ini menang atas fitBounds di atas.
+      // Deep-link ?lokasi=ID (T-14) -- dijalankan TERAKHIR supaya setView
+      // zoom 16 di dalamnya menang atas fitBounds dari renderFiltered di atas.
       if (opts.detailUrl) {
-        applyDeepLink(map, idIndex, openDetailPopup, opts.detailUrl, showToast);
+        applyDeepLink();
       }
     });
 
     return { map: map };
-  }
-
-  // Edge case wajib T-14: id tidak ada / bukan angka -- diam saja (tautan
-  // lama/salah ketik), bukan error yang mengganggu pengguna.
-  function applyDeepLink(map, idIndex, openDetailPopup, detailUrl, showToast) {
-    var raw = new URLSearchParams(window.location.search).get('lokasi');
-    if (!raw || !/^[1-9][0-9]*$/.test(raw)) {
-      return;
-    }
-    var id = parseInt(raw, 10);
-
-    var entry = idIndex[id];
-    if (entry) {
-      map.setView([entry.lat, entry.lng], DEEP_LINK_ZOOM);
-      openDetailPopup(entry.marker, id);
-      return;
-    }
-
-    // id berformat valid tapi tidak ada di antara marker yang termuat saat
-    // ini -- coba ambil langsung; kalau API juga bilang tidak ada, beri tahu
-    // lewat toast (bukan membiarkan tautan terlihat seperti tidak berefek).
-    fetchJson(detailUrl + '?id=' + id).then(function (data) {
-      if (!data || !data.koordinat) {
-        return;
-      }
-      map.setView([data.koordinat.lat, data.koordinat.lng], DEEP_LINK_ZOOM);
-      L.popup([data.koordinat.lat, data.koordinat.lng]).setContent(buildDetailContent(data)).openOn(map);
-    }).catch(function () {
-      showToast('Lokasi pada tautan (?lokasi=' + id + ') tidak ditemukan.');
-    });
   }
 
   global.initWebGISMap = initWebGISMap;
@@ -683,6 +1006,7 @@
       boundaryUrl: container.dataset.boundaryUrl || null,
       detailUrl: container.dataset.detailUrl || null,
       loginUrl: container.dataset.loginUrl || null,
+      cariUrl: container.dataset.cariUrl || null,
     });
   });
 })(window);

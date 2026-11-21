@@ -1043,6 +1043,28 @@ dialog.modal::backdrop {
   height: 100%;
 }
 
+/* --- Legenda + filter status gabungan (T-15, FR-20) --- */
+.map-legend__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  cursor: pointer;
+}
+
+.map-legend__checkbox {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.map-legend__count {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .map-marker-icon {
   display: block;
 }
@@ -1164,6 +1186,58 @@ dialog.modal::backdrop {
   color: var(--color-text-muted);
   background: var(--color-bg);
   padding: var(--space-1);
+}
+
+/* --- Kotak pencarian lokasi (T-15, FR-20) --- */
+.map-search {
+  background: #fff;
+  position: relative;
+}
+
+.map-search__input {
+  display: block;
+  width: 220px;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.map-search__input:focus {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: -2px;
+}
+
+.map-search__listbox {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.map-search__option {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-search__option:hover,
+.map-search__option.is-highlighted {
+  background: var(--color-bg);
 }
 
 /* -----------------------------------------------------------------------------
