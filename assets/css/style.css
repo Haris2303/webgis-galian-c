@@ -911,6 +911,16 @@ dialog.modal::backdrop {
   background: var(--color-border);
 }
 
+/* Varian tinggi tetap untuk peta di dalam form (bukan peta penuh layar,
+   T-10) -- menimpa tinggi viewport .map-shell di atas. */
+.map-shell--form {
+  height: 360px;
+}
+
+.u-mt-4 {
+  margin-top: var(--space-4);
+}
+
 /* -----------------------------------------------------------------------------
    16. Breakpoint responsif
    ----------------------------------------------------------------------------- */

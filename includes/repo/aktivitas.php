@@ -127,3 +127,11 @@ function repo_aktivitas_delete(int $id): bool
 {
     return db_exec('DELETE FROM aktivitas_tambang WHERE id = :id', ['id' => $id]) > 0;
 }
+
+/** Dipakai lokasi/form.php (T-09): deteksi lokasi berizin->tidak_berizin yang sudah punya riwayat aktivitas. */
+function repo_aktivitas_count_by_lokasi(int $lokasi_id): int
+{
+    $row = db_one('SELECT COUNT(*) AS jumlah FROM aktivitas_tambang WHERE lokasi_id = :lokasi_id', ['lokasi_id' => $lokasi_id]);
+
+    return (int) ($row['jumlah'] ?? 0);
+}

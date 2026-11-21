@@ -64,7 +64,10 @@ function csp_nonce(): string
  *                              + SATU <style> inline yang masih ada (halaman error
  *                              darurat) lewat nonce per request, bukan 'unsafe-inline'
  *                              blanket.
- * - img-src ... tile.openstreetmap.org : tegas sesuai PRD, hanya tile peta.
+ * - img-src ... tile.openstreetmap.org + unpkg.com : tile peta (PRD bagian 9/11,
+ *                              tegas) ditambah unpkg.com (T-10) karena ikon marker
+ *                              default Leaflet dimuat lewat path relatif ke CSS-nya
+ *                              sendiri di CDN yang sama, bukan dari origin sendiri.
  * - connect-src 'self'      : fetch() (PRD bagian 10) hanya ke endpoint sendiri.
  * - object-src 'none'       : blokir <object>/<embed>, tidak ada kebutuhan di app ini.
  * - base-uri 'self'         : cegah <base> disuntik untuk membajak URL relatif.
@@ -84,7 +87,7 @@ function security_headers(): void
     $csp = sprintf(
         "default-src 'self'; script-src 'self' https://unpkg.com; "
         . "style-src 'self' https://unpkg.com 'nonce-%s'; "
-        . "img-src 'self' https://tile.openstreetmap.org; connect-src 'self'; "
+        . "img-src 'self' https://tile.openstreetmap.org https://unpkg.com; connect-src 'self'; "
         . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
         csp_nonce()
     );

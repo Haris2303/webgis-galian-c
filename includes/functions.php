@@ -30,6 +30,18 @@ function url(string $path = ''): string
 }
 
 /**
+ * Gabungkan markup <link>/<script> yang SUDAH JADI dari pemanggil (server --
+ * mis. tag CDN Leaflet di lokasi/form.php, T-10), bukan dari data pengguna.
+ * Dipakai includes/header.php ($extra_head) & footer.php ($extra_scripts)
+ * supaya tetap lewat pemanggilan fungsi (konsisten dengan asset()/csrf_field()),
+ * bukan `echo $variabel` telanjang yang lolos pola "echo tanpa e()" (PRD 11).
+ */
+function render_raw_tags(array $tags): string
+{
+    return implode("\n", $tags);
+}
+
+/**
  * URL aset statis dengan cache-busting berdasarkan filemtime, supaya browser
  * otomatis ambil versi baru setiap kali berkas CSS/JS diubah.
  */

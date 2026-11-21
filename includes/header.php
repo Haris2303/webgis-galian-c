@@ -31,6 +31,7 @@ $flash_messages = flash_pull();
 <title><?= e($page_title) ?> — WebGIS Galian C Kota Sorong</title>
 <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
 <link rel="stylesheet" href="<?= e(asset('assets/css/print.css')) ?>" media="print">
+<?= render_raw_tags($extra_head ?? []) ?>
 </head>
 <body>
 <?php if ($layout === 'auth'): ?>
