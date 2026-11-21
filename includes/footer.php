@@ -23,5 +23,6 @@ $layout = $layout ?? 'app';
 </div>
 <?php endif; ?>
 <script src="<?= e(asset('assets/js/ui.js')) ?>"></script>
+<script src="<?= e(asset('assets/js/validation.js')) ?>"></script>
 </body>
 </html>

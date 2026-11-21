@@ -175,6 +175,7 @@ register_shutdown_function(static function (): void {
 });
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/validator.php';
 
 // Header keamanan + session hardening (T-05, PRD bagian 11). Diletakkan di
 // AKHIR bootstrap.php, setelah error handler di atas terpasang, supaya
