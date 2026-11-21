@@ -1,0 +1,80 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1795228880.0312748,
+    "seen": 1795228905.8671405,
+    "ast_hash": "006012ec5a3dce23a1175d927b6408ad",
+    "semantic_hash": ""
+  },
+  "config/config.local.example.php": {
+    "mtime": 1795227065.851015,
+    "seen": 1795228905.8671405,
+    "ast_hash": "0d629d94771c93fb7059a70c94cc3195",
+    "semantic_hash": ""
+  },
+  "config/config.php": {
+    "mtime": 1795227082.9327345,
+    "seen": 1795228905.8671405,
+    "ast_hash": "677ffda3dd4aeb62ec63afbfb57db891",
+    "semantic_hash": ""
+  },
+  "database/make_seed_hash.php": {
+    "mtime": 1795227875.352103,
+    "seen": 1795228905.8671405,
+    "ast_hash": "3300779a528b2bf43835ea57a035d0bd",
+    "semantic_hash": ""
+  },
+  "includes/bootstrap.php": {
+    "mtime": 1795227134.041978,
+    "seen": 1795228905.8671405,
+    "ast_hash": "8c8a493657853ef5d29baa72dd5c297d",
+    "semantic_hash": ""
+  },
+  "includes/functions.php": {
+    "mtime": 1795227106.4675207,
+    "seen": 1795228905.8671405,
+    "ast_hash": "e39fb75447825839c816db6a7f398ee9",
+    "semantic_hash": ""
+  },
+  "index.php": {
+    "mtime": 1795227198.3018982,
+    "seen": 1795228905.8671405,
+    "ast_hash": "974eff22247b5824b40d057a7935c6dd",
+    "semantic_hash": ""
+  },
+  ".claude/CLAUDE.md": {
+    "mtime": 1795228880.0850463,
+    "seen": 1795228905.8671405,
+    "ast_hash": "9b31786b637be3c13978bec4c2330752",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1795228880.0211508,
+    "seen": 1795228905.8671405,
+    "ast_hash": "dfe5fa7939121e96d61b54077cc9ab84",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1795227168.2399354,
+    "seen": 1795228905.8671405,
+    "ast_hash": "78c5befbddbfa3ab2ac7ac363bc7fb43",
+    "semantic_hash": ""
+  },
+  "database/README.md": {
+    "mtime": 1795228148.3933477,
+    "seen": 1795228905.8671405,
+    "ast_hash": "0c7f6e1ed6a3b45c7064ddb56aeb003b",
+    "semantic_hash": ""
+  },
+  "docs/PRD \u2014 WebGIS Pemetaan & Monitoring Aktivitas Galian C Kota Sorong.md": {
+    "mtime": 1795224901.4387286,
+    "seen": 1795228905.8671405,
+    "ast_hash": "60f3ecb1806e6d911463286de537ef15",
+    "semantic_hash": ""
+  },
+  "docs/todolist.md": {
+    "mtime": 1795226492.1297445,
+    "seen": 1795228905.8671405,
+    "ast_hash": "60aa1a6e3882f74ae8fd41bb2ce6b5c6",
+    "semantic_hash": ""
+  }
+}

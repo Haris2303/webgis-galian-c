@@ -1,0 +1,16 @@
+# Kredensial & konfigurasi lokal
+/config/config.local.php
+
+# Log aplikasi (rotasi harian)
+/storage/logs/*.log
+
+# Berkas unggahan pengguna
+/uploads/aktivitas/*
+!/uploads/aktivitas/.gitkeep
+
+# Sistem operasi / editor
+.DS_Store
+Thumbs.db
+
+# Cache build graphify (AST cache, bisa dibangun ulang otomatis via `graphify update .`)
+/graphify-out/cache/

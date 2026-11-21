@@ -1,0 +1,13 @@
+# webgis-galian-c - konfigurasi Apache root (PRD bagian 8, T-01)
+
+# Matikan directory listing & MultiViews.
+Options -Indexes
+Options -MultiViews
+
+# Blokir akses langsung ke folder internal: config/, includes/, database/, storage/.
+# Pola di bawah relatif terhadap direktori .htaccess ini sendiri, jadi berlaku sama
+# baik proyek dipasang di subfolder XAMPP (htdocs/webgis-galian-c) maupun di root hosting.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(config|includes|database|storage)($|/) - [F,L]
+</IfModule>
