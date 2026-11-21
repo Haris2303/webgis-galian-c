@@ -863,7 +863,7 @@ dialog.modal::backdrop {
 }
 
 /* -----------------------------------------------------------------------------
-   13c. Galeri foto dokumentasi aktivitas (T-17)
+   13c. Galeri foto dokumentasi aktivitas (T-17/T-18)
    ----------------------------------------------------------------------------- */
 .photo-grid {
   display: flex;
@@ -874,12 +874,23 @@ dialog.modal::backdrop {
   padding: 0;
 }
 
+.photo-grid__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .photo-grid__thumb {
   width: 96px;
   height: 96px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
+}
+
+.photo-grid__hapus-form {
+  margin: 0;
 }
 
 /* -----------------------------------------------------------------------------

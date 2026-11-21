@@ -9,10 +9,9 @@ declare(strict_types=1);
  * bukan hanya lewat sidebar/menu -- setiap ID dari URL maupun POST diperiksa
  * ulang ke database, tidak pernah dipercaya mentah dari klien.
  *
- * Foto (FR-14): bagian SIMPAN (transaksi + nama acak + finfo dasar) sudah
- * berfungsi di sini, tapi pengerasan penuh (re-encode GD, buang EXIF/GPS,
- * cegah decompression bomb, thumbnail) adalah tanggung jawab T-18 yang akan
- * MENGGANTI isi aktivitas_simpan_foto() di bawah -- lihat komentar fungsi itu.
+ * Foto (FR-14, T-18): validasi berlapis + re-encode GD (buang EXIF/GPS &
+ * payload polyglot) + thumbnail + rollback file fisik ditangani penuh oleh
+ * includes/upload_foto.php -- berkas ini hanya memanggilnya.
  */
 
 require_once __DIR__ . '/../includes/bootstrap.php';
@@ -21,6 +20,7 @@ require_once __DIR__ . '/../includes/repo/lokasi.php';
 require_once __DIR__ . '/../includes/repo/material.php';
 require_once __DIR__ . '/../includes/repo/foto.php';
 require_once __DIR__ . '/../includes/repo/kontraktor.php';
+require_once __DIR__ . '/../includes/upload_foto.php';
 
 $user = require_login();
 
@@ -88,134 +88,16 @@ $rules = [
     'deskripsi' => 'max:2000',
 ];
 
-/**
- * Validasi dasar berkas foto SEBELUM apa pun disimpan (T-17) -- supaya
- * pengguna lihat pesan error dalam form, bukan kegagalan senyap di tengah
- * transaksi. $jumlah_lama dihitung dari DB (mode ubah), bukan dari form.
- * @return string[] Daftar pesan error, kosong bila semua foto valid/kosong.
- */
-function aktivitas_validate_foto(?array $files, int $jumlah_lama): array
-{
-    $errors = [];
-    if ($files === null || !isset($files['error']) || !is_array($files['error'])) {
-        return $errors;
-    }
-
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $jumlah_baru = 0;
-
-    foreach ($files['error'] as $idx => $kode_error) {
-        if ($kode_error === UPLOAD_ERR_NO_FILE) {
-            continue; // slot <input multiple> kosong -- normal, bukan error
-        }
-        if ($kode_error !== UPLOAD_ERR_OK) {
-            $errors[] = 'Salah satu foto gagal diunggah (kode error ' . $kode_error . ').';
-            continue;
-        }
-
-        $jumlah_baru++;
-
-        if ((int) ($files['size'][$idx] ?? 0) > UPLOAD_MAX_SIZE) {
-            $errors[] = 'Ukuran salah satu foto melebihi ' . (int) (UPLOAD_MAX_SIZE / 1024 / 1024) . ' MB.';
-            continue;
-        }
-
-        $tmp_path = (string) ($files['tmp_name'][$idx] ?? '');
-        if ($tmp_path === '' || !is_uploaded_file($tmp_path)) {
-            $errors[] = 'Salah satu foto gagal diproses server.';
-            continue;
-        }
-
-        // finfo membaca KONTEN berkas, bukan ekstensi nama file atau header
-        // Content-Type yang dikirim klien -- keduanya mudah dipalsukan.
-        $mime = $finfo->file($tmp_path);
-        if (!in_array($mime, UPLOAD_ALLOWED_MIME, true)) {
-            $errors[] = 'Salah satu foto bukan berkas JPG/PNG yang valid.';
-        }
-    }
-
-    if (($jumlah_lama + $jumlah_baru) > UPLOAD_MAX_FILES) {
-        $errors[] = "Maksimal " . UPLOAD_MAX_FILES . " foto per aktivitas (sudah ada {$jumlah_lama}, memilih {$jumlah_baru} baru).";
-    }
-
-    return $errors;
-}
-
-/**
- * Simpan berkas foto yang SUDAH lolos aktivitas_validate_foto() di atas.
- * HANYA pemindahan file + nama acak + baris DB -- BUKAN penanganan FR-14
- * lengkap. T-18 akan MENGGANTI isi fungsi ini dengan: re-encode lewat GD
- * (membuang EXIF/GPS & payload polyglot), batas dimensi diperiksa SEBELUM
- * decode (cegah decompression bomb), thumbnail 320px, resize sisi terpanjang
- * ke 1600px, serta skrip CLI pembersih file yatim. Rollback file fisik bila
- * transaksi DB gagal SETELAH file terpindah juga scope T-18 -- lihat Risiko
- * tersisa pada laporan T-17.
- *
- * Dipanggil HANYA di dalam db_transaction() (spesifikasi T-17: aktivitas +
- * foto satu transaksi) supaya Exception di sini ikut membatalkan INSERT/
- * UPDATE aktivitas.
- *
- * @param array<string, mixed>|null $files Bentuk asli $_FILES['foto'].
- */
-function aktivitas_simpan_foto(int $aktivitas_id, ?array $files): void
-{
-    if ($files === null || !isset($files['error']) || !is_array($files['error'])) {
-        return;
-    }
-
-    $ext_by_mime = ['image/jpeg' => 'jpg', 'image/png' => 'png'];
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $jumlah_lama = repo_foto_count_by_aktivitas($aktivitas_id);
-    $jumlah_tersimpan = 0;
-
-    foreach ($files['error'] as $idx => $kode_error) {
-        if ($kode_error !== UPLOAD_ERR_OK) {
-            continue; // slot kosong/gagal -- sudah ditolak di aktivitas_validate_foto() bila relevan
-        }
-
-        // Jaring pengaman KEDUA (defense in depth) -- validasi utama sudah
-        // lolos di aktivitas_validate_foto(), tapi tidak ada alasan untuk
-        // mempercayai ulang tanpa cek di titik yang benar-benar menulis disk.
-        if (($jumlah_lama + $jumlah_tersimpan) >= UPLOAD_MAX_FILES) {
-            break;
-        }
-
-        $tmp_path = (string) ($files['tmp_name'][$idx] ?? '');
-        if ($tmp_path === '' || !is_uploaded_file($tmp_path)) {
-            continue;
-        }
-        if ((int) ($files['size'][$idx] ?? 0) > UPLOAD_MAX_SIZE || (int) ($files['size'][$idx] ?? 0) <= 0) {
-            continue;
-        }
-
-        $mime = $finfo->file($tmp_path);
-        if (!isset($ext_by_mime[$mime]) || !in_array($mime, UPLOAD_ALLOWED_MIME, true)) {
-            continue;
-        }
-
-        $subdir = 'uploads/aktivitas/' . date('Y') . '/' . date('m');
-        $full_dir = rtrim(PROJECT_ROOT, '/\\') . '/' . $subdir;
-        if (!is_dir($full_dir) && !@mkdir($full_dir, 0755, true) && !is_dir($full_dir)) {
-            app_log('error', "aktivitas/form.php: gagal membuat direktori upload {$full_dir}");
-            continue;
-        }
-
-        // Nama acak dari KONTEN (ekstensi dari MIME hasil finfo), bukan dari
-        // nama file asli klien -- mencegah trik ekstensi ganda (shell.php.jpg).
-        $nama_file = bin2hex(random_bytes(16)) . '.' . $ext_by_mime[$mime];
-        $tujuan = $full_dir . '/' . $nama_file;
-
-        if (!move_uploaded_file($tmp_path, $tujuan)) {
-            app_log('error', "aktivitas/form.php: gagal memindahkan upload ke {$tujuan}");
-            continue;
-        }
-
-        repo_foto_create(['aktivitas_id' => $aktivitas_id, 'file_path' => $subdir . '/' . $nama_file]);
-        $jumlah_tersimpan++;
-    }
-}
-
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    // Edge case wajib T-18: post_max_size php.ini terlampaui -- $_POST DAN
+    // $_FILES keduanya kosong di sini, jadi diperiksa SEBELUM csrf_require()
+    // (yang juga akan gagal, tapi dengan pesan yang menyesatkan).
+    $pesan_post_terlampaui = upload_cek_post_terlampaui();
+    if ($pesan_post_terlampaui !== null) {
+        flash('error', $pesan_post_terlampaui);
+        redirect('aktivitas/form.php' . ($is_edit ? '?id=' . $id : ''));
+    }
+
     csrf_require();
 
     if (!form_token_consume($_POST['_form_token'] ?? null)) {
@@ -261,7 +143,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     $jumlah_foto_lama = $is_edit ? repo_foto_count_by_aktivitas($id) : 0;
-    $foto_errors = aktivitas_validate_foto($_FILES['foto'] ?? null, $jumlah_foto_lama);
+    $foto_errors = upload_foto_validate($_FILES['foto'] ?? null, $jumlah_foto_lama);
     if ($foto_errors !== []) {
         $errors['foto'] = $foto_errors;
     }
@@ -293,25 +175,46 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         $foto_files = $_FILES['foto'] ?? null;
 
-        if ($is_edit) {
-            $aktivitas_id = $id;
-            // user_id SENGAJA tidak disentuh saat ubah -- pencatat asli tidak
-            // berubah hanya karena admin yang mengedit (spesifikasi T-17:
-            // "user_id ditetapkan server", bukan sesuatu yang bisa dipindah).
-            db_transaction(function () use ($aktivitas_id, $aktivitas_data, $foto_files) {
-                repo_aktivitas_update($aktivitas_id, $aktivitas_data);
-                aktivitas_simpan_foto($aktivitas_id, $foto_files);
-            });
-            flash('success', 'Aktivitas berhasil diperbarui.' . ($status_warning !== null ? ' ' . $status_warning : ''));
-        } else {
-            // created_by/user_id WAJIB dari sesi yang login, bukan dari form
-            // (edge case mass assignment -- spesifikasi T-17: "user_id ditetapkan server").
-            $aktivitas_data['user_id'] = $user['id'];
-            db_transaction(function () use ($aktivitas_data, $foto_files) {
-                $new_id = repo_aktivitas_create($aktivitas_data);
-                aktivitas_simpan_foto($new_id, $foto_files);
-            });
-            flash('success', 'Aktivitas berhasil ditambahkan.' . ($status_warning !== null ? ' ' . $status_warning : ''));
+        // Edge case wajib T-18: "rollback file fisik bila transaksi DB gagal".
+        // $written_paths diisi oleh upload_foto_simpan() SETIAP berkas yang
+        // SUDAH tertulis ke disk, SEBELUM baris DB-nya di-insert -- kalau
+        // Exception apa pun terlempar di dalam db_transaction() (termasuk
+        // dari GD saat memproses berkas lain, atau kegagalan DB), file yang
+        // SEMPAT tertulis pada percobaan ini dibersihkan di blok catch.
+        $written_paths = [];
+
+        try {
+            if ($is_edit) {
+                $aktivitas_id = $id;
+                // user_id SENGAJA tidak disentuh saat ubah -- pencatat asli
+                // tidak berubah hanya karena admin yang mengedit (spesifikasi
+                // T-17: "user_id ditetapkan server", bukan sesuatu yang bisa dipindah).
+                db_transaction(function () use ($aktivitas_id, $aktivitas_data, $foto_files, &$written_paths) {
+                    repo_aktivitas_update($aktivitas_id, $aktivitas_data);
+                    upload_foto_simpan($aktivitas_id, $foto_files, $written_paths);
+                });
+                flash('success', 'Aktivitas berhasil diperbarui.' . ($status_warning !== null ? ' ' . $status_warning : ''));
+            } else {
+                // created_by/user_id WAJIB dari sesi yang login, bukan dari
+                // form (edge case mass assignment -- spesifikasi T-17:
+                // "user_id ditetapkan server").
+                $aktivitas_data['user_id'] = $user['id'];
+                db_transaction(function () use ($aktivitas_data, $foto_files, &$written_paths) {
+                    $new_id = repo_aktivitas_create($aktivitas_data);
+                    upload_foto_simpan($new_id, $foto_files, $written_paths);
+                });
+                flash('success', 'Aktivitas berhasil ditambahkan.' . ($status_warning !== null ? ' ' . $status_warning : ''));
+            }
+        } catch (Throwable $e) {
+            foreach ($written_paths as $path) {
+                @unlink($path);
+            }
+            // Pesan asli (bisa berisi path server, dll) HANYA ke log -- yang
+            // ditampilkan ke pengguna selalu generik, konsisten dengan
+            // exception handler global (includes/bootstrap.php).
+            app_log('error', 'aktivitas/form.php: transaksi gagal, ' . count($written_paths) . ' berkas fisik dibersihkan. ' . $e->getMessage());
+            flash('error', 'Gagal menyimpan aktivitas karena kesalahan server. Berkas yang sempat terunggah telah dibersihkan, silakan coba lagi.');
+            redirect('aktivitas/form.php' . ($is_edit ? '?id=' . $id : ''));
         }
 
         redirect('aktivitas/index.php');
@@ -454,12 +357,19 @@ require __DIR__ . '/../includes/header.php';
       <h2 class="card__title">Foto Dokumentasi</h2>
 
       <?php $fn = 'foto'; ?>
+      <?php $foto_lama = $is_edit ? repo_foto_list_by_aktivitas($id) : []; ?>
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="foto">Unggah Foto (JPG/PNG, maks <?= e((string) (int) (UPLOAD_MAX_SIZE / 1024 / 1024)) ?> MB/foto, maks <?= e((string) UPLOAD_MAX_FILES) ?> foto)</label>
-        <input class="input" type="file" id="foto" name="foto[]" accept="image/jpeg,image/png" multiple>
-        <p class="field__hint">
-          Pratinjau sebelum unggah belum tersedia pada tahap ini (menyusul tugas berikutnya).
-        </p>
+        <input
+          class="input" type="file" id="foto" name="foto[]" accept="image/jpeg,image/png" multiple
+          data-foto-preview
+          data-max-files="<?= e((string) UPLOAD_MAX_FILES) ?>"
+          data-existing-count="<?= e((string) count($foto_lama)) ?>"
+          data-preview-target="foto-preview-grid"
+          data-count-target="foto-preview-count"
+        >
+        <p class="field__hint" id="foto-preview-count"></p>
+        <ul class="photo-grid" id="foto-preview-grid"></ul>
         <?php if (isset($errors[$fn])): ?>
         <?php foreach ($errors[$fn] as $pesan): ?>
         <p class="field__error"><?= e($pesan) ?></p>
@@ -467,19 +377,23 @@ require __DIR__ . '/../includes/header.php';
         <?php endif; ?>
       </div>
 
-      <?php if ($is_edit): ?>
-      <?php $foto_lama = repo_foto_list_by_aktivitas($id); ?>
       <?php if ($foto_lama !== []): ?>
       <div class="field">
         <span class="field__label">Foto Tersimpan (<?= e((string) count($foto_lama)) ?>)</span>
         <ul class="photo-grid">
           <?php foreach ($foto_lama as $f): ?>
-          <li><img class="photo-grid__thumb" src="<?= e(url((string) $f['file_path'])) ?>" alt="Foto dokumentasi aktivitas" loading="lazy"></li>
+          <li class="photo-grid__item">
+            <img class="photo-grid__thumb" src="<?= e(url(upload_foto_path_thumbnail((string) $f['file_path']))) ?>" alt="Foto dokumentasi aktivitas" loading="lazy">
+            <form method="post" action="<?= e(url('aktivitas/hapus_foto.php')) ?>" class="photo-grid__hapus-form">
+              <?= csrf_field() ?>
+              <input type="hidden" name="id" value="<?= e((string) $f['id']) ?>">
+              <input type="hidden" name="back" value="<?= e('aktivitas/form.php?id=' . $id) ?>">
+              <button type="submit" class="btn btn--danger btn--sm">Hapus</button>
+            </form>
+          </li>
           <?php endforeach; ?>
         </ul>
-        <p class="field__hint">Hapus foto satu per satu belum tersedia pada tahap ini (menyusul tugas berikutnya).</p>
       </div>
-      <?php endif; ?>
       <?php endif; ?>
     </div>
   </div>
@@ -491,4 +405,7 @@ require __DIR__ . '/../includes/header.php';
 </form>
 
 <?php
+$extra_scripts = [
+    '<script src="' . e(asset('assets/js/foto-preview.js')) . '"></script>',
+];
 require __DIR__ . '/../includes/footer.php';
