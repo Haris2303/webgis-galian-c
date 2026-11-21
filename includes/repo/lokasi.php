@@ -146,3 +146,11 @@ function repo_lokasi_delete(int $id): bool
 {
     return db_exec('DELETE FROM lokasi_tambang WHERE id = :id', ['id' => $id]) > 0;
 }
+
+/** Dipakai kontraktor/hapus.php (T-08): kontraktor hanya boleh dihapus bila ini 0 (FK RESTRICT). */
+function repo_lokasi_count_by_kontraktor(int $kontraktor_id): int
+{
+    $row = db_one('SELECT COUNT(*) AS jumlah FROM lokasi_tambang WHERE kontraktor_id = :kontraktor_id', ['kontraktor_id' => $kontraktor_id]);
+
+    return (int) ($row['jumlah'] ?? 0);
+}

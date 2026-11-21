@@ -218,13 +218,13 @@ function csrf_require(): void
  * benar-benar bisa tidak aktif pada jalur normal (auth_start_session() di
  * bootstrap.php sudah menjaminnya sejak T-05).
  */
-function flash(string $type, string $message): void
+function flash(string $type, string $message, array $extra = []): void
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         return;
     }
 
-    $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
+    $_SESSION['flash'][] = ['type' => $type, 'message' => $message, 'extra' => $extra];
 }
 
 /**
