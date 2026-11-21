@@ -30,6 +30,8 @@ require __DIR__ . '/includes/header.php';
   data-lokasi-url="<?= e(url('api/lokasi.php')) ?>"
   data-area-url="<?= e(url('api/area.php')) ?>"
   data-boundary-url="<?= e(asset('assets/geojson/batas_kota_sorong.geojson')) ?>"
+  data-detail-url="<?= e(url('api/lokasi_detail.php')) ?>"
+  data-login-url="<?= e(url('login.php')) ?>"
 ></div>
 
 <?php

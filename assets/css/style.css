@@ -1080,6 +1080,92 @@ dialog.modal::backdrop {
   border-top: 1px solid var(--color-border);
 }
 
+/* --- Popup detail lazy-load (T-14, FR-19) --- */
+.map-popup--error {
+  color: var(--status-tidak-berizin-text);
+}
+
+.map-popup__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.map-popup__pick-btn {
+  width: 100%;
+  text-align: left;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.map-popup__pick-btn:hover {
+  background: var(--color-border);
+}
+
+.map-popup__koordinat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.map-popup__copy-btn {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+}
+
+.map-popup__activity--muted {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.map-popup__activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: 0.8125rem;
+}
+
+.map-popup__thumbs {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.map-popup__thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.map-popup__thumb--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  padding: var(--space-1);
+}
+
 /* -----------------------------------------------------------------------------
    17. Breakpoint responsif
    ----------------------------------------------------------------------------- */

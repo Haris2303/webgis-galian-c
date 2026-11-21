@@ -1,15 +1,15 @@
 /**
- * assets/js/map.js — WebGIS Galian C Kota Sorong (T-13, FR-17/FR-18)
+ * assets/js/map.js — WebGIS Galian C Kota Sorong (T-13/T-14, FR-17/18/19)
  * Modul peta inti: initWebGISMap(containerId, options), dipakai peta.php dan
  * (nanti) pratinjau dashboard. Semua konfigurasi masuk lewat objek options
  * (dibaca pemanggil dari data-* attribute, bukan skrip inline -- CSP proyek
  * ini (includes/auth.php) tidak mengizinkan 'unsafe-inline' pada script-src).
  *
- * Popup di sini SENGAJA ringan (properti dari api/lokasi.php saja, bukan
- * api/lokasi_detail.php) -- deep-load detail aktivitas + XSS-hardening penuh
- * per FR-19 adalah scope T-14, bukan T-13 (lihat docs/todolist.md). Popup di
- * bawah tetap dibangun lewat DOM API (textContent), bukan innerHTML dari data
- * server, supaya tidak membuka lubang XSS baru sambil menunggu T-14.
+ * Popup detail (T-14) diambil lazy saat marker diklik lewat
+ * api/lokasi_detail.php, SELALU dirender lewat DOM API (createElement +
+ * textContent), TIDAK PERNAH innerHTML dari data server -- satu-satunya
+ * innerHTML di berkas ini adalah markup SVG yang kita bangun sendiri
+ * (shapeMarkup), bukan nilai dari API.
  */
 (function (global) {
   'use strict';
@@ -18,6 +18,8 @@
   var DEFAULT_ZOOM = 12;
   var MAX_ZOOM = 19;
   var SIDEBAR_TRANSITION_MS = 300; // > --transition-base (220ms, style.css) + jeda aman
+  var DETAIL_CACHE_TTL_MS = 60000; // spesifikasi T-14: cache per id 60 detik
+  var DEEP_LINK_ZOOM = 16; // spesifikasi T-14
 
   function cssVar(name, fallback) {
     try {
@@ -150,60 +152,213 @@
     return order.map(function (key) { return groups[key]; });
   }
 
-  function buildPopupContent(items) {
+  // --- Popup T-14: skeleton -> fetch api/lokasi_detail.php -> konten aman. ---
+
+  function buildSkeleton() {
+    var wrap = document.createElement('div');
+    wrap.className = 'map-popup';
+    for (var i = 0; i < 3; i++) {
+      var line = document.createElement('div');
+      line.className = 'skeleton skeleton-text';
+      wrap.appendChild(line);
+    }
+    return wrap;
+  }
+
+  function buildDetailError(message) {
+    var wrap = document.createElement('div');
+    wrap.className = 'map-popup map-popup--error';
+    var text = document.createElement('p');
+    text.textContent = message || 'Gagal memuat detail lokasi.';
+    wrap.appendChild(text);
+    return wrap;
+  }
+
+  // Marker yang menumpuk (>1 lokasi di koordinat sama) menampilkan daftar
+  // pilihan dulu -- memakai properti RINGAN yang sudah ada di memori (dari
+  // api/lokasi.php), TANPA fetch tambahan -- baru memanggil api/lokasi_detail.php
+  // setelah pengguna memilih salah satu (lewat onPick).
+  function buildPickerContent(items, onPick) {
     var wrap = document.createElement('div');
     wrap.className = 'map-popup';
 
-    if (items.length > 1) {
-      var count = document.createElement('p');
-      count.className = 'map-popup__count';
-      count.textContent = items.length + ' lokasi di titik ini.';
-      wrap.appendChild(count);
-    }
+    var count = document.createElement('p');
+    count.className = 'map-popup__count';
+    count.textContent = items.length + ' lokasi di titik ini. Pilih salah satu:';
+    wrap.appendChild(count);
 
-    items.forEach(function (p, idx) {
-      if (idx > 0) {
-        wrap.appendChild(document.createElement('hr')).className = 'map-popup__divider';
-      }
-
-      var title = document.createElement('p');
-      title.className = 'map-popup__title';
-      title.textContent = p.nama_lokasi || '(tanpa nama)';
-      wrap.appendChild(title);
-
-      var metaParts = [p.kontraktor, p.material].filter(function (v) { return !!v; });
-      if (metaParts.length > 0) {
-        var meta = document.createElement('p');
-        meta.className = 'map-popup__meta';
-        meta.textContent = metaParts.join(' • ');
-        wrap.appendChild(meta);
-      }
-
-      var cfg = statusConfig(p.status_izin);
-      var badge = document.createElement('span');
-      badge.className = 'badge ' + cfg.badgeClass;
-      badge.textContent = cfg.label;
-      wrap.appendChild(badge);
-
-      if (p.aktivitas_terakhir) {
-        var tgl = document.createElement('p');
-        tgl.className = 'map-popup__activity';
-        tgl.textContent = 'Aktivitas terakhir: ' + p.aktivitas_terakhir;
-        wrap.appendChild(tgl);
-      }
+    var list = document.createElement('ul');
+    list.className = 'map-popup__list';
+    items.forEach(function (item) {
+      var li = document.createElement('li');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'map-popup__pick-btn';
+      btn.textContent = item.nama_lokasi || '(tanpa nama)';
+      btn.addEventListener('click', function () {
+        onPick(item.id);
+      });
+      li.appendChild(btn);
+      list.appendChild(li);
     });
+    wrap.appendChild(list);
 
     return wrap;
   }
 
-  function renderMarkers(markerLayer, groups) {
-    groups.forEach(function (group) {
-      var firstItem = group.items[0] || {};
-      var icon = buildDivIcon(firstItem.status_izin, group.items.length);
-      var marker = L.marker([group.lat, group.lng], { icon: icon });
-      marker.bindPopup(buildPopupContent(group.items));
-      marker.addTo(markerLayer);
-    });
+  function buildThumbFallback() {
+    var span = document.createElement('span');
+    span.className = 'map-popup__thumb map-popup__thumb--fallback';
+    span.textContent = 'Foto tidak tersedia';
+    return span;
+  }
+
+  function copyToClipboard(text, onDone) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { onDone(true); },
+        function () { onDone(false); }
+      );
+      return;
+    }
+    // Fallback untuk konteks non-secure (http://*.test dev lokal) tempat
+    // navigator.clipboard tidak tersedia -- document.execCommand memang usang,
+    // tapi inilah satu-satunya jalan copy-to-clipboard yang bekerja di sana.
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      onDone(ok);
+    } catch (e) {
+      onDone(false);
+    }
+  }
+
+  // Konten detail penuh. SETIAP teks dari server masuk lewat textContent --
+  // edge case wajib T-14: nama lokasi berisi "<img src=x onerror=alert(1)>"
+  // atau "<script>" harus tampil sebagai TEKS APA ADANYA, tidak pernah
+  // dieksekusi, karena tidak ada satu pun innerHTML yang menerima data ini.
+  function buildDetailContent(data) {
+    var wrap = document.createElement('div');
+    wrap.className = 'map-popup';
+
+    var title = document.createElement('p');
+    title.className = 'map-popup__title';
+    title.textContent = data.nama_lokasi || '(tanpa nama)';
+    wrap.appendChild(title);
+
+    var cfg = statusConfig(data.status_izin);
+    var badge = document.createElement('span');
+    badge.className = 'badge ' + cfg.badgeClass;
+    badge.textContent = cfg.label;
+    wrap.appendChild(badge);
+
+    var metaParts = [data.kontraktor, data.material].filter(function (v) { return !!v; });
+    if (metaParts.length > 0) {
+      var meta = document.createElement('p');
+      meta.className = 'map-popup__meta';
+      meta.textContent = metaParts.join(' • ');
+      wrap.appendChild(meta);
+    }
+
+    var alamatParts = [data.alamat, data.kelurahan, data.distrik].filter(function (v) { return !!v; });
+    if (alamatParts.length > 0) {
+      var alamat = document.createElement('p');
+      alamat.className = 'map-popup__meta';
+      alamat.textContent = alamatParts.join(', ');
+      wrap.appendChild(alamat);
+    }
+
+    if (data.luas_ha !== null && data.luas_ha !== undefined) {
+      var luas = document.createElement('p');
+      luas.className = 'map-popup__meta';
+      luas.textContent = 'Luas: ' + data.luas_ha + ' ha';
+      wrap.appendChild(luas);
+    }
+
+    if (data.koordinat) {
+      var koordWrap = document.createElement('div');
+      koordWrap.className = 'map-popup__koordinat';
+
+      var koordText = document.createElement('span');
+      koordText.textContent = data.koordinat.lat.toFixed(6) + ', ' + data.koordinat.lng.toFixed(6);
+      koordWrap.appendChild(koordText);
+
+      var copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn-link map-popup__copy-btn';
+      copyBtn.textContent = 'Salin koordinat';
+      copyBtn.addEventListener('click', function () {
+        var original = copyBtn.textContent;
+        copyToClipboard(data.koordinat.lat + ', ' + data.koordinat.lng, function (ok) {
+          copyBtn.textContent = ok ? 'Tersalin!' : 'Gagal menyalin';
+          window.setTimeout(function () { copyBtn.textContent = original; }, 2000);
+        });
+      });
+      koordWrap.appendChild(copyBtn);
+
+      wrap.appendChild(koordWrap);
+    }
+
+    // Keputusan T-12 (lihat laporan T-12 & komentar api/lokasi_detail.php):
+    // FR-19 vs PRD bagian 10 diambil yang PALING KETAT -- aktivitas_dibatasi
+    // ditegakkan server, di sini HANYA ditampilkan apa adanya, bukan diakali.
+    if (data.aktivitas_dibatasi) {
+      var dibatasi = document.createElement('p');
+      dibatasi.className = 'map-popup__activity map-popup__activity--muted';
+      dibatasi.textContent = 'Riwayat aktivitas lokasi ini dibatasi untuk kontraktor lain.';
+      wrap.appendChild(dibatasi);
+    } else if (Array.isArray(data.aktivitas_terakhir) && data.aktivitas_terakhir.length > 0) {
+      var aktivitasTitle = document.createElement('p');
+      aktivitasTitle.className = 'map-popup__meta';
+      aktivitasTitle.textContent = 'Aktivitas terakhir:';
+      wrap.appendChild(aktivitasTitle);
+
+      var list = document.createElement('ul');
+      list.className = 'map-popup__activity-list';
+      data.aktivitas_terakhir.slice(0, 3).forEach(function (akt) {
+        var li = document.createElement('li');
+        var line = document.createElement('span');
+        line.textContent = akt.tanggal + ' — ' + akt.jenis_kegiatan;
+        li.appendChild(line);
+
+        if (Array.isArray(akt.foto) && akt.foto.length > 0) {
+          var thumbWrap = document.createElement('div');
+          thumbWrap.className = 'map-popup__thumbs';
+          akt.foto.slice(0, 3).forEach(function (fotoUrl) {
+            // Thumbnail lazy (atribut bawaan browser, bukan IntersectionObserver
+            // kustom) + fallback teks bila gagal dimuat (edge case wajib T-14).
+            var img = document.createElement('img');
+            img.className = 'map-popup__thumb';
+            img.loading = 'lazy';
+            img.alt = 'Foto aktivitas';
+            img.src = fotoUrl;
+            img.addEventListener('error', function () {
+              img.replaceWith(buildThumbFallback());
+            });
+            thumbWrap.appendChild(img);
+          });
+          li.appendChild(thumbWrap);
+        }
+
+        list.appendChild(li);
+      });
+      wrap.appendChild(list);
+    } else {
+      var noAktivitas = document.createElement('p');
+      noAktivitas.className = 'map-popup__activity map-popup__activity--muted';
+      noAktivitas.textContent = 'Belum ada aktivitas tercatat.';
+      wrap.appendChild(noAktivitas);
+    }
+
+    return wrap;
   }
 
   function buildAreaLayer(geojsonData, pane) {
@@ -247,7 +402,7 @@
     }
   }
 
-  // Sidebar off-canvas (<768px, lihat style.css #16 & assets/js/ui.js) adalah
+  // Sidebar off-canvas (<768px, lihat style.css #17 & assets/js/ui.js) adalah
   // overlay position:fixed -- TIDAK mengubah ukuran .map-shell, jadi
   // ResizeObserver di atas tidak terpicu olehnya. Spesifikasi T-13 tetap
   // eksplisit meminta invalidateSize saat toggle, jadi didengarkan langsung di
@@ -263,14 +418,18 @@
     });
   }
 
-  function fetchJson(url) {
-    return fetch(url, { headers: { Accept: 'application/json' } }).then(function (res) {
+  function fetchJson(url, signal) {
+    return fetch(url, { headers: { Accept: 'application/json' }, signal: signal }).then(function (res) {
       if (res.ok) {
         return res.json();
       }
+      // Dibungkus sebagai Error dengan properti .status -- pemanggil (termasuk
+      // alur 401 T-14) membaca status itu sebelum memutuskan pesan ke pengguna.
       return res.json().catch(function () { return null; }).then(function (body) {
         var message = body && typeof body.error === 'string' ? body.error : ('Permintaan gagal (HTTP ' + res.status + ').');
-        throw new Error(message);
+        var err = new Error(message);
+        err.status = res.status;
+        throw err;
       });
     });
   }
@@ -281,6 +440,34 @@
     return fetch(url)
       .then(function (res) { return res.ok ? res.json() : null; })
       .catch(function () { return null; });
+  }
+
+  function renderMarkers(markerLayer, groups, handlers) {
+    var idIndex = {};
+    groups.forEach(function (group) {
+      var firstItem = group.items[0] || {};
+      var icon = buildDivIcon(firstItem.status_izin, group.items.length);
+      var marker = L.marker([group.lat, group.lng], { icon: icon });
+      marker.addTo(markerLayer);
+
+      group.items.forEach(function (item) {
+        if (item.id !== undefined && item.id !== null) {
+          idIndex[item.id] = { marker: marker, lat: group.lat, lng: group.lng };
+        }
+      });
+
+      marker.on('click', function () {
+        if (group.items.length > 1) {
+          marker.unbindPopup();
+          marker.bindPopup(buildPickerContent(group.items, function (id) {
+            handlers.onOpenDetail(marker, id);
+          })).openPopup();
+        } else {
+          handlers.onOpenDetail(marker, firstItem.id);
+        }
+      });
+    });
+    return idIndex;
   }
 
   function initWebGISMap(containerId, options) {
@@ -334,6 +521,64 @@
       buildLegendControl().addTo(map);
     }
 
+    // --- State popup detail (T-14): cache per id (TTL 60dtk) + AbortController
+    // supaya klik marker beruntun tidak pernah menampilkan data lokasi yang
+    // salah (kriteria selesai T-14 eksplisit). requestSeq adalah jaring
+    // pengaman KEDUA di atas AbortController: walau sebuah fetch lama
+    // SEMPAT selesai sebelum abort-nya diproses browser, hasilnya tetap
+    // dibuang kalau sudah ada klik yang lebih baru. ---
+    var detailCache = {};
+    var requestSeq = 0;
+    var activeAbort = null;
+
+    function openDetailPopup(marker, id) {
+      if (id === undefined || id === null) {
+        return;
+      }
+
+      marker.unbindPopup();
+      var popup = L.popup().setContent(buildSkeleton());
+      marker.bindPopup(popup).openPopup();
+
+      if (activeAbort) {
+        activeAbort.abort();
+      }
+
+      var cached = detailCache[id];
+      if (cached && (Date.now() - cached.at) < DETAIL_CACHE_TTL_MS) {
+        popup.setContent(buildDetailContent(cached.data));
+        return;
+      }
+
+      var mySeq = ++requestSeq;
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      activeAbort = controller;
+
+      fetchJson(opts.detailUrl + '?id=' + encodeURIComponent(String(id)), controller ? controller.signal : undefined)
+        .then(function (data) {
+          if (mySeq !== requestSeq) {
+            return; // ada klik lain setelah ini -- hasil sudah basi, buang
+          }
+          detailCache[id] = { data: data, at: Date.now() };
+          popup.setContent(buildDetailContent(data));
+        })
+        .catch(function (err) {
+          if (err && err.name === 'AbortError') {
+            return; // dibatalkan sendiri karena ada klik baru -- bukan error nyata
+          }
+          if (mySeq !== requestSeq) {
+            return;
+          }
+          if (err && err.status === 401) {
+            // Edge case wajib T-14: sesi habis -- arahkan ke login, JANGAN
+            // menampilkan JSON mentah {"error":"..."} di dalam popup.
+            window.location.href = opts.loginUrl || 'login.php';
+            return;
+          }
+          popup.setContent(buildDetailError(err && err.message));
+        });
+    }
+
     var lokasiPromise = fetchJson(opts.lokasiUrl);
     var areaPromise = opts.areaUrl ? fetchJson(opts.areaUrl) : Promise.resolve(null);
     var boundaryPromise = opts.boundaryUrl ? fetchStaticGeojson(opts.boundaryUrl) : Promise.resolve(null);
@@ -359,7 +604,7 @@
       }
 
       var groups = groupByCoordinate(features);
-      renderMarkers(markerLayer, groups);
+      var idIndex = renderMarkers(markerLayer, groups, { onOpenDetail: openDetailPopup });
 
       if (opts.areaUrl) {
         if (areaResult.status === 'fulfilled' && areaResult.value) {
@@ -383,9 +628,45 @@
         var bounds = L.latLngBounds(groups.map(function (g) { return [g.lat, g.lng]; }));
         map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
       }
+
+      // Deep-link ?lokasi=ID (spesifikasi T-14) -- dijalankan TERAKHIR supaya
+      // setView zoom 16 di bawah ini menang atas fitBounds di atas.
+      if (opts.detailUrl) {
+        applyDeepLink(map, idIndex, openDetailPopup, opts.detailUrl, showToast);
+      }
     });
 
     return { map: map };
+  }
+
+  // Edge case wajib T-14: id tidak ada / bukan angka -- diam saja (tautan
+  // lama/salah ketik), bukan error yang mengganggu pengguna.
+  function applyDeepLink(map, idIndex, openDetailPopup, detailUrl, showToast) {
+    var raw = new URLSearchParams(window.location.search).get('lokasi');
+    if (!raw || !/^[1-9][0-9]*$/.test(raw)) {
+      return;
+    }
+    var id = parseInt(raw, 10);
+
+    var entry = idIndex[id];
+    if (entry) {
+      map.setView([entry.lat, entry.lng], DEEP_LINK_ZOOM);
+      openDetailPopup(entry.marker, id);
+      return;
+    }
+
+    // id berformat valid tapi tidak ada di antara marker yang termuat saat
+    // ini -- coba ambil langsung; kalau API juga bilang tidak ada, beri tahu
+    // lewat toast (bukan membiarkan tautan terlihat seperti tidak berefek).
+    fetchJson(detailUrl + '?id=' + id).then(function (data) {
+      if (!data || !data.koordinat) {
+        return;
+      }
+      map.setView([data.koordinat.lat, data.koordinat.lng], DEEP_LINK_ZOOM);
+      L.popup([data.koordinat.lat, data.koordinat.lng]).setContent(buildDetailContent(data)).openOn(map);
+    }).catch(function () {
+      showToast('Lokasi pada tautan (?lokasi=' + id + ') tidak ditemukan.');
+    });
   }
 
   global.initWebGISMap = initWebGISMap;
@@ -400,6 +681,8 @@
       lokasiUrl: container.dataset.lokasiUrl,
       areaUrl: container.dataset.areaUrl || null,
       boundaryUrl: container.dataset.boundaryUrl || null,
+      detailUrl: container.dataset.detailUrl || null,
+      loginUrl: container.dataset.loginUrl || null,
     });
   });
 })(window);
