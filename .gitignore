@@ -11,6 +11,3 @@
 # Sistem operasi / editor
 .DS_Store
 Thumbs.db
-
-# Cache build graphify (AST cache, bisa dibangun ulang otomatis via `graphify update .`)
-/graphify-out/cache/
