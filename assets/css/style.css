@@ -922,7 +922,166 @@ dialog.modal::backdrop {
 }
 
 /* -----------------------------------------------------------------------------
-   16. Breakpoint responsif
+   16. Peta interaktif penuh (T-13, FR-17/18) — overlay, toast, legenda, popup.
+   .map-shell sudah position:relative lewat .leaflet-container bawaan Leaflet
+   (leaflet.css, dimuat via CDN), jadi overlay di bawah ini cukup position:absolute.
+   ----------------------------------------------------------------------------- */
+.map-overlay {
+  position: absolute;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--color-primary);
+}
+
+.map-overlay--loading {
+  inset: 0;
+  background: rgba(244, 246, 249, 0.85);
+}
+
+/* Leaflet gagal dimuat dari CDN (edge case T-13) -- map.js menulis pesan
+   sebagai textContent biasa ke dalam .map-shell, kelas ini hanya merapikan
+   tampilannya supaya tidak menempel di pojok kiri atas tanpa jarak. */
+.map-shell--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.map-overlay--empty {
+  top: var(--space-3);
+  left: var(--space-3);
+  right: var(--space-3);
+  justify-content: flex-start;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  padding: var(--space-3) var(--space-4);
+  pointer-events: none; /* banner informasi saja -- peta di baliknya tetap bisa digeser/zoom */
+}
+
+.map-overlay__text {
+  margin: 0;
+}
+
+.map-toast-region {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: calc(100vw - var(--space-4) * 2);
+}
+
+.map-toast {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 0.875rem;
+  animation: toast-in 150ms ease;
+}
+
+.map-toast--error {
+  background: var(--status-tidak-berizin-text);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.map-legend {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  padding: var(--space-3);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.map-legend__title {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-primary);
+}
+
+.map-legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.map-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.map-legend__icon {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.map-legend__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.map-marker-icon {
+  display: block;
+}
+
+.map-popup {
+  font-size: 0.875rem;
+  max-width: 220px;
+}
+
+.map-popup__count {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.map-popup__title {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.map-popup__meta {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.map-popup__activity {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.map-popup__divider {
+  margin: var(--space-3) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* -----------------------------------------------------------------------------
+   17. Breakpoint responsif
    ----------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
   .stat-grid {
