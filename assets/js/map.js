@@ -16,6 +16,13 @@
  * status DIGABUNG jadi satu widget supaya keduanya TIDAK PERNAH tidak
  * sinkron (spesifikasi T-15: "tersinkron dengan legenda"); tidak ada dua
  * sumber kebenaran status yang bisa berbeda.
+ *
+ * Instrumentasi performa (T-16, PRD bagian 11): console.log('[perf] ...')
+ * dicetak SELALU (bukan di belakang flag debug) -- biaya satu console.log
+ * per kejadian (muat awal, tiap render marker/filter) diabaikan dibanding
+ * manfaatnya sebagai bukti terus-menerus, dan tidak pernah tampil ke
+ * pengguna biasa (DevTools tertutup). Lihat database/seed_perf.sql untuk
+ * data sintetis dan docs/benchmark_peta.md untuk hasil ukur sebelum/sesudah.
  */
 (function (global) {
   'use strict';
@@ -506,6 +513,11 @@
       throw new Error('initWebGISMap: opts.lokasiUrl wajib diisi.');
     }
 
+    // T-16: ditandai dari sini -- titik paling awal yang wajar (Leaflet
+    // sudah pasti termuat, container sudah pasti ada) -- sampai render
+    // pertama selesai, dicetak di bagian bawah fungsi ini.
+    var perfLoadStart = performance.now();
+
     var center = opts.center || DEFAULT_CENTER;
     var zoom = opts.zoom || DEFAULT_ZOOM;
     var showLegend = opts.showLegend !== false;
@@ -609,7 +621,15 @@
     // terbuka pada marker yang dihapus -- ini SENGAJA jadi cara kita
     // menangani edge case wajib T-15 "filter menyembunyikan lokasi yang
     // sedang popup terbuka": popupnya ikut hilang, bukan jadi floating/basi.
+    //
+    // T-16: satu titik ukur ini menutupi DUA metrik sekaligus -- panggilan
+    // PERTAMA (dari Promise.allSettled di bawah) adalah "render marker awal",
+    // panggilan berikutnya (dari checkbox filter) adalah "respons filter" --
+    // labelnya dibedakan lewat hasRenderedOnce, tanpa menduplikasi kode ukur.
+    var hasRenderedOnce = false;
     function renderFiltered(shouldFitBounds) {
+      var perfStart = performance.now();
+
       var filtered = allFeatures.filter(function (f) {
         return activeStatuses.has(f.properties.status_izin);
       });
@@ -628,6 +648,11 @@
         var bounds = L.latLngBounds(groups.map(function (g) { return [g.lat, g.lng]; }));
         map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
       }
+
+      var perfLabel = hasRenderedOnce ? 'respons filter' : 'render marker awal';
+      console.log('[perf] ' + perfLabel + ' (' + filtered.length + ' lokasi, ' + groups.length + ' marker): '
+        + (performance.now() - perfStart).toFixed(1) + ' ms');
+      hasRenderedOnce = true;
     }
 
     // Kontrol gabungan legenda + filter (T-13 + T-15) -- SATU widget supaya
@@ -962,7 +987,13 @@
       }
 
       allFeatures = features;
-      renderFiltered(true); // render pertama -- fitBounds ke hasil (ter-filter sesuai URL) boleh
+      renderFiltered(true); // render pertama -- fitBounds ke hasil (ter-filter sesuai URL) boleh; mencetak log [perf] sendiri
+
+      // T-16: "waktu muat awal" (PRD bagian 11, target < 2 detik) -- dari titik
+      // paling awal yang wajar di initWebGISMap sampai render marker PERTAMA
+      // selesai (bukan menunggu tile raster yang async & di luar kendali app).
+      console.log('[perf] waktu muat awal peta (fetch data + render pertama): '
+        + (performance.now() - perfLoadStart).toFixed(1) + ' ms');
 
       if (opts.areaUrl) {
         if (areaResult.status === 'fulfilled' && areaResult.value) {
