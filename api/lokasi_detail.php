@@ -71,8 +71,11 @@ if ($boleh_lihat_aktivitas) {
             'tanggal' => $aktivitas['tanggal_aktivitas'],
             'jenis_kegiatan' => $aktivitas['jenis_kegiatan'],
             'status_aktivitas' => $aktivitas['status_aktivitas'],
+            // media.php (T-19), bukan URL uploads/ langsung -- folder itu
+            // sekarang tertutup total. size=thumb karena ini hanya untuk
+            // pratinjau kecil di popup peta (PRD bagian 9: "thumbnail foto").
             'foto' => array_values(array_map(
-                static fn (array $f): string => url((string) $f['file_path']),
+                static fn (array $f): string => url('media.php?id=' . $f['id'] . '&size=thumb'),
                 $foto
             )),
         ];

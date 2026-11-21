@@ -1,17 +1,17 @@
-# uploads/.htaccess — larang eksekusi skrip apa pun di dalam uploads/ (T-17,
-# disiapkan lebih awal untuk T-18, PRD bagian 11). Direktori ini HANYA untuk
-# berkas yang diunggah pengguna (foto aktivitas, FR-14); kalaupun validasi
-# MIME/finfo di lapisan PHP (aktivitas/form.php) suatu saat berhasil dilewati
-# oleh berkas berbahaya, baris di bawah ini mencegah webserver menjalankannya.
+# uploads/.htaccess — TUTUP TOTAL akses langsung ke direktori ini (T-19, PRD
+# bagian 5 FR-14/19 & 11). Sebelum T-19, baris ini hanya melarang EKSEKUSI PHP
+# (lihat riwayat T-17/T-18) sementara berkas gambar sendiri masih bisa diakses
+# langsung lewat URL -- itu berubah di T-19: satu-satunya jalan membaca foto
+# sekarang adalah media.php (otorisasi per-foto, lihat Keputusan T-19 soal
+# PRD bagian 8). "Require all denied" di sini berlaku untuk SEMUA jenis
+# berkas, bukan hanya .php.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
 
 Options -Indexes -ExecCGI
-
-<FilesMatch "\.(php|phtml|php\d|phar|cgi|pl)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order allow,deny
-        Deny from all
-    </IfModule>
-</FilesMatch>

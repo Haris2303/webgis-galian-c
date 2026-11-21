@@ -383,7 +383,7 @@ require __DIR__ . '/../includes/header.php';
         <ul class="photo-grid">
           <?php foreach ($foto_lama as $f): ?>
           <li class="photo-grid__item">
-            <img class="photo-grid__thumb" src="<?= e(url(upload_foto_path_thumbnail((string) $f['file_path']))) ?>" alt="Foto dokumentasi aktivitas" loading="lazy">
+            <img class="photo-grid__thumb" src="<?= e(url('media.php?id=' . $f['id'] . '&size=thumb')) ?>" alt="Foto dokumentasi aktivitas" loading="lazy">
             <form method="post" action="<?= e(url('aktivitas/hapus_foto.php')) ?>" class="photo-grid__hapus-form">
               <?= csrf_field() ?>
               <input type="hidden" name="id" value="<?= e((string) $f['id']) ?>">
