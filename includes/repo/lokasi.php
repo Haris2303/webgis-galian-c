@@ -17,32 +17,43 @@ function repo_lokasi_find(int $id): ?array
 }
 
 /**
- * Filter yang dikenali: status_izin, kontraktor_id, search (nama_lokasi LIKE).
- * $sort_column divalidasi lewat whitelist di db_order_by() — tidak pernah dari input mentah.
+ * Filter yang dikenali: status_izin, kontraktor_id, material_id, search
+ * (cocok di nama_lokasi ATAU kelurahan, T-09). $sort_column divalidasi lewat
+ * whitelist di db_order_by() — tidak pernah dari input mentah. JOIN kontraktor
+ * & jenis_material supaya daftar admin menampilkan nama, bukan ID mentah.
  * @return array{0: array<int, array<string, mixed>>, 1: int} [rows, total]
  */
 function repo_lokasi_list(array $filters, int $page, int $per_page, string $sort_column = 'nama_lokasi', string $sort_direction = 'asc'): array
 {
-    $allowed_columns = ['nama_lokasi', 'status_izin', 'distrik', 'created_at', 'updated_at'];
+    $allowed_columns = ['nama_lokasi', 'status_izin', 'distrik', 'kelurahan', 'tanggal_berakhir_izin', 'created_at', 'updated_at'];
     $order_by = db_order_by($sort_column, $sort_direction, $allowed_columns, 'nama_lokasi');
 
     $where = [];
     $params = [];
 
     if (!empty($filters['status_izin'])) {
-        $where[] = 'status_izin = :status_izin';
+        $where[] = 'l.status_izin = :status_izin';
         $params['status_izin'] = $filters['status_izin'];
     }
     if (!empty($filters['kontraktor_id'])) {
-        $where[] = 'kontraktor_id = :kontraktor_id';
+        $where[] = 'l.kontraktor_id = :kontraktor_id';
         $params['kontraktor_id'] = (int) $filters['kontraktor_id'];
     }
+    if (!empty($filters['material_id'])) {
+        $where[] = 'l.material_id = :material_id';
+        $params['material_id'] = (int) $filters['material_id'];
+    }
     if (!empty($filters['search'])) {
-        $where[] = 'nama_lokasi LIKE :search';
-        $params['search'] = '%' . db_like_escape((string) $filters['search']) . '%';
+        $where[] = '(l.nama_lokasi LIKE :search OR l.kelurahan LIKE :search_kel)';
+        $kata = '%' . db_like_escape((string) $filters['search']) . '%';
+        $params['search'] = $kata;
+        $params['search_kel'] = $kata;
     }
 
-    $sql = 'SELECT * FROM lokasi_tambang';
+    $sql = 'SELECT l.*, k.nama_perusahaan AS kontraktor_nama, m.nama AS material_nama
+            FROM lokasi_tambang l
+            JOIN kontraktor k ON k.id = l.kontraktor_id
+            JOIN jenis_material m ON m.id = l.material_id';
     if ($where !== []) {
         $sql .= ' WHERE ' . implode(' AND ', $where);
     }

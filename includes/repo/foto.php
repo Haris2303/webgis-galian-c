@@ -54,3 +54,22 @@ function repo_foto_delete(int $id): bool
 {
     return db_exec('DELETE FROM foto_aktivitas WHERE id = :id', ['id' => $id]) > 0;
 }
+
+/**
+ * Semua file_path foto dari SELURUH aktivitas milik satu lokasi (T-09: hapus
+ * lokasi harus mengumpulkan ini SEBELUM DELETE, karena CASCADE akan membuat
+ * baris foto_aktivitas-nya tidak lagi bisa di-query setelah lokasi dihapus).
+ * @return string[]
+ */
+function repo_foto_list_paths_by_lokasi(int $lokasi_id): array
+{
+    $rows = db_all(
+        'SELECT fa.file_path
+         FROM foto_aktivitas fa
+         JOIN aktivitas_tambang a ON a.id = fa.aktivitas_id
+         WHERE a.lokasi_id = :lokasi_id',
+        ['lokasi_id' => $lokasi_id]
+    );
+
+    return array_column($rows, 'file_path');
+}

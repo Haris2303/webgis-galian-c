@@ -212,6 +212,46 @@ function csrf_require(): void
 }
 
 /**
+ * Token sekali-pakai anti-double-submit (T-09), berbeda dari csrf_token():
+ * csrf_token() SATU per session dan tetap valid untuk banyak form/request;
+ * form_token() baru per render form dan HANGUS begitu dikonsumsi sekali --
+ * klik ganda/kirim ulang form yang sama akan menemukan token sudah tidak ada.
+ * Aman dari race condition: PHP session default mengunci file session per
+ * session ID, jadi dua request nyaris bersamaan dari sesi yang sama tetap
+ * diproses berurutan (yang kedua baru baca session setelah yang pertama
+ * selesai menulis & melepas kunci).
+ */
+function form_token(): string
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return '';
+    }
+
+    $token = bin2hex(random_bytes(16));
+    $_SESSION['form_tokens'][$token] = time();
+
+    // Batasi jumlah token tertunda supaya session tidak membengkak kalau
+    // pengguna membuka banyak tab form tanpa pernah submit.
+    if (count($_SESSION['form_tokens']) > 20) {
+        array_shift($_SESSION['form_tokens']);
+    }
+
+    return $token;
+}
+
+/** True & token langsung dihapus (sekali pakai) bila valid; false bila sudah dipakai/tidak pernah ada. */
+function form_token_consume(?string $token): bool
+{
+    if ($token === null || $token === '' || session_status() !== PHP_SESSION_ACTIVE || !isset($_SESSION['form_tokens'][$token])) {
+        return false;
+    }
+
+    unset($_SESSION['form_tokens'][$token]);
+
+    return true;
+}
+
+/**
  * Simpan flash message untuk ditampilkan SEKALI di request berikutnya (umumnya
  * setelah redirect dari aksi simpan/hapus, PRD bagian 9). Cek session_status()
  * tetap dipertahankan sebagai jaring pengaman murah, bukan karena session

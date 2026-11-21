@@ -559,6 +559,17 @@ summary:focus-visible {
 }
 .badge--proses::before { background: var(--status-proses); }
 
+/* Peringatan "izin kedaluwarsa" (T-09) -- TERPISAH dari badge status_izin di
+   atas, bukan pengganti. Nilai enum status_izin TIDAK berubah; ini murni
+   indikator visual tambahan saat tanggal_berakhir_izin sudah lewat. Border
+   putus-putus membedakannya dari badge status biasa walau warnanya senada. */
+.badge--kedaluwarsa {
+  background: var(--status-tidak-berizin-bg);
+  color: var(--status-tidak-berizin-text);
+  border: 1px dashed var(--status-tidak-berizin);
+}
+.badge--kedaluwarsa::before { background: var(--status-tidak-berizin); }
+
 /* -----------------------------------------------------------------------------
    10. Tombol
    ----------------------------------------------------------------------------- */
