@@ -1,0 +1,99 @@
+<?php
+
+declare(strict_types=1);
+
+if (!defined('APP_BOOTSTRAPPED')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
+/**
+ * includes/repo/users.php — akses data tabel users.
+ * password_hash tidak pernah diterima lewat repo_user_update(); ganti password
+ * lewat repo_user_update_password() terpisah agar jalur ubah password mudah
+ * diaudit/diberi aturan berbeda (mis. wajib re-auth) tanpa menyentuh update profil.
+ */
+
+function repo_user_find(int $id): ?array
+{
+    return db_one('SELECT * FROM users WHERE id = :id', ['id' => $id]);
+}
+
+/** Dipakai jalur login — mengandalkan UNIQUE KEY username (lihat database/schema.sql). */
+function repo_user_find_by_username(string $username): ?array
+{
+    return db_one('SELECT * FROM users WHERE username = :username', ['username' => $username]);
+}
+
+/** @return array{0: array<int, array<string, mixed>>, 1: int} [rows, total] */
+function repo_user_list(int $page, int $per_page, ?string $role = null): array
+{
+    $sql = 'SELECT id, username, nama_lengkap, role, kontraktor_id, is_active, last_login, created_at FROM users';
+    $params = [];
+
+    if ($role !== null && $role !== '') {
+        $sql .= ' WHERE role = :role';
+        $params['role'] = $role;
+    }
+
+    $sql .= ' ORDER BY nama_lengkap ASC';
+
+    return paginate($sql, $params, $page, $per_page);
+}
+
+function repo_user_create(array $data): int
+{
+    db_exec(
+        'INSERT INTO users (username, password_hash, nama_lengkap, role, kontraktor_id, is_active)
+         VALUES (:username, :password_hash, :nama_lengkap, :role, :kontraktor_id, :is_active)',
+        [
+            'username' => $data['username'],
+            'password_hash' => $data['password_hash'],
+            'nama_lengkap' => $data['nama_lengkap'],
+            'role' => $data['role'],
+            'kontraktor_id' => $data['kontraktor_id'] ?? null,
+            'is_active' => isset($data['is_active']) ? (int) $data['is_active'] : 1,
+        ]
+    );
+
+    return (int) db()->lastInsertId();
+}
+
+function repo_user_update(int $id, array $data): bool
+{
+    $affected = db_exec(
+        'UPDATE users SET
+            nama_lengkap = :nama_lengkap,
+            role = :role,
+            kontraktor_id = :kontraktor_id,
+            is_active = :is_active
+         WHERE id = :id',
+        [
+            'nama_lengkap' => $data['nama_lengkap'],
+            'role' => $data['role'],
+            'kontraktor_id' => $data['kontraktor_id'] ?? null,
+            'is_active' => isset($data['is_active']) ? (int) $data['is_active'] : 1,
+            'id' => $id,
+        ]
+    );
+
+    return $affected > 0;
+}
+
+function repo_user_update_password(int $id, string $password_hash): bool
+{
+    return db_exec(
+        'UPDATE users SET password_hash = :password_hash WHERE id = :id',
+        ['password_hash' => $password_hash, 'id' => $id]
+    ) > 0;
+}
+
+function repo_user_touch_last_login(int $id): bool
+{
+    return db_exec('UPDATE users SET last_login = NOW() WHERE id = :id', ['id' => $id]) > 0;
+}
+
+function repo_user_delete(int $id): bool
+{
+    return db_exec('DELETE FROM users WHERE id = :id', ['id' => $id]) > 0;
+}
