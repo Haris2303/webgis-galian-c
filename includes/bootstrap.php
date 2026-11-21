@@ -51,6 +51,11 @@ require_once __DIR__ . '/functions.php';
 // Zona waktu baku seluruh aplikasi (PRD bagian 11).
 date_default_timezone_set('Asia/Jayapura');
 
+// Koneksi PDO + helper akses data (T-03). Lazy: db() belum benar-benar
+// menyambung ke MySQL sampai dipanggil, jadi aman di-require di sini sebelum
+// error handler/timezone selesai disetel.
+require_once __DIR__ . '/../config/database.php';
+
 // error_reporting & display_errors menurut APP_ENV. Semua level tetap DICATAT lewat
 // app_log(); bedanya hanya apakah detailnya ditampilkan ke pengguna atau tidak.
 error_reporting(E_ALL);
