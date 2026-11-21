@@ -51,6 +51,11 @@ require_once __DIR__ . '/functions.php';
 // Zona waktu baku seluruh aplikasi (PRD bagian 11).
 date_default_timezone_set('Asia/Jayapura');
 
+// Koneksi PDO + helper akses data (T-03). Lazy: db() belum benar-benar
+// menyambung ke MySQL sampai dipanggil, jadi aman di-require di sini sebelum
+// error handler/timezone selesai disetel.
+require_once __DIR__ . '/../config/database.php';
+
 // error_reporting & display_errors menurut APP_ENV. Semua level tetap DICATAT lewat
 // app_log(); bedanya hanya apakah detailnya ditampilkan ke pengguna atau tidak.
 error_reporting(E_ALL);
@@ -168,3 +173,12 @@ register_shutdown_function(static function (): void {
 
     render_error_page(500, $public_message, $is_dev ? $error : null);
 });
+
+require_once __DIR__ . '/auth.php';
+
+// Header keamanan + session hardening (T-05, PRD bagian 11). Diletakkan di
+// AKHIR bootstrap.php, setelah error handler di atas terpasang, supaya
+// exception yang muncul di dalamnya (misalnya gagal konek DB saat cek
+// throttle) tertangkap rapi, bukan jatuh ke error handler default PHP.
+security_headers();
+auth_start_session();

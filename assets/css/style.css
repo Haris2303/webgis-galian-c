@@ -1,0 +1,888 @@
+/* =============================================================================
+   assets/css/style.css — WebGIS Galian C Kota Sorong (T-04)
+   CSS murni, tanpa framework (PRD bagian 3 & 9). Dimuat di semua halaman lewat
+   includes/header.php. Lihat assets/css/print.css untuk tampilan cetak laporan.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. Design tokens (custom properties) — PRD bagian 9
+   ----------------------------------------------------------------------------- */
+:root {
+  /* Warna identitas */
+  --color-primary: #1E3A5F;
+  --color-primary-dark: #152a46;
+  --color-primary-light: #2b4f7d;
+  --color-bg: #F4F6F9;
+  --color-surface: #FFFFFF;
+  --color-border: #D9DEE6;
+  --color-text: #1B2430;
+  --color-text-muted: #5A6B7D;
+
+  /* Warna status — "pure" dipakai untuk marker peta/dot/legenda/border badge;
+     varian -text sudah digelapkan supaya teks di atas latar terang tetap lolos
+     kontras WCAG AA 4.5:1 (warna aslinya, terutama kuning, tidak lolos sebagai
+     teks). Lihat Keputusan di luar PRD pada laporan T-04. */
+  --status-berizin: #2E9E4F;
+  --status-berizin-text: #1E7A3A;
+  --status-berizin-bg: #E8F5EC;
+  --status-tidak-berizin: #D64545;
+  --status-tidak-berizin-text: #B83A3A;
+  --status-tidak-berizin-bg: #FBEAEA;
+  --status-proses: #E5A823;
+  --status-proses-text: #8A6512;
+  --status-proses-bg: #FDF3DD;
+
+  /* Skala spasi */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Tipografi */
+  --font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.375rem;
+  --font-size-2xl: 1.75rem;
+
+  /* Bentuk & bayangan */
+  --radius: 8px;
+  --radius-sm: 4px;
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.1);
+  --shadow-dialog: 0 16px 40px rgba(16, 24, 40, 0.28);
+
+  /* Layout */
+  --topbar-height: 64px;
+  --sidebar-width: 240px;
+  --map-offset: 120px; /* PRD bagian 9 #3: tinggi peta ≈ calc(100vh - 120px) */
+
+  /* Fokus & transisi */
+  --focus-ring: 0 0 0 3px #FFFFFF, 0 0 0 5px var(--color-primary-light);
+  --transition-fast: 150ms ease;
+  --transition-base: 220ms ease;
+}
+
+/* -----------------------------------------------------------------------------
+   2. Reset dasar & elemen dasar
+   ----------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+h1, h2, h3, h4 {
+  margin: 0 0 var(--space-3);
+  line-height: 1.25;
+  color: var(--color-primary);
+}
+
+p {
+  margin: 0 0 var(--space-3);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+img, svg {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Urutan tab logis: elemen yang disembunyikan visual (mis. via [hidden]) tidak
+   boleh tetap kebagian fokus keyboard. */
+[hidden] {
+  display: none !important;
+}
+
+/* -----------------------------------------------------------------------------
+   3. Aksesibilitas lintas komponen
+   ----------------------------------------------------------------------------- */
+
+/* Focus ring jelas di semua elemen interaktif. Dipasang di :focus-visible
+   (bukan :focus) agar klik mouse tidak memicu ring, tapi navigasi keyboard
+   selalu memicunya — ini yang diuji pada langkah "navigasi hanya keyboard". */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link: pengguna keyboard/pembaca layar bisa lompat ke konten utama
+   tanpa harus Tab melewati seluruh menu sidebar setiap pindah halaman. */
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: var(--space-3);
+  z-index: 1000;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus-visible {
+  top: var(--space-3);
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   4. Shell aplikasi: topbar + sidebar + konten (layout="app")
+   ----------------------------------------------------------------------------- */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--topbar-height);
+  padding: 0 var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.app-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-topbar__spacer {
+  flex: 1;
+}
+
+.app-topbar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.app-topbar__user a {
+  color: #fff;
+}
+
+.logout-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* Tombol logout: visualnya harus identik dengan link biasa -- logout.php
+   wajib POST (T-06), jadi elemennya <button> di dalam <form>, bukan <a>. */
+.btn-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: #fff;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn-link:hover {
+  text-decoration: none;
+}
+
+/* Tombol hamburger: hanya terlihat < 768px (lihat breakpoint di bawah). */
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.hamburger-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hamburger-btn__icon,
+.hamburger-btn__icon::before,
+.hamburger-btn__icon::after {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+  position: relative;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.hamburger-btn__icon::before {
+  content: "";
+  top: -6px;
+}
+
+.hamburger-btn__icon::after {
+  content: "";
+  bottom: -6px;
+}
+
+/* aria-expanded="true" diset oleh assets/js/ui.js saat sidebar off-canvas terbuka. */
+.hamburger-btn[aria-expanded="true"] .hamburger-btn__icon {
+  background: transparent;
+}
+
+.hamburger-btn[aria-expanded="true"] .hamburger-btn__icon::before {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.hamburger-btn[aria-expanded="true"] .hamburger-btn__icon::after {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--color-primary-dark);
+  color: #fff;
+  overflow-y: auto;
+}
+
+.app-sidebar__nav {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3) 0;
+}
+
+.app-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  font-size: var(--font-size-base);
+}
+
+.app-sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Tombol di dalam .logout-form harus tampak identik dengan link menu lain,
+   walau elemennya <button> (logout wajib POST, T-06) bukan <a>. .logout-form
+   dibuat block/full-width KHUSUS di konteks sidebar -- di topbar (header.php)
+   ia tetap inline-flex seperti definisi aslinya. */
+.app-sidebar .logout-form {
+  display: block;
+  width: 100%;
+}
+
+.app-sidebar__link--button {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Penanda halaman aktif TIDAK hanya warna: tebal + border kiri + aria-current,
+   jadi tetap jelas untuk pengguna buta warna dan pembaca layar. */
+.app-sidebar__link[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.14);
+  border-left-color: var(--status-proses);
+  color: #fff;
+  font-weight: 600;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.app-main__title {
+  margin-bottom: var(--space-5);
+}
+
+/* -----------------------------------------------------------------------------
+   5. Shell autentikasi (layout="auth") — login.php: "Tanpa sidebar" (PRD #1)
+   ----------------------------------------------------------------------------- */
+.auth-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-bg);
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-6);
+}
+
+.auth-box__title {
+  text-align: center;
+  margin-bottom: var(--space-2);
+}
+
+.auth-box__subtitle {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+}
+
+/* -----------------------------------------------------------------------------
+   6. Kartu statistik
+   ----------------------------------------------------------------------------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.stat-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+.stat-card__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.stat-card__value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.stat-card--berizin .stat-card__value { color: var(--status-berizin-text); }
+.stat-card--tidak-berizin .stat-card__value { color: var(--status-tidak-berizin-text); }
+.stat-card--proses .stat-card__value { color: var(--status-proses-text); }
+
+/* -----------------------------------------------------------------------------
+   7. Kartu generik & grid dua kolom (dashboard PRD #2)
+   ----------------------------------------------------------------------------- */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.card__title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-4);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* -----------------------------------------------------------------------------
+   8. Tabel — overflow-x terkendali di layar kecil, bukan merusak layout
+   ----------------------------------------------------------------------------- */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+
+.data-table {
+  width: 100%;
+  min-width: 560px; /* cegah kolom dempet; pembaca di mobile scroll horizontal, bukan layout pecah */
+  border-collapse: collapse;
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+}
+
+.data-table caption {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.data-table thead th {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-bg);
+}
+
+.data-table__actions {
+  display: flex;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   9. Badge status — teks eksplisit + warna, bukan warna saja (PRD bagian 9)
+   ----------------------------------------------------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badge--berizin {
+  background: var(--status-berizin-bg);
+  color: var(--status-berizin-text);
+}
+.badge--berizin::before { background: var(--status-berizin); }
+
+.badge--tidak-berizin {
+  background: var(--status-tidak-berizin-bg);
+  color: var(--status-tidak-berizin-text);
+}
+.badge--tidak-berizin::before { background: var(--status-tidak-berizin); }
+
+.badge--proses {
+  background: var(--status-proses-bg);
+  color: var(--status-proses-text);
+}
+.badge--proses::before { background: var(--status-proses); }
+
+/* -----------------------------------------------------------------------------
+   10. Tombol
+   ----------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn--primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+
+.btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-border);
+}
+.btn--secondary:hover:not(:disabled) { background: var(--color-bg); }
+
+.btn--danger {
+  background: var(--status-tidak-berizin-text);
+  color: #fff;
+}
+.btn--danger:hover:not(:disabled) { background: #923030; }
+
+.btn--sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* -----------------------------------------------------------------------------
+   11. Form — label terhubung ke input, pesan error inline
+   ----------------------------------------------------------------------------- */
+.field {
+  margin-bottom: var(--space-4);
+}
+
+.field__label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.field__hint {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.field__required {
+  color: var(--status-tidak-berizin-text);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+/* Field berstatus error: border + ikon teks "Error:" dibaca pembaca layar lewat
+   aria-describedby yang dipasang di markup (lihat includes/*.php pemanggil). */
+.field--invalid .input,
+.field--invalid .select,
+.field--invalid .textarea {
+  border-color: var(--status-tidak-berizin-text);
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--status-tidak-berizin-text);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* -----------------------------------------------------------------------------
+   12. Flash message — tampil sekali setelah redirect (lihat includes/functions.php
+   flash()/flash_pull(); hilangnya permanen ditentukan server, bukan CSS/JS ini).
+   ----------------------------------------------------------------------------- */
+.flash-list {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.flash {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+}
+
+.flash__message {
+  flex: 1;
+}
+
+.flash__close {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  color: inherit;
+  padding: 0 var(--space-1);
+}
+
+.flash--success {
+  background: var(--status-berizin-bg);
+  color: var(--status-berizin-text);
+  border-color: var(--status-berizin);
+}
+
+.flash--error {
+  background: var(--status-tidak-berizin-bg);
+  color: var(--status-tidak-berizin-text);
+  border-color: var(--status-tidak-berizin);
+}
+
+.flash--warning {
+  background: var(--status-proses-bg);
+  color: var(--status-proses-text);
+  border-color: var(--status-proses);
+}
+
+/* -----------------------------------------------------------------------------
+   13. Modal konfirmasi hapus — elemen <dialog> asli (fokus & Esc otomatis
+   ditangani browser lewat showModal(), lihat assets/js/ui.js).
+   ----------------------------------------------------------------------------- */
+dialog.modal {
+  width: min(420px, calc(100vw - var(--space-5) * 2));
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-dialog);
+}
+
+dialog.modal::backdrop {
+  background: rgba(16, 24, 40, 0.55);
+}
+
+.modal__body {
+  padding: var(--space-5);
+}
+
+.modal__title {
+  margin-bottom: var(--space-3);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog.modal {
+    animation: modal-in var(--transition-base);
+  }
+
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   14. Skeleton loader
+   ----------------------------------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-border) 25%, #eef1f5 37%, var(--color-border) 63%);
+  background-size: 400% 100%;
+  border-radius: var(--radius-sm);
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+.skeleton-text {
+  height: 0.875em;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-text:last-child {
+  width: 70%;
+}
+
+.skeleton-card {
+  height: 96px;
+  margin-bottom: var(--space-3);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+/* Shimmer murni dekoratif: dengan reduced motion, tampilkan warna statis saja. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--color-border);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   15. Utilitas peta — tinggi mobile pakai dvh dengan fallback vh (PRD bagian 9 #3)
+   ----------------------------------------------------------------------------- */
+.map-shell {
+  width: 100%;
+  height: calc(100vh - var(--map-offset));
+  height: calc(100dvh - var(--map-offset)); /* diabaikan browser tanpa dukungan dvh */
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--color-border);
+}
+
+/* -----------------------------------------------------------------------------
+   16. Breakpoint responsif
+   ----------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .hamburger-btn {
+    display: inline-flex;
+  }
+
+  .app-topbar__user span.app-topbar__user-name {
+    display: none; /* nama lengkap disembunyikan di layar sempit, tombol keluar tetap ada */
+  }
+
+  /* Sidebar jadi off-canvas: digeser keluar viewport, muncul saat hamburger
+     aktif (class .is-open ditambahkan assets/js/ui.js). Posisi fixed supaya
+     tidak mendorong konten dan tetap bisa discroll independen dari halaman. */
+  .app-sidebar {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    bottom: 0;
+    z-index: 30;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-dialog);
+    transition: transform var(--transition-base);
+  }
+
+  .app-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .app-sidebar-backdrop {
+    position: fixed;
+    inset: var(--topbar-height) 0 0 0;
+    z-index: 20;
+    background: rgba(16, 24, 40, 0.4);
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-main {
+    padding: var(--space-4);
+  }
+}

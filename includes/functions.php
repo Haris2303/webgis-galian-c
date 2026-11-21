@@ -9,10 +9,14 @@ if (!defined('APP_BOOTSTRAPPED')) {
 
 /**
  * Escape output untuk mencegah XSS. Dipakai di semua tempat yang mencetak data ke HTML.
+ * Aturan proyek: TIDAK ADA echo/`<?=` variabel tanpa lewat e() (PRD bagian 11).
+ * ENT_SUBSTITUTE: byte UTF-8 tidak valid diganti karakter "replacement", bukan
+ * membuat seluruh string kosong (perilaku default htmlspecialchars yang justru
+ * bisa menyembunyikan data secara diam-diam).
  */
 function e(?string $value): string
 {
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 /**
@@ -102,6 +106,7 @@ function abort(int $code, ?string $message = null): void
         403 => 'Akses ditolak.',
         404 => 'Halaman tidak ditemukan.',
         405 => 'Metode permintaan tidak diizinkan.',
+        419 => 'Sesi Anda telah berakhir atau token keamanan tidak valid. Muat ulang halaman dan coba lagi.',
         500 => 'Terjadi kesalahan pada sistem.',
     ];
 
@@ -145,8 +150,104 @@ function app_log(string $level, string $message): void
 }
 
 /**
- * Halaman error HTML sederhana (header.php/style.css global belum ada, jadi di-styling inline).
- * $debug diisi hanya saat APP_ENV=dev.
+ * Token CSRF: satu token acak per session (bukan per form) -- model
+ * "synchronizer token" standar, cukup dibuat sekali dan dipakai ulang selama
+ * session berlangsung. Session harus sudah aktif (auth_start_session() di
+ * includes/auth.php, dipanggil dari bootstrap.php) sebelum fungsi ini berguna.
+ */
+function csrf_token(): string
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return '';
+    }
+
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Markup <input hidden> siap tempel di dalam <form method="post">. Berfungsi
+ * sama di form biasa maupun enctype="multipart/form-data" (upload foto) --
+ * field tersembunyi non-file tetap terbaca di $_POST pada request multipart,
+ * tidak butuh penanganan khusus.
+ */
+function csrf_field(): string
+{
+    return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
+}
+
+/**
+ * Bandingkan token dari $_POST ATAU header X-CSRF-Token (dipakai fetch() AJAX,
+ * PRD bagian 10) terhadap token session, lewat hash_equals() agar tahan timing
+ * attack. Murni predikat -- tidak menghentikan request. Lihat csrf_require().
+ */
+function csrf_verify(): bool
+{
+    if (session_status() !== PHP_SESSION_ACTIVE || empty($_SESSION['csrf_token'])) {
+        return false;
+    }
+
+    $submitted = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+
+    return is_string($submitted) && $submitted !== '' && hash_equals($_SESSION['csrf_token'], $submitted);
+}
+
+/**
+ * Panggil di baris pertama setiap handler yang menerima POST. No-op untuk
+ * method lain, jadi aman dipanggil tanpa pengondisian tambahan di berkas yang
+ * merangkap GET (tampilkan form) dan POST (proses form) sekaligus. Token yang
+ * tidak ada/tidak cocok -- termasuk kasus session kedaluwarsa di tengah form
+ * terbuka, karena auth_start_session() sudah mengosongkan session sebelum
+ * baris ini jalan -- berakhir sebagai 419 yang sama, pesan netral tidak
+ * membedakan sebabnya ke pengguna.
+ */
+function csrf_require(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_verify()) {
+        abort(419);
+    }
+}
+
+/**
+ * Simpan flash message untuk ditampilkan SEKALI di request berikutnya (umumnya
+ * setelah redirect dari aksi simpan/hapus, PRD bagian 9). Cek session_status()
+ * tetap dipertahankan sebagai jaring pengaman murah, bukan karena session
+ * benar-benar bisa tidak aktif pada jalur normal (auth_start_session() di
+ * bootstrap.php sudah menjaminnya sejak T-05).
+ */
+function flash(string $type, string $message): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
+}
+
+/**
+ * Ambil semua flash message tertunda lalu hapus dari session -- sekali dibaca,
+ * tidak akan tampil lagi walau halaman di-refresh. Dipanggil dari includes/header.php.
+ */
+function flash_pull(): array
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return [];
+    }
+
+    $messages = $_SESSION['flash'] ?? [];
+    unset($_SESSION['flash']);
+
+    return $messages;
+}
+
+/**
+ * Halaman error HTML sederhana, di-styling inline secara sengaja (bukan lewat
+ * includes/header.php + style.css) -- fungsi ini juga jadi jaring pengaman saat
+ * bootstrap/koneksi DB gagal, jadi tidak boleh ikut bergantung pada berkas lain
+ * yang mungkin justru jadi sumber error tersebut. $debug diisi hanya saat APP_ENV=dev.
  */
 function render_error_page(int $code, string $message, ?array $debug = null): void
 {
@@ -159,7 +260,7 @@ function render_error_page(int $code, string $message, ?array $debug = null): vo
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kesalahan <?= e((string) $code) ?> — WebGIS Galian C</title>
-<style>
+<style nonce="<?= e(csp_nonce()) ?>">
   body{font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:#F4F6F9;color:#1E3A5F;margin:0;padding:48px 16px;display:flex;justify-content:center;}
   .box{max-width:640px;width:100%;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.12);padding:32px;}
   h1{margin:0 0 8px;font-size:22px;color:#D64545;}

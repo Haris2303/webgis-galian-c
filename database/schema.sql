@@ -167,6 +167,27 @@ CREATE TABLE foto_aktivitas (
   FOREIGN KEY (aktivitas_id) REFERENCES aktivitas_tambang(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -----------------------------------------------------------------------------
+-- login_attempts — TABEL DI LUAR PRD BAGIAN 7 (T-05, lihat Keputusan di luar
+-- PRD pada laporan T-05). Mencatat setiap percobaan login GAGAL untuk
+-- throttling (maks 5 per 15 menit per kombinasi username+IP, PRD bagian 11).
+-- Tidak ada FK ke users: username dicatat apa adanya, termasuk saat username
+-- tidak pernah ada, karena throttle harus tetap berlaku untuk username yang
+-- tidak terdaftar (mencegah enumerasi via percobaan brute force berulang).
+-- -----------------------------------------------------------------------------
+CREATE TABLE login_attempts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NOT NULL,
+  ip_address VARCHAR(45) NOT NULL, -- cukup untuk IPv4 maupun bentuk teks IPv6 terpanjang
+  attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  -- idx_throttle: melayani "hitung percobaan gagal 15 menit terakhir untuk
+  -- username+IP ini" (satu-satunya query yang dijalankan tabel ini, lihat
+  -- includes/repo/login_attempts.php). username+ip_address di kiri untuk
+  -- predikat kesamaan, attempted_at di kanan untuk rentang waktu.
+  INDEX idx_throttle (username, ip_address, attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Data referensi tetap (bukan data demo) — dimiliki schema.sql, bukan seed.sql,
 -- karena 5 jenis material ini adalah master data aplikasi, bukan sampel dev.
 INSERT INTO jenis_material (nama) VALUES ('Pasir'),('Batu'),('Kerikil'),('Tanah Urug'),('Sirtu');
