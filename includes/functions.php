@@ -145,8 +145,42 @@ function app_log(string $level, string $message): void
 }
 
 /**
- * Halaman error HTML sederhana (header.php/style.css global belum ada, jadi di-styling inline).
- * $debug diisi hanya saat APP_ENV=dev.
+ * Simpan flash message untuk ditampilkan SEKALI di request berikutnya (umumnya
+ * setelah redirect dari aksi simpan/hapus, PRD bagian 9). Defensif terhadap
+ * session belum aktif: T-04 belum memasang session_start() -- itu baru
+ * ditata benar di T-05 (session hardening) -- jadi di sini flash() hanya
+ * no-op bila session tidak aktif, bukan error.
+ */
+function flash(string $type, string $message): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
+}
+
+/**
+ * Ambil semua flash message tertunda lalu hapus dari session -- sekali dibaca,
+ * tidak akan tampil lagi walau halaman di-refresh. Dipanggil dari includes/header.php.
+ */
+function flash_pull(): array
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return [];
+    }
+
+    $messages = $_SESSION['flash'] ?? [];
+    unset($_SESSION['flash']);
+
+    return $messages;
+}
+
+/**
+ * Halaman error HTML sederhana, di-styling inline secara sengaja (bukan lewat
+ * includes/header.php + style.css) -- fungsi ini juga jadi jaring pengaman saat
+ * bootstrap/koneksi DB gagal, jadi tidak boleh ikut bergantung pada berkas lain
+ * yang mungkin justru jadi sumber error tersebut. $debug diisi hanya saat APP_ENV=dev.
  */
 function render_error_page(int $code, string $message, ?array $debug = null): void
 {
