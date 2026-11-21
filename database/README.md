@@ -96,6 +96,12 @@ bagian 7, catatan di bawah tabel DDL).
    verbose, tapi tidak tergantung asumsi AUTO_INCREMENT mulai dari 1 — seed
    tetap benar walau urutan INSERT berubah atau TRUNCATE tidak mereset counter
    di konfigurasi MySQL tertentu.
+7. **Tabel `login_attempts` ditambahkan di T-05** (fondasi keamanan), di luar
+   6 tabel PRD bagian 7. Mencatat setiap percobaan login gagal untuk
+   throttling (maks 5/15 menit per username+IP, PRD bagian 11). Tidak ber-FK
+   ke `users` secara sengaja — throttle harus berlaku juga untuk username yang
+   tidak pernah terdaftar, supaya penyerang tidak bisa memakai keberadaan FK
+   untuk menebak username mana yang valid.
 
 ## Fallback validasi PHP untuk CHECK constraint
 

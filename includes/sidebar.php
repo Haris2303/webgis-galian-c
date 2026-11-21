@@ -45,7 +45,7 @@ $menu_items = $role === 'kontraktor' ? $menu_kontraktor : $menu_admin;
       <a
         class="app-sidebar__link"
         href="<?= e(url($item['href'])) ?>"
-        <?= $active_menu === $key ? ' aria-current="page"' : '' ?>
+        <?php if ($active_menu === $key): ?>aria-current="page"<?php endif; ?>
       ><?= e($item['label']) ?></a>
     </li>
     <?php endforeach; ?>

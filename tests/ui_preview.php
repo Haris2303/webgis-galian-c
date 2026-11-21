@@ -29,13 +29,6 @@ if (APP_ENV !== 'dev') {
     exit('Not Found');
 }
 
-// session_start() khusus berkas ini, hanya untuk mendemonstrasikan flash()
-// baca-sekali (T-05 yang akan memasang session_start() terhardening untuk
-// seluruh aplikasi -- lihat catatan di includes/functions.php).
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
-
 $view = $_GET['view'] ?? 'components';
 if (!in_array($view, ['login', 'dashboard', 'components'], true)) {
     $view = 'components';
@@ -66,6 +59,7 @@ if ($view === 'login') {
       <h1 class="auth-box__title">WebGIS Galian C — Kota Sorong</h1>
       <p class="auth-box__subtitle">Masuk ke Sistem</p>
       <form method="post" action="#" novalidate>
+        <?= csrf_field() ?>
         <div class="field field--invalid">
           <label class="field__label" for="username">Username</label>
           <input class="input" type="text" id="username" name="username" autocomplete="username" aria-describedby="username-error" aria-invalid="true">
@@ -151,8 +145,9 @@ require __DIR__ . '/../includes/header.php';
 <p>
   Pratinjau peran saat ini: <strong><?= e($simulated_role) ?></strong>.
   Ganti via <code>?role=admin</code> atau <code>?role=kontraktor</code>.
-  Lihat juga <a href="<?= e(url('tests/ui_preview.php?view=login')) ?>">tampilan login</a> dan
-  <a href="<?= e(url('tests/ui_preview.php?view=dashboard&role=' . $simulated_role)) ?>">tampilan dashboard</a>.
+  Lihat juga <a href="<?= e(url('tests/ui_preview.php?view=login')) ?>">tampilan login</a>,
+  <a href="<?= e(url('tests/ui_preview.php?view=dashboard&role=' . $simulated_role)) ?>">tampilan dashboard</a>, dan
+  <a href="<?= e(url('tests/security_preview.php')) ?>">pratinjau keamanan T-05</a> (login/logout/CSRF/throttle sungguhan).
 </p>
 
 <section class="card">
@@ -218,7 +213,8 @@ require __DIR__ . '/../includes/header.php';
 
 <section class="card">
   <h2 class="card__title">Form dengan error inline</h2>
-  <form novalidate>
+  <form method="post" action="#" novalidate>
+    <?= csrf_field() ?>
     <div class="field field--invalid">
       <label class="field__label" for="contoh-nama">Nama Lokasi <span class="field__required">*</span></label>
       <input class="input" type="text" id="contoh-nama" name="nama" aria-describedby="contoh-nama-error" aria-invalid="true">
@@ -258,7 +254,7 @@ require __DIR__ . '/../includes/header.php';
 
 <section class="card">
   <h2 class="card__title">Skeleton loader</h2>
-  <div class="skeleton skeleton-card" style="margin-bottom: var(--space-3);"></div>
+  <div class="skeleton skeleton-card"></div>
   <div class="skeleton skeleton-text"></div>
   <div class="skeleton skeleton-text"></div>
 </section>

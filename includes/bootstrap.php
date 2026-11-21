@@ -173,3 +173,12 @@ register_shutdown_function(static function (): void {
 
     render_error_page(500, $public_message, $is_dev ? $error : null);
 });
+
+require_once __DIR__ . '/auth.php';
+
+// Header keamanan + session hardening (T-05, PRD bagian 11). Diletakkan di
+// AKHIR bootstrap.php, setelah error handler di atas terpasang, supaya
+// exception yang muncul di dalamnya (misalnya gagal konek DB saat cek
+// throttle) tertangkap rapi, bukan jatuh ke error handler default PHP.
+security_headers();
+auth_start_session();

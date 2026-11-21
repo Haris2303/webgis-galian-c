@@ -762,6 +762,7 @@ dialog.modal::backdrop {
 
 .skeleton-card {
   height: 96px;
+  margin-bottom: var(--space-3);
 }
 
 @keyframes skeleton-shimmer {
