@@ -1,0 +1,17 @@
+# uploads/.htaccess — larang eksekusi skrip apa pun di dalam uploads/ (T-17,
+# disiapkan lebih awal untuk T-18, PRD bagian 11). Direktori ini HANYA untuk
+# berkas yang diunggah pengguna (foto aktivitas, FR-14); kalaupun validasi
+# MIME/finfo di lapisan PHP (aktivitas/form.php) suatu saat berhasil dilewati
+# oleh berkas berbahaya, baris di bawah ini mencegah webserver menjalankannya.
+
+Options -Indexes -ExecCGI
+
+<FilesMatch "\.(php|phtml|php\d|phar|cgi|pl)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
