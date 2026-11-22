@@ -1,0 +1,14 @@
+# Tolak akses langsung ke folder ini TANPA BERGANTUNG pada mod_rewrite
+# (T-26). .htaccess root sudah memblokir folder ini lewat RewriteRule, TAPI
+# itu diam-diam tidak berlaku sama sekali bila mod_rewrite tidak aktif di
+# server produksi -- folder ini berisi config.local.php (kredensial DB).
+# Baris di bawah (sama seperti uploads/.htaccess, T-19) berlaku independen
+# dari modul rewrite apa pun, sebagai lapis kedua.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

@@ -20,6 +20,16 @@ declare(strict_types=1);
  * Pemakaian: php database/make_seed_hash.php
  */
 
+// T-26: tolak dieksekusi lewat web SAMA SEKALI, apa pun konfigurasi server
+// (Apache/.htaccess ATAU nginx -- keduanya TIDAK bisa diandalkan secara
+// portabel, lihat Keputusan/temuan T-26). Skrip ini mencetak password
+// PLAINTEXT akun dev; satu-satunya cara jalan yang benar adalah CLI
+// (`php database/make_seed_hash.php`), PHP_SAPI selalu 'cli' untuk itu.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden: jalankan hanya lewat command line (php database/make_seed_hash.php).');
+}
+
 $akun = [
     'admin'       => 'admin123',
     'kontraktor1' => 'kontraktor123',

@@ -11,6 +11,14 @@ declare(strict_types=1);
  * berulang kali di database dev tanpa menyisakan sampah permanen.
  */
 
+// T-26: skrip ini menulis & menghapus baris DB -- TIDAK PERNAH boleh terpicu
+// lewat web oleh siapa pun (dev atau bukan). cli-only, bukan APP_ENV=dev,
+// karena tujuannya memang hanya dijalankan manual dari terminal.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden: jalankan hanya lewat command line (php tests/db_smoke.php).');
+}
+
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/kontraktor.php';
 require_once __DIR__ . '/../includes/repo/users.php';
