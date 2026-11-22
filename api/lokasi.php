@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 /**
  * api/lokasi.php — FeatureCollection titik lokasi tambang (FR-17/18/20; PRD
- * bagian 10, T-12). Semua peran login boleh melihat SEMUA marker ("Kontraktor
- * tetap boleh melihat semua marker", PRD bagian 10) -- tidak difilter per
- * kontraktor di sini; yang dibatasi per kepemilikan hanya DETAIL aktivitas
- * (api/lokasi_detail.php).
+ * bagian 10, T-12). Keputusan produk (menggantikan catatan T-12 sebelumnya):
+ * peran kontraktor di peta HANYA melihat marker lokasi miliknya sendiri --
+ * ter-scope lewat kontraktor_id, konsisten dengan dashboard.php
+ * ($kontraktor_id_scope) & api/lokasi_detail.php (DETAIL aktivitas, yang
+ * tetap dibatasi kepemilikan). Admin tetap melihat semua marker.
  */
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/api.php';
 require_once __DIR__ . '/../includes/repo/lokasi.php';
 
-api_boot();
+$user = api_boot();
+$kontraktor_id_scope = $user['role'] === 'kontraktor' ? (int) ($user['kontraktor_id'] ?? 0) : null;
 
 $status = null;
 if (isset($_GET['status']) && $_GET['status'] !== '') {
@@ -30,7 +32,7 @@ if (isset($_GET['status']) && $_GET['status'] !== '') {
 // ETag dari COUNT(*) + MAX(updated_at) PADA FILTER YANG SAMA (spesifikasi
 // T-12) -- supaya peta tidak mengunduh ulang FeatureCollection yang isinya
 // belum berubah sejak permintaan sebelumnya (304 Not Modified).
-$meta = repo_lokasi_etag_meta($status);
+$meta = repo_lokasi_etag_meta($status, $kontraktor_id_scope);
 $etag = '"' . $meta['jumlah'] . '-' . ($meta['terakhir'] !== null ? strtotime((string) $meta['terakhir']) : 0) . '"';
 header('ETag: ' . $etag);
 
@@ -40,7 +42,7 @@ if ($if_none_match === $etag) {
     exit;
 }
 
-$rows = repo_lokasi_list_for_map($status);
+$rows = repo_lokasi_list_for_map($status, $kontraktor_id_scope);
 
 $features = [];
 foreach ($rows as $row) {

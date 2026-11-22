@@ -102,15 +102,24 @@ function repo_lokasi_count_by_status(?int $kontraktor_id = null): array
  * Titik + properti ringan untuk api/lokasi.php (T-12), termasuk tanggal
  * aktivitas terakhir lewat subquery (bukan JOIN langsung ke aktivitas_tambang,
  * supaya tetap SATU baris per lokasi walau aktivitasnya banyak).
+ *
+ * $kontraktor_id null = semua lokasi (Admin); diisi = ter-scope ke satu
+ * kontraktor (peran kontraktor: peta hanya menampilkan lokasi miliknya
+ * sendiri, konsisten dengan dashboard.php/repo_lokasi_count_by_status()).
  */
-function repo_lokasi_list_for_map(?string $status_izin): array
+function repo_lokasi_list_for_map(?string $status_izin, ?int $kontraktor_id = null): array
 {
-    $where = '';
+    $where = [];
     $params = [];
     if ($status_izin !== null) {
-        $where = 'WHERE l.status_izin = :status_izin';
+        $where[] = 'l.status_izin = :status_izin';
         $params['status_izin'] = $status_izin;
     }
+    if ($kontraktor_id !== null) {
+        $where[] = 'l.kontraktor_id = :kontraktor_id';
+        $params['kontraktor_id'] = $kontraktor_id;
+    }
+    $klausa_where = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
 
     return db_all(
         "SELECT l.id, l.nama_lokasi, l.latitude, l.longitude, l.status_izin,
@@ -119,20 +128,28 @@ function repo_lokasi_list_for_map(?string $status_izin): array
          FROM lokasi_tambang l
          JOIN kontraktor k ON k.id = l.kontraktor_id
          JOIN jenis_material m ON m.id = l.material_id
-         {$where}
+         {$klausa_where}
          ORDER BY l.id ASC",
         $params
     );
 }
 
-/** MAX(updated_at) + COUNT(*) untuk ETag api/lokasi.php (T-12) -- ter-scope ke filter yang sama dengan query utamanya. */
-function repo_lokasi_etag_meta(?string $status_izin): array
+/** MAX(updated_at) + COUNT(*) untuk ETag api/lokasi.php (T-12) -- ter-scope ke filter DAN kontraktor yang sama dengan query utamanya. */
+function repo_lokasi_etag_meta(?string $status_izin, ?int $kontraktor_id = null): array
 {
-    $sql = 'SELECT COUNT(*) AS jumlah, MAX(updated_at) AS terakhir FROM lokasi_tambang';
+    $where = [];
     $params = [];
     if ($status_izin !== null) {
-        $sql .= ' WHERE status_izin = :status_izin';
+        $where[] = 'status_izin = :status_izin';
         $params['status_izin'] = $status_izin;
+    }
+    if ($kontraktor_id !== null) {
+        $where[] = 'kontraktor_id = :kontraktor_id';
+        $params['kontraktor_id'] = $kontraktor_id;
+    }
+    $sql = 'SELECT COUNT(*) AS jumlah, MAX(updated_at) AS terakhir FROM lokasi_tambang';
+    if ($where !== []) {
+        $sql .= ' WHERE ' . implode(' AND ', $where);
     }
 
     $row = db_one($sql, $params);
@@ -140,14 +157,26 @@ function repo_lokasi_etag_meta(?string $status_izin): array
     return ['jumlah' => (int) ($row['jumlah'] ?? 0), 'terakhir' => $row['terakhir'] ?? null];
 }
 
-/** Lokasi yang punya area_geojson (poligon), untuk api/area.php (T-12). */
-function repo_lokasi_list_with_area(): array
+/**
+ * Lokasi yang punya area_geojson (poligon), untuk api/area.php (T-12).
+ * $kontraktor_id null = semua lokasi (Admin); diisi = ter-scope ke satu
+ * kontraktor (peran kontraktor: peta hanya menampilkan area miliknya sendiri).
+ */
+function repo_lokasi_list_with_area(?int $kontraktor_id = null): array
 {
+    $where = 'WHERE area_geojson IS NOT NULL';
+    $params = [];
+    if ($kontraktor_id !== null) {
+        $where .= ' AND kontraktor_id = :kontraktor_id';
+        $params['kontraktor_id'] = $kontraktor_id;
+    }
+
     return db_all(
         "SELECT id, nama_lokasi, status_izin, area_geojson
          FROM lokasi_tambang
-         WHERE area_geojson IS NOT NULL
-         ORDER BY id ASC"
+         {$where}
+         ORDER BY id ASC",
+        $params
     );
 }
 
@@ -164,10 +193,16 @@ function repo_lokasi_list_with_area(): array
  * native prepared statement (EMULATE_PREPARES=false, config/database.php)
  * tidak mengizinkan satu placeholder bernama dipakai lebih dari sekali dalam
  * satu statement.
+ * $tanggal_mulai/$tanggal_akhir null berarti sisi itu TERBUKA (tidak dibatasi)
+ * -- diganti sentinel tanggal MIN/MAX MySQL (bukan dibiarkan null) karena
+ * `BETWEEN x AND NULL` selalu bernilai NULL/false, bukan "tanpa batas".
  * @return array<int, array<string, mixed>>
  */
-function repo_lokasi_list_for_laporan(string $tanggal_mulai, string $tanggal_akhir): array
+function repo_lokasi_list_for_laporan(?string $tanggal_mulai, ?string $tanggal_akhir): array
 {
+    $tanggal_mulai ??= '1000-01-01';
+    $tanggal_akhir ??= '9999-12-31';
+
     return db_all(
         'SELECT lt.id, lt.nama_lokasi, lt.status_izin, k.nama_perusahaan AS kontraktor_nama,
                 (SELECT COUNT(*) FROM aktivitas_tambang a

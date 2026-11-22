@@ -61,13 +61,35 @@ function csp_nonce(): string
  *                              -- semua skrip proyek sudah di assets/js/*.js (T-04),
  *                              bukan <script> inline, jadi tidak perlu nonce di sini.
  * - style-src ... 'nonce-%s' : gaya hanya dari sendiri + unpkg.com (CSS Leaflet)
- *                              + SATU <style> inline yang masih ada (halaman error
- *                              darurat) lewat nonce per request, bukan 'unsafe-inline'
- *                              blanket.
+ *                              + fonts.googleapis.com (Roboto, migrasi UI
+ *                              DESIGN.md -- mulai login.php) + SATU <style>
+ *                              inline yang masih ada (halaman error darurat)
+ *                              lewat nonce per request, bukan 'unsafe-inline' blanket.
+ * - font-src fonts.gstatic.com : berkas font Google Fonts sungguhan (CSS di
+ *                              atas hanya mendeklarasikan @font-face yang
+ *                              menunjuk ke sana) -- tanpa ini, default-src
+ *                              'self' akan memblokirnya walau style-src sudah diizinkan.
  * - img-src ... tile.openstreetmap.org + unpkg.com : tile peta (PRD bagian 9/11,
  *                              tegas) ditambah unpkg.com (T-10) karena ikon marker
  *                              default Leaflet dimuat lewat path relatif ke CSS-nya
  *                              sendiri di CDN yang sama, bukan dari origin sendiri.
+ *                              blob: ditambah (T-18 UI) untuk pratinjau foto
+ *                              SEBELUM unggah (assets/js/foto-preview.js,
+ *                              URL.createObjectURL() menghasilkan URL blob:,
+ *                              tanpa ini browser diam-diam menolak merendernya).
+ *                              *.google.com/*.googleapis.com/*.gstatic.com
+ *                              ditambah (peta UI) untuk tile satelit
+ *                              (assets/js/map.js) -- endpoint tile Google
+ *                              TANPA kunci API resmi (/vt/lyrs=s...), bukan
+ *                              integrasi Google Maps Platform resmi; domain
+ *                              persis yang dipakai server tile ini tidak
+ *                              didokumentasikan resmi, tiga domain Google
+ *                              ditambahkan sekaligus (bukan hanya *.google.com)
+ *                              setelah satu percobaan nyata diblokir CSP --
+ *                              bisa berhenti bekerja atau diblokir Google
+ *                              tanpa pemberitahuan kapan pun. Ganti ke Google
+ *                              Maps Platform (kunci API + billing) untuk
+ *                              produksi yang butuh SLA/garansi ketersediaan.
  * - connect-src 'self'      : fetch() (PRD bagian 10) hanya ke endpoint sendiri.
  * - object-src 'none'       : blokir <object>/<embed>, tidak ada kebutuhan di app ini.
  * - base-uri 'self'         : cegah <base> disuntik untuk membajak URL relatif.
@@ -92,8 +114,9 @@ function security_headers(): void
 
     $csp = sprintf(
         "default-src 'self'; script-src 'self' https://unpkg.com; "
-        . "style-src 'self' https://unpkg.com 'nonce-%s'; "
-        . "img-src 'self' https://tile.openstreetmap.org https://unpkg.com; connect-src 'self'; "
+        . "style-src 'self' https://unpkg.com https://fonts.googleapis.com 'nonce-%s'; "
+        . "font-src 'self' https://fonts.gstatic.com; "
+        . "img-src 'self' blob: https://tile.openstreetmap.org https://unpkg.com https://*.google.com https://*.googleapis.com https://*.gstatic.com; connect-src 'self'; "
         . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
         csp_nonce()
     );

@@ -33,11 +33,7 @@ $total_lokasi = $stat['berizin'] + $stat['tidak_berizin'] + $stat['proses'];
     10
 );
 
-$judul_dashboard = 'Dashboard — Admin Dinas Perindustrian';
-if ($user['role'] === 'kontraktor') {
-    $kontraktor = $kontraktor_id_scope > 0 ? repo_kontraktor_find($kontraktor_id_scope) : null;
-    $judul_dashboard = 'Dashboard — ' . ($kontraktor['nama_perusahaan'] ?? $user['nama_lengkap']);
-}
+$judul_dashboard = 'Dashboard';
 
 /**
  * Markup badge status (teks + warna, PRD bagian 9) untuk satu baris tabel.
@@ -54,13 +50,13 @@ function dashboard_badge_status(?string $status_izin): string
         default => 'Status Tidak Diketahui',
     };
     $class = match ($status_izin) {
-        'berizin' => 'badge--berizin',
-        'tidak_berizin' => 'badge--tidak-berizin',
-        'proses' => 'badge--proses',
-        default => 'badge--tidak-diketahui',
+        'berizin' => 'ds-badge--berizin',
+        'tidak_berizin' => 'ds-badge--tidak-berizin',
+        'proses' => 'ds-badge--proses',
+        default => 'ds-badge--tidak-diketahui',
     };
 
-    return '<span class="badge ' . $class . '">' . e($label) . '</span>';
+    return '<span class="ds-badge ' . $class . '">' . e($label) . '</span>';
 }
 
 $page_title = 'Dashboard';
@@ -71,72 +67,82 @@ $extra_head = [
 ];
 require __DIR__ . '/includes/header.php';
 ?>
-<h1 class="app-main__title"><?= e($judul_dashboard) ?></h1>
-
-<div class="stat-grid">
-  <div class="card stat-card">
-    <p class="stat-card__label">Total Lokasi Tambang</p>
-    <p class="stat-card__value"><?= e((string) $total_lokasi) ?></p>
-  </div>
-  <div class="card stat-card stat-card--berizin">
-    <p class="stat-card__label">Berizin</p>
-    <p class="stat-card__value"><?= e((string) $stat['berizin']) ?></p>
-  </div>
-  <div class="card stat-card stat-card--tidak-berizin">
-    <p class="stat-card__label">Tidak Berizin</p>
-    <p class="stat-card__value"><?= e((string) $stat['tidak_berizin']) ?></p>
-  </div>
-  <div class="card stat-card stat-card--proses">
-    <p class="stat-card__label">Proses</p>
-    <p class="stat-card__value"><?= e((string) $stat['proses']) ?></p>
-  </div>
-</div>
-
-<div class="grid-2">
-  <div class="card">
-    <h2 class="card__title">Pratinjau Peta Persebaran Galian C</h2>
-    <div
-      id="dashboard-peta-preview"
-      class="map-shell map-shell--preview"
-      data-lokasi-url="<?= e(url('api/lokasi.php')) ?>"
-      data-preview-url="<?= e(url('peta.php')) ?>"
-    ></div>
-    <p class="u-mt-4"><a class="btn-link" href="<?= e(url('peta.php')) ?>">Lihat peta lengkap &rarr;</a></p>
-  </div>
-
-  <div class="card">
-    <h2 class="card__title">Daftar Lokasi Tambang</h2>
-    <div class="table-responsive">
-      <table class="data-table">
-        <caption class="sr-only">Daftar lokasi tambang dan status izinnya</caption>
-        <thead>
-          <tr>
-            <th scope="col">Nama Lokasi</th>
-            <th scope="col">Kontraktor</th>
-            <th scope="col">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if ($daftar_lokasi === []): ?>
-          <tr>
-            <td colspan="3">
-              Belum ada data lokasi tambang<?= $kontraktor_id_scope !== null ? ' untuk perusahaan Anda' : '' ?>.
-            </td>
-          </tr>
-          <?php endif; ?>
-          <?php foreach ($daftar_lokasi as $row): ?>
-          <tr>
-            <td><?= e($row['nama_lokasi']) ?></td>
-            <td><?= e($row['kontraktor_nama']) ?></td>
-            <td><?= dashboard_badge_status($row['status_izin']) ?></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+<div class="ds-page">
+  <div class="ds-page-header ds-page-header--row">
+    <div>
+      <span class="ds-page-header__eyebrow">Selamat datang, <?= e($user['nama_lengkap']) ?></span>
+      <h1 class="ds-page-header__title"><?= e($judul_dashboard) ?></h1>
     </div>
-    <?php if ($user['role'] === 'admin' && $total_lokasi > 10): ?>
-    <p class="u-mt-4"><a class="btn-link" href="<?= e(url('lokasi/index.php')) ?>">Lihat semua lokasi &rarr;</a></p>
+    <?php if ($user['role'] === 'kontraktor'): ?>
+    <a class="ds-btn ds-btn--primary" href="<?= e(url('aktivitas/form.php')) ?>">+ Input Aktivitas</a>
     <?php endif; ?>
+  </div>
+
+  <div class="ds-stat-cols">
+    <div class="ds-stat-col">
+      <p class="ds-stat-col__label">Total Lokasi Tambang</p>
+      <p class="ds-stat-col__value"><?= e((string) $total_lokasi) ?></p>
+    </div>
+    <div class="ds-stat-col ds-stat-col--berizin">
+      <p class="ds-stat-col__label">Berizin</p>
+      <p class="ds-stat-col__value"><?= e((string) $stat['berizin']) ?></p>
+    </div>
+    <div class="ds-stat-col ds-stat-col--tidak-berizin">
+      <p class="ds-stat-col__label">Tidak Berizin</p>
+      <p class="ds-stat-col__value"><?= e((string) $stat['tidak_berizin']) ?></p>
+    </div>
+    <div class="ds-stat-col ds-stat-col--proses">
+      <p class="ds-stat-col__label">Proses</p>
+      <p class="ds-stat-col__value"><?= e((string) $stat['proses']) ?></p>
+    </div>
+  </div>
+
+  <div class="ds-grid-2">
+    <div class="ds-card">
+      <h2 class="ds-card__title">Pratinjau Peta Persebaran Galian C</h2>
+      <div
+        id="dashboard-peta-preview"
+        class="map-shell map-shell--preview"
+        data-lokasi-url="<?= e(url('api/lokasi.php')) ?>"
+        data-preview-url="<?= e(url('peta.php')) ?>"
+      ></div>
+      <p class="u-mt-4"><a class="ds-link-arrow" href="<?= e(url('peta.php')) ?>">Lihat peta lengkap &rarr;</a></p>
+    </div>
+
+    <div class="ds-card">
+      <h2 class="ds-card__title">Daftar Lokasi Tambang</h2>
+      <div class="ds-table-responsive">
+        <table class="ds-table">
+          <caption class="sr-only">Daftar lokasi tambang dan status izinnya</caption>
+          <thead>
+            <tr>
+              <th scope="col">Nama Lokasi</th>
+              <th scope="col">Kontraktor</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if ($daftar_lokasi === []): ?>
+            <tr>
+              <td colspan="3">
+                Belum ada data lokasi tambang<?= $kontraktor_id_scope !== null ? ' untuk perusahaan Anda' : '' ?>.
+              </td>
+            </tr>
+            <?php endif; ?>
+            <?php foreach ($daftar_lokasi as $row): ?>
+            <tr>
+              <td><?= e($row['nama_lokasi']) ?></td>
+              <td><?= e($row['kontraktor_nama']) ?></td>
+              <td><?= dashboard_badge_status($row['status_izin']) ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <?php if ($user['role'] === 'admin' && $total_lokasi > 10): ?>
+      <p class="u-mt-4"><a class="ds-link-arrow" href="<?= e(url('lokasi/index.php')) ?>">Lihat semua lokasi &rarr;</a></p>
+      <?php endif; ?>
+    </div>
   </div>
 </div>
 

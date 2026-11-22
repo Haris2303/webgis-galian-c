@@ -67,34 +67,46 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 $page_title = 'Masuk ke Sistem';
 $layout = 'auth';
+// Migrasi UI DESIGN.md -- Roboto & design-system.css sekarang dimuat GLOBAL
+// lewat includes/header.php (dipakai topbar/sidebar di semua halaman app),
+// jadi tidak perlu diulang di $extra_head lagi di sini.
+$auth_shell_class = 'ds-auth-shell';
 require __DIR__ . '/includes/header.php';
 ?>
-<div class="auth-box">
-  <h1 class="auth-box__title">WebGIS Galian C — Kota Sorong</h1>
-  <p class="auth-box__subtitle">Masuk ke Sistem</p>
+<div class="ds-auth-shell__content">
+  <div class="ds-auth-card">
+    <span class="ds-auth-card__eyebrow">Dinas Perindustrian Kota Sorong</span>
+    <h1 class="ds-auth-card__title">WebGIS Galian C</h1>
+    <p class="ds-auth-card__subtitle">Masuk untuk memantau dan mengelola data tambang galian C.</p>
 
-  <?php if ($error_message !== null): ?>
-  <p class="field__error" role="alert"><?= e($error_message) ?></p>
-  <?php endif; ?>
-
-  <form method="post" action="<?= e(url('login.php')) ?>" novalidate>
-    <?= csrf_field() ?>
-    <?php $next_safe = validate_next_path($next_input); ?>
-    <?php if ($next_safe !== null): ?>
-    <input type="hidden" name="next" value="<?= e($next_safe) ?>">
+    <?php if ($error_message !== null): ?>
+    <div class="ds-alert-error" role="alert">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false" style="flex-shrink:0;margin-top:2px">
+        <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M10 6v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="10" cy="13.5" r="0.9" fill="currentColor"/>
+      </svg>
+      <span><?= e($error_message) ?></span>
+    </div>
     <?php endif; ?>
-    <div class="field">
-      <label class="field__label" for="username">Username</label>
-      <input class="input" type="text" id="username" name="username" autocomplete="username" required autofocus>
-    </div>
-    <div class="field">
-      <label class="field__label" for="password">Password</label>
-      <input class="input" type="password" id="password" name="password" autocomplete="current-password" required>
-    </div>
-    <div class="form-actions">
-      <button type="submit" class="btn btn--primary btn--block">Login</button>
-    </div>
-  </form>
+
+    <form method="post" action="<?= e(url('login.php')) ?>" novalidate>
+      <?= csrf_field() ?>
+      <?php $next_safe = validate_next_path($next_input); ?>
+      <?php if ($next_safe !== null): ?>
+      <input type="hidden" name="next" value="<?= e($next_safe) ?>">
+      <?php endif; ?>
+      <div class="ds-field">
+        <label class="ds-field__label" for="username">Username</label>
+        <input class="ds-input" type="text" id="username" name="username" autocomplete="username" required autofocus>
+      </div>
+      <div class="ds-field">
+        <label class="ds-field__label" for="password">Password</label>
+        <input class="ds-input" type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="ds-btn-primary">Masuk</button>
+    </form>
+  </div>
 </div>
 <?php
 require __DIR__ . '/includes/footer.php';

@@ -30,10 +30,10 @@
 
       selected.forEach(function (file, idx) {
         var item = document.createElement('li');
-        item.className = 'photo-grid__item';
+        item.className = 'ds-photo-grid__item';
 
         var img = document.createElement('img');
-        img.className = 'photo-grid__thumb';
+        img.className = 'ds-photo-grid__thumb';
         img.alt = file.name;
         var url = URL.createObjectURL(file);
         img.src = url;
@@ -44,7 +44,7 @@
 
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'btn btn--danger btn--sm';
+        btn.className = 'ds-btn ds-btn--danger ds-btn--sm';
         btn.textContent = 'Batalkan';
         btn.setAttribute('aria-label', 'Batalkan ' + file.name + ' dari daftar unggah');
         btn.addEventListener('click', function () {
@@ -60,7 +60,7 @@
       if (countEl) {
         var total = existingCount + selected.length;
         countEl.textContent = total + ' dari ' + maxFiles + ' foto (' + existingCount + ' tersimpan + ' + selected.length + ' baru dipilih).';
-        countEl.classList.toggle('field__error', total > maxFiles);
+        countEl.classList.toggle('ds-field__error', total > maxFiles);
       }
     }
 
@@ -85,7 +85,44 @@
     });
   }
 
+  /**
+   * Seret & lepas berkas ke .ds-dropzone yang membungkus <input type="file">
+   * -- hanya jalan TAMBAHAN ke klik biasa, input tetap terlihat & bisa
+   * dioperasikan lewat keyboard bila drag-and-drop tidak dipakai/didukung.
+   */
+  function initDropzone(input) {
+    var zone = input.closest('.ds-dropzone');
+    if (!zone) {
+      return;
+    }
+
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      zone.addEventListener(evt, function (e) {
+        e.preventDefault();
+        zone.classList.add('is-dragover');
+      });
+    });
+
+    ['dragleave', 'dragend', 'drop'].forEach(function (evt) {
+      zone.addEventListener(evt, function (e) {
+        e.preventDefault();
+        zone.classList.remove('is-dragover');
+      });
+    });
+
+    zone.addEventListener('drop', function (e) {
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length) {
+        input.files = files;
+        input.dispatchEvent(new Event('change'));
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('[data-foto-preview]').forEach(initPreview);
+    document.querySelectorAll('[data-foto-preview]').forEach(function (input) {
+      initPreview(input);
+      initDropzone(input);
+    });
   });
 })();

@@ -11,9 +11,12 @@
   'use strict';
 
   function initSidebarToggle() {
+    // .ds-sidebar (migrasi UI DESIGN.md, app-shell/sidebar global) menggantikan
+    // .app-sidebar lama -- dicek DUA kelas supaya toggle ini tidak putus pada
+    // halaman mana pun yang belum/sudah dimigrasi di masa transisi.
     var toggleBtn = document.querySelector('[data-sidebar-toggle]');
-    var sidebar = document.querySelector('.app-sidebar');
-    var backdrop = document.querySelector('.app-sidebar-backdrop');
+    var sidebar = document.querySelector('.ds-sidebar, .app-sidebar');
+    var backdrop = document.querySelector('.ds-sidebar-backdrop, .app-sidebar-backdrop');
 
     if (!toggleBtn || !sidebar) {
       return;
@@ -74,6 +77,46 @@
     });
   }
 
+  /**
+   * Animasi hitung-naik angka statistik dashboard (.ds-stat-col__value) dari
+   * 0 ke nilai aslinya (sudah di-render server-side, JS hanya "memutar
+   * ulang" secara visual) -- dimatikan total di prefers-reduced-motion,
+   * angka langsung tampil final tanpa animasi apa pun.
+   */
+  function initStatCountUp() {
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      return;
+    }
+
+    document.querySelectorAll('.ds-stat-col__value').forEach(function (el) {
+      var target = parseInt(el.textContent, 10);
+      if (isNaN(target)) {
+        return;
+      }
+
+      var duration = 900;
+      var start = null;
+
+      function step(timestamp) {
+        if (start === null) {
+          start = timestamp;
+        }
+        var progress = Math.min((timestamp - start) / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = String(Math.round(eased * target));
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          el.textContent = String(target);
+        }
+      }
+
+      el.textContent = '0';
+      requestAnimationFrame(step);
+    });
+  }
+
   function initFlashDismiss() {
     document.querySelectorAll('.flash__close').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -88,6 +131,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     initSidebarToggle();
     initDialogTriggers();
+    initStatCountUp();
     initFlashDismiss();
   });
 })();

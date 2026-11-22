@@ -236,177 +236,212 @@ $layout = 'app';
 $active_menu = $user['role'] === 'admin' ? 'aktivitas' : 'input_aktivitas';
 require __DIR__ . '/../includes/header.php';
 ?>
-<h1 class="app-main__title"><?= e($page_title) ?></h1>
+<div class="ds-page">
+  <div class="ds-page-header">
+    <h1 class="ds-page-header__title"><?= e($page_title) ?></h1>
+  </div>
 
-<?php if ($status_warning !== null): ?>
-<p class="flash flash--warning"><?= e($status_warning) ?></p>
-<?php endif; ?>
+  <?php if ($status_warning !== null): ?>
+  <p class="flash flash--warning"><?= e($status_warning) ?></p>
+  <?php endif; ?>
 
-<form method="post" action="<?= e(url('aktivitas/form.php' . ($is_edit ? '?id=' . $id : ''))) ?>" enctype="multipart/form-data" data-validate novalidate>
-  <?= csrf_field() ?>
-  <input type="hidden" name="_form_token" value="<?= e(form_token()) ?>">
+  <form method="post" action="<?= e(url('aktivitas/form.php' . ($is_edit ? '?id=' . $id : ''))) ?>" enctype="multipart/form-data" data-validate novalidate>
+    <?= csrf_field() ?>
+    <input type="hidden" name="_form_token" value="<?= e(form_token()) ?>">
 
-  <div class="grid-2">
-    <div class="card">
-      <h2 class="card__title">Data Aktivitas</h2>
+    <div class="ds-grid-2">
+      <div class="ds-card">
+        <h2 class="ds-card__title">Data Aktivitas</h2>
 
-      <?php $fn = 'lokasi_id'; ?>
-      <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-        <label class="field__label" for="lokasi_id">Lokasi <span class="field__required">*</span></label>
-        <select class="select" id="lokasi_id" name="lokasi_id" required<?= field_aria($errors, $fn) ?>>
-          <option value="">— Pilih lokasi —</option>
-          <?php foreach ($daftar_lokasi as $l): ?>
-          <option value="<?= e((string) $l['id']) ?>" <?php if ($lokasi_id_terpilih === (int) $l['id']): ?>selected<?php endif; ?>><?= e($l['nama_lokasi']) ?></option>
-          <?php endforeach; ?>
-        </select>
-        <?php if ($daftar_lokasi === []): ?>
-        <p class="field__hint">Belum ada lokasi yang terdaftar untuk perusahaan Anda. Hubungi admin.</p>
-        <?php endif; ?>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="lokasi_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
-      </div>
-
-      <div class="field">
-        <span class="field__label">Detail Lokasi Terpilih</span>
-        <?php if ($lokasi_terpilih !== null): ?>
-        <p class="field__hint">
-          Kontraktor: <?= e($kontraktor_terpilih['nama_perusahaan'] ?? '—') ?><br>
-          Koordinat: <?= e((string) $lokasi_terpilih['latitude']) ?>, <?= e((string) $lokasi_terpilih['longitude']) ?><br>
-          Status Izin:
-          <?php if ($lokasi_terpilih['status_izin'] === 'berizin'): ?>
-          <span class="badge badge--berizin">Berizin</span>
-          <?php elseif ($lokasi_terpilih['status_izin'] === 'tidak_berizin'): ?>
-          <span class="badge badge--tidak-berizin">Tidak Berizin</span>
-          <?php else: ?>
-          <span class="badge badge--proses">Proses</span>
-          <?php endif; ?>
-        </p>
-        <?php else: ?>
-        <p class="field__hint">Pilih lokasi untuk melihat detailnya di sini.</p>
-        <?php endif; ?>
-      </div>
-
-      <div class="grid-2">
-        <?php $fn = 'tanggal_aktivitas'; ?>
-        <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-          <label class="field__label" for="tanggal_aktivitas">Tanggal Aktivitas <span class="field__required">*</span></label>
-          <input class="input" type="date" id="tanggal_aktivitas" name="tanggal_aktivitas" required max="<?= e(date('Y-m-d')) ?>"
-            value="<?= e($is_edit ? old('tanggal_aktivitas', (string) $aktivitas['tanggal_aktivitas']) : old('tanggal_aktivitas')) ?>"<?= field_aria($errors, $fn) ?>>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="tanggal_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
-        </div>
-        <?php $fn = 'jenis_kegiatan'; ?>
-        <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-          <label class="field__label" for="jenis_kegiatan">Jenis Kegiatan <span class="field__required">*</span></label>
-          <input class="input" type="text" id="jenis_kegiatan" name="jenis_kegiatan" required maxlength="100"
-            value="<?= e($is_edit ? old('jenis_kegiatan', (string) $aktivitas['jenis_kegiatan']) : old('jenis_kegiatan')) ?>"<?= field_aria($errors, $fn) ?>>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="jenis_kegiatan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <?php $fn = 'material_id'; ?>
-        <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-          <label class="field__label" for="material_id">Jenis Material <span class="field__required">*</span></label>
-          <?php $material_terpilih = (int) ($_POST['material_id'] ?? ($is_edit ? $aktivitas['material_id'] : 0)); ?>
-          <select class="select" id="material_id" name="material_id" required<?= field_aria($errors, $fn) ?>>
-            <option value="">— Pilih material —</option>
-            <?php foreach ($daftar_material as $m): ?>
-            <option value="<?= e((string) $m['id']) ?>" <?php if ($material_terpilih === (int) $m['id']): ?>selected<?php endif; ?>><?= e($m['nama']) ?></option>
+        <?php $fn = 'lokasi_id'; ?>
+        <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+          <label class="ds-field__label" for="lokasi_id">Lokasi <span class="ds-field__required">*</span></label>
+          <select class="ds-select" id="lokasi_id" name="lokasi_id" required<?= field_aria($errors, $fn) ?>>
+            <option value="">Pilih lokasi</option>
+            <?php foreach ($daftar_lokasi as $l): ?>
+            <option value="<?= e((string) $l['id']) ?>" <?php if ($lokasi_id_terpilih === (int) $l['id']): ?>selected<?php endif; ?>><?= e($l['nama_lokasi']) ?></option>
             <?php endforeach; ?>
           </select>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="material_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          <?php if ($daftar_lokasi === []): ?>
+          <p class="ds-field__hint">Belum ada lokasi yang terdaftar untuk perusahaan Anda. Hubungi admin.</p>
+          <?php endif; ?>
+          <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="lokasi_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
-        <?php $fn = 'status_aktivitas'; ?>
-        <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-          <label class="field__label" for="status_aktivitas">Status Aktivitas <span class="field__required">*</span></label>
-          <?php $status_terpilih = (string) ($_POST['status_aktivitas'] ?? ($is_edit ? $aktivitas['status_aktivitas'] : 'aktif')); ?>
-          <select class="select" id="status_aktivitas" name="status_aktivitas" required<?= field_aria($errors, $fn) ?>>
-            <option value="aktif" <?php if ($status_terpilih === 'aktif'): ?>selected<?php endif; ?>>Aktif</option>
-            <option value="berhenti_sementara" <?php if ($status_terpilih === 'berhenti_sementara'): ?>selected<?php endif; ?>>Berhenti Sementara</option>
-            <option value="selesai" <?php if ($status_terpilih === 'selesai'): ?>selected<?php endif; ?>>Selesai</option>
-          </select>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="status_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+
+        <div class="ds-field">
+          <span class="ds-field__label">Detail Lokasi Terpilih</span>
+          <?php if ($lokasi_terpilih !== null): ?>
+          <p class="ds-field__hint">
+            Kontraktor: <?= e($kontraktor_terpilih['nama_perusahaan'] ?? 'Tidak ada data') ?><br>
+            Koordinat: <?= e((string) $lokasi_terpilih['latitude']) ?>, <?= e((string) $lokasi_terpilih['longitude']) ?><br>
+            Status Izin:
+            <?php if ($lokasi_terpilih['status_izin'] === 'berizin'): ?>
+            <span class="ds-badge ds-badge--berizin">Berizin</span>
+            <?php elseif ($lokasi_terpilih['status_izin'] === 'tidak_berizin'): ?>
+            <span class="ds-badge ds-badge--tidak-berizin">Tidak Berizin</span>
+            <?php else: ?>
+            <span class="ds-badge ds-badge--proses">Proses</span>
+            <?php endif; ?>
+          </p>
+          <?php else: ?>
+          <p class="ds-field__hint">Pilih lokasi untuk melihat detailnya di sini.</p>
+          <?php endif; ?>
+        </div>
+
+        <div class="ds-grid-2">
+          <?php $fn = 'tanggal_aktivitas'; ?>
+          <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+            <label class="ds-field__label" for="tanggal_aktivitas">Tanggal Aktivitas <span class="ds-field__required">*</span></label>
+            <input class="ds-input" type="date" id="tanggal_aktivitas" name="tanggal_aktivitas" required max="<?= e(date('Y-m-d')) ?>"
+              value="<?= e($is_edit ? old('tanggal_aktivitas', (string) $aktivitas['tanggal_aktivitas']) : old('tanggal_aktivitas')) ?>"<?= field_aria($errors, $fn) ?>>
+            <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="tanggal_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          </div>
+          <?php $fn = 'jenis_kegiatan'; ?>
+          <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+            <label class="ds-field__label" for="jenis_kegiatan">Jenis Kegiatan <span class="ds-field__required">*</span></label>
+            <input class="ds-input" type="text" id="jenis_kegiatan" name="jenis_kegiatan" required maxlength="100"
+              value="<?= e($is_edit ? old('jenis_kegiatan', (string) $aktivitas['jenis_kegiatan']) : old('jenis_kegiatan')) ?>"<?= field_aria($errors, $fn) ?>>
+            <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="jenis_kegiatan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          </div>
+        </div>
+
+        <div class="ds-grid-2">
+          <?php $fn = 'material_id'; ?>
+          <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+            <label class="ds-field__label" for="material_id">Jenis Material <span class="ds-field__required">*</span></label>
+            <?php $material_terpilih = (int) ($_POST['material_id'] ?? ($is_edit ? $aktivitas['material_id'] : 0)); ?>
+            <select class="ds-select" id="material_id" name="material_id" required<?= field_aria($errors, $fn) ?>>
+              <option value="">Pilih material</option>
+              <?php foreach ($daftar_material as $m): ?>
+              <option value="<?= e((string) $m['id']) ?>" <?php if ($material_terpilih === (int) $m['id']): ?>selected<?php endif; ?>><?= e($m['nama']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="material_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          </div>
+          <?php $fn = 'status_aktivitas'; ?>
+          <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+            <label class="ds-field__label" for="status_aktivitas">Status Aktivitas <span class="ds-field__required">*</span></label>
+            <?php $status_terpilih = (string) ($_POST['status_aktivitas'] ?? ($is_edit ? $aktivitas['status_aktivitas'] : 'aktif')); ?>
+            <select class="ds-select" id="status_aktivitas" name="status_aktivitas" required<?= field_aria($errors, $fn) ?>>
+              <option value="aktif" <?php if ($status_terpilih === 'aktif'): ?>selected<?php endif; ?>>Aktif</option>
+              <option value="berhenti_sementara" <?php if ($status_terpilih === 'berhenti_sementara'): ?>selected<?php endif; ?>>Berhenti Sementara</option>
+              <option value="selesai" <?php if ($status_terpilih === 'selesai'): ?>selected<?php endif; ?>>Selesai</option>
+            </select>
+            <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="status_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          </div>
+        </div>
+
+        <div class="ds-grid-2">
+          <?php $fn = 'jumlah_alat_berat'; ?>
+          <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+            <label class="ds-field__label" for="jumlah_alat_berat">Jumlah Alat Berat</label>
+            <input class="ds-input" type="number" id="jumlah_alat_berat" name="jumlah_alat_berat" min="0" step="1"
+              value="<?= e($is_edit ? old('jumlah_alat_berat', (string) $aktivitas['jumlah_alat_berat']) : old('jumlah_alat_berat', '0')) ?>"<?= field_aria($errors, $fn) ?>>
+            <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="jumlah_alat_berat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          </div>
+          <?php $fn = 'jumlah_pekerja'; ?>
+          <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+            <label class="ds-field__label" for="jumlah_pekerja">Jumlah Pekerja</label>
+            <input class="ds-input" type="number" id="jumlah_pekerja" name="jumlah_pekerja" min="0" step="1"
+              value="<?= e($is_edit ? old('jumlah_pekerja', (string) $aktivitas['jumlah_pekerja']) : old('jumlah_pekerja', '0')) ?>"<?= field_aria($errors, $fn) ?>>
+            <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="jumlah_pekerja-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          </div>
+        </div>
+
+        <?php $fn = 'deskripsi'; ?>
+        <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+          <label class="ds-field__label" for="deskripsi">Keterangan</label>
+          <textarea class="ds-textarea" id="deskripsi" name="deskripsi"<?= field_aria($errors, $fn) ?>><?= e($is_edit ? old('deskripsi', (string) ($aktivitas['deskripsi'] ?? '')) : old('deskripsi')) ?></textarea>
+          <?php if (isset($errors[$fn])): ?><p class="ds-field__error" role="alert" id="deskripsi-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
-      <div class="grid-2">
-        <?php $fn = 'jumlah_alat_berat'; ?>
-        <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-          <label class="field__label" for="jumlah_alat_berat">Jumlah Alat Berat</label>
-          <input class="input" type="number" id="jumlah_alat_berat" name="jumlah_alat_berat" min="0" step="1"
-            value="<?= e($is_edit ? old('jumlah_alat_berat', (string) $aktivitas['jumlah_alat_berat']) : old('jumlah_alat_berat', '0')) ?>"<?= field_aria($errors, $fn) ?>>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="jumlah_alat_berat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+      <div class="ds-card">
+        <h2 class="ds-card__title">Foto Dokumentasi</h2>
+
+        <?php $fn = 'foto'; ?>
+        <?php $foto_lama = $is_edit ? repo_foto_list_by_aktivitas($id) : []; ?>
+        <div class="ds-field <?= e(field_error_class($errors, $fn)) ?>">
+          <label class="ds-field__label" for="foto">Unggah Foto (JPG/PNG, maks <?= e((string) (int) (UPLOAD_MAX_SIZE / 1024 / 1024)) ?> MB/foto, maks <?= e((string) UPLOAD_MAX_FILES) ?> foto)</label>
+          <div class="ds-dropzone" id="foto-dropzone">
+            <svg class="ds-dropzone__icon" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M12 16V4M12 4 7 9M12 4l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="ds-dropzone__text">Seret &amp; lepas foto di sini, atau klik untuk memilih berkas</p>
+            <input
+              type="file" id="foto" name="foto[]" accept="image/jpeg,image/png" multiple
+              data-foto-preview
+              data-max-files="<?= e((string) UPLOAD_MAX_FILES) ?>"
+              data-existing-count="<?= e((string) count($foto_lama)) ?>"
+              data-preview-target="foto-preview-grid"
+              data-count-target="foto-preview-count"
+              aria-describedby="foto-preview-count<?= isset($errors[$fn]) ? ' foto-error' : '' ?>"
+              <?= isset($errors[$fn]) ? 'aria-invalid="true"' : '' ?>
+            >
+          </div>
+          <p class="ds-field__hint" id="foto-preview-count" aria-live="polite"></p>
+          <ul class="ds-photo-grid" id="foto-preview-grid"></ul>
+          <?php if (isset($errors[$fn])): ?>
+          <div id="foto-error" role="alert">
+          <?php foreach ($errors[$fn] as $pesan): ?>
+          <p class="ds-field__error"><?= e($pesan) ?></p>
+          <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
         </div>
-        <?php $fn = 'jumlah_pekerja'; ?>
-        <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-          <label class="field__label" for="jumlah_pekerja">Jumlah Pekerja</label>
-          <input class="input" type="number" id="jumlah_pekerja" name="jumlah_pekerja" min="0" step="1"
-            value="<?= e($is_edit ? old('jumlah_pekerja', (string) $aktivitas['jumlah_pekerja']) : old('jumlah_pekerja', '0')) ?>"<?= field_aria($errors, $fn) ?>>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="jumlah_pekerja-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
-        </div>
-      </div>
 
-      <?php $fn = 'deskripsi'; ?>
-      <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-        <label class="field__label" for="deskripsi">Keterangan</label>
-        <textarea class="textarea" id="deskripsi" name="deskripsi"<?= field_aria($errors, $fn) ?>><?= e($is_edit ? old('deskripsi', (string) ($aktivitas['deskripsi'] ?? '')) : old('deskripsi')) ?></textarea>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="deskripsi-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2 class="card__title">Foto Dokumentasi</h2>
-
-      <?php $fn = 'foto'; ?>
-      <?php $foto_lama = $is_edit ? repo_foto_list_by_aktivitas($id) : []; ?>
-      <div class="field <?= e(field_error_class($errors, $fn)) ?>">
-        <label class="field__label" for="foto">Unggah Foto (JPG/PNG, maks <?= e((string) (int) (UPLOAD_MAX_SIZE / 1024 / 1024)) ?> MB/foto, maks <?= e((string) UPLOAD_MAX_FILES) ?> foto)</label>
-        <input
-          class="input" type="file" id="foto" name="foto[]" accept="image/jpeg,image/png" multiple
-          data-foto-preview
-          data-max-files="<?= e((string) UPLOAD_MAX_FILES) ?>"
-          data-existing-count="<?= e((string) count($foto_lama)) ?>"
-          data-preview-target="foto-preview-grid"
-          data-count-target="foto-preview-count"
-          aria-describedby="foto-preview-count<?= isset($errors[$fn]) ? ' foto-error' : '' ?>"
-          <?= isset($errors[$fn]) ? 'aria-invalid="true"' : '' ?>
-        >
-        <p class="field__hint" id="foto-preview-count" aria-live="polite"></p>
-        <ul class="photo-grid" id="foto-preview-grid"></ul>
-        <?php if (isset($errors[$fn])): ?>
-        <div id="foto-error" role="alert">
-        <?php foreach ($errors[$fn] as $pesan): ?>
-        <p class="field__error"><?= e($pesan) ?></p>
-        <?php endforeach; ?>
+        <?php if ($foto_lama !== []): ?>
+        <div class="ds-field">
+          <span class="ds-field__label">Foto Tersimpan (<?= e((string) count($foto_lama)) ?>)</span>
+          <ul class="ds-photo-grid">
+            <?php foreach ($foto_lama as $f): ?>
+            <li class="ds-photo-grid__item">
+              <img class="ds-photo-grid__thumb" src="<?= e(url('media.php?id=' . $f['id'] . '&size=thumb')) ?>" alt="Foto dokumentasi aktivitas" loading="lazy">
+              <button type="button" class="ds-btn ds-btn--danger ds-btn--sm" data-dialog-open="dialog-hapus-foto-<?= e((string) $f['id']) ?>">Hapus</button>
+            </li>
+            <?php endforeach; ?>
+          </ul>
         </div>
         <?php endif; ?>
       </div>
-
-      <?php if ($foto_lama !== []): ?>
-      <div class="field">
-        <span class="field__label">Foto Tersimpan (<?= e((string) count($foto_lama)) ?>)</span>
-        <ul class="photo-grid">
-          <?php foreach ($foto_lama as $f): ?>
-          <li class="photo-grid__item">
-            <img class="photo-grid__thumb" src="<?= e(url('media.php?id=' . $f['id'] . '&size=thumb')) ?>" alt="Foto dokumentasi aktivitas" loading="lazy">
-            <form method="post" action="<?= e(url('aktivitas/hapus_foto.php')) ?>" class="photo-grid__hapus-form">
-              <?= csrf_field() ?>
-              <input type="hidden" name="id" value="<?= e((string) $f['id']) ?>">
-              <input type="hidden" name="back" value="<?= e('aktivitas/form.php?id=' . $id) ?>">
-              <button type="submit" class="btn btn--danger btn--sm">Hapus</button>
-            </form>
-          </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-      <?php endif; ?>
     </div>
-  </div>
 
-  <div class="form-actions">
-    <button type="submit" class="btn btn--primary"><?php if ($is_edit): ?>Simpan Perubahan<?php else: ?>Simpan Aktivitas<?php endif; ?></button>
-    <a class="btn btn--secondary" href="<?= e(url('aktivitas/index.php')) ?>">Batal</a>
-  </div>
-</form>
+    <div class="ds-form-actions">
+      <button type="submit" class="ds-btn ds-btn--primary"><?php if ($is_edit): ?>Simpan Perubahan<?php else: ?>Simpan Aktivitas<?php endif; ?></button>
+      <a class="ds-btn ds-btn--secondary" href="<?= e(url('aktivitas/index.php')) ?>">Batal</a>
+    </div>
+  </form>
+
+  <?php
+  // Dialog konfirmasi hapus foto -- SENGAJA di LUAR <form> edit aktivitas di
+  // atas. <form> tidak boleh bersarang (HTML tidak mengizinkan); taruh
+  // <form method="dialog">/<form method="post" ke hapus_foto.php> yang dua-
+  // duanya di dalam .modal__actions di SINI di dalam <form> besar membuat
+  // parser browser menutup <form> besar lebih awal pada </form> pertama yang
+  // ditemuinya (form element pointer sudah menunjuk ke form besar, bukan form
+  // bersarang yang start tag-nya diabaikan) -- akibatnya tombol "Simpan
+  // Perubahan" berakhir di LUAR form mana pun dan tidak melakukan apa-apa saat
+  // diklik. Bug nyata ini terjadi di sesi ini sampai dipindah ke sini.
+  ?>
+  <?php foreach ($foto_lama as $f): ?>
+  <dialog class="modal" id="dialog-hapus-foto-<?= e((string) $f['id']) ?>" aria-labelledby="dialog-hapus-foto-<?= e((string) $f['id']) ?>-title">
+    <div class="modal__body">
+      <h2 class="modal__title" id="dialog-hapus-foto-<?= e((string) $f['id']) ?>-title">Hapus foto ini?</h2>
+      <p>Tindakan ini tidak dapat dibatalkan. Foto akan terhapus permanen dari aktivitas ini.</p>
+      <div class="modal__actions">
+        <form method="dialog"><button type="submit" class="btn btn--secondary" formnovalidate>Batal</button></form>
+        <form method="post" action="<?= e(url('aktivitas/hapus_foto.php')) ?>">
+          <?= csrf_field() ?>
+          <input type="hidden" name="id" value="<?= e((string) $f['id']) ?>">
+          <input type="hidden" name="back" value="<?= e('aktivitas/form.php?id=' . $id) ?>">
+          <button type="submit" class="btn btn--danger">Ya, Hapus</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
+  <?php endforeach; ?>
+</div>
 
 <?php
 $extra_scripts = [

@@ -164,9 +164,16 @@ function repo_aktivitas_list_for_monitoring(array $filters, int $page, int $per_
  * kontraktor, jenis_material -- SEMUA lokasi tanpa scope kontraktor (laporan
  * Dinas selalu lintas-kontraktor, sama seperti repo_lokasi_list_for_laporan(),
  * T-22). Pemanggil WAJIB ->closeCursor() setelah selesai.
+ *
+ * $tanggal_mulai/$tanggal_akhir null berarti sisi itu TERBUKA (tidak dibatasi)
+ * -- sama seperti repo_lokasi_list_for_laporan(), diganti sentinel tanggal
+ * MIN/MAX MySQL supaya BETWEEN tetap berfungsi.
  */
-function repo_aktivitas_cursor_for_csv(string $tanggal_mulai, string $tanggal_akhir): PDOStatement
+function repo_aktivitas_cursor_for_csv(?string $tanggal_mulai, ?string $tanggal_akhir): PDOStatement
 {
+    $tanggal_mulai ??= '1000-01-01';
+    $tanggal_akhir ??= '9999-12-31';
+
     return db_cursor(
         'SELECT a.tanggal_aktivitas, a.jenis_kegiatan, a.status_aktivitas,
                 a.jumlah_alat_berat, a.jumlah_pekerja, a.deskripsi,

@@ -72,10 +72,15 @@ if ($boleh_lihat_aktivitas) {
             'jenis_kegiatan' => $aktivitas['jenis_kegiatan'],
             'status_aktivitas' => $aktivitas['status_aktivitas'],
             // media.php (T-19), bukan URL uploads/ langsung -- folder itu
-            // sekarang tertutup total. size=thumb karena ini hanya untuk
-            // pratinjau kecil di popup peta (PRD bagian 9: "thumbnail foto").
+            // sekarang tertutup total. "thumb" untuk pratinjau kecil di popup
+            // peta (PRD bagian 9: "thumbnail foto"), "full" untuk lightbox
+            // (UI: "lihat detail serta di slide") -- dua ukuran sekaligus
+            // supaya klien tidak perlu menyusun ulang URL dari string thumb.
             'foto' => array_values(array_map(
-                static fn (array $f): string => url('media.php?id=' . $f['id'] . '&size=thumb'),
+                static fn (array $f): array => [
+                    'thumb' => url('media.php?id=' . $f['id'] . '&size=thumb'),
+                    'full' => url('media.php?id=' . $f['id'] . '&size=full'),
+                ],
                 $foto
             )),
         ];
