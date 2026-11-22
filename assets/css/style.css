@@ -1,6 +1,6 @@
 /* assets/css/style.css — dimuat di setiap halaman lewat includes/header.php; lihat print.css untuk gaya cetak. */
 
-/* 1. Design tokens */
+/* 1. Token desain */
 :root {
   --color-primary: #1E3A5F;
   --color-primary-dark: #152a46;
@@ -11,7 +11,7 @@
   --color-text: #1B2430;
   --color-text-muted: #5A6B7D;
 
-  /* -text variants are darkened for WCAG AA contrast as text; the plain colors are for markers/dots/badge borders */
+  /* varian -text digelapkan untuk kontras WCAG AA sebagai teks; warna polos untuk marker/dot/border badge */
   --status-berizin: #2E9E4F;
   --status-berizin-text: #1E7A3A;
   --status-berizin-bg: #E8F5EC;
@@ -44,14 +44,14 @@
 
   --topbar-height: 64px;
   --sidebar-width: 240px;
-  --map-offset: 120px; /* map height ~ calc(100vh - 120px) */
+  --map-offset: 120px; /* tinggi peta ~ calc(100vh - 120px) */
 
   --focus-ring: 0 0 0 3px #FFFFFF, 0 0 0 5px var(--color-primary-light);
   --transition-fast: 150ms ease;
   --transition-base: 220ms ease;
 }
 
-/* 2. Base reset & elements */
+/* 2. Reset dasar & elemen */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -97,12 +97,12 @@ button {
   font-family: inherit;
 }
 
-/* visually hidden elements must not remain keyboard-focusable */
+/* elemen yang disembunyikan secara visual tidak boleh tetap bisa difokus keyboard */
 [hidden] {
   display: none !important;
 }
 
-/* 3. Cross-component accessibility */
+/* 3. Aksesibilitas lintas komponen */
 
 /* :focus-visible, not :focus, so a mouse click doesn't trigger the ring but keyboard nav always does */
 a:focus-visible,
