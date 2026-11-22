@@ -120,17 +120,17 @@ require __DIR__ . '/../includes/header.php';
   <div class="field <?= e(field_error_class($errors, $fn)) ?>">
     <label class="field__label" for="nama_perusahaan">Nama Perusahaan <span class="field__required">*</span></label>
     <input class="input" type="text" id="nama_perusahaan" name="nama_perusahaan" required maxlength="150"
-      value="<?= e($is_edit ? old('nama_perusahaan', (string) $kontraktor['nama_perusahaan']) : old('nama_perusahaan')) ?>">
-    <?php if (isset($errors[$fn])): ?><p class="field__error" id="nama_perusahaan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+      value="<?= e($is_edit ? old('nama_perusahaan', (string) $kontraktor['nama_perusahaan']) : old('nama_perusahaan')) ?>"<?= field_aria($errors, $fn) ?>>
+    <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="nama_perusahaan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
   </div>
 
   <?php $fn = 'penanggung_jawab'; ?>
   <div class="field <?= e(field_error_class($errors, $fn)) ?>">
     <label class="field__label" for="penanggung_jawab">Penanggung Jawab <span class="field__required">*</span></label>
     <input class="input" type="text" id="penanggung_jawab" name="penanggung_jawab" required maxlength="100"
-      value="<?= e($is_edit ? old('penanggung_jawab', (string) $kontraktor['penanggung_jawab']) : old('penanggung_jawab')) ?>">
+      value="<?= e($is_edit ? old('penanggung_jawab', (string) $kontraktor['penanggung_jawab']) : old('penanggung_jawab')) ?>"<?= field_aria($errors, $fn) ?>>
     <?php if ($is_edit): ?><p class="field__hint">Nama ini juga dipakai sebagai nama akun login kontraktor saat dibuat, tapi TIDAK ikut berubah otomatis di sini.</p><?php endif; ?>
-    <?php if (isset($errors[$fn])): ?><p class="field__error" id="penanggung_jawab-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+    <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="penanggung_jawab-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
   </div>
 
   <div class="grid-2">
@@ -138,23 +138,23 @@ require __DIR__ . '/../includes/header.php';
     <div class="field <?= e(field_error_class($errors, $fn)) ?>">
       <label class="field__label" for="telepon">Telepon</label>
       <input class="input" type="text" id="telepon" name="telepon"
-        value="<?= e($is_edit ? old('telepon', (string) ($kontraktor['telepon'] ?? '')) : old('telepon')) ?>">
-      <?php if (isset($errors[$fn])): ?><p class="field__error" id="telepon-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        value="<?= e($is_edit ? old('telepon', (string) ($kontraktor['telepon'] ?? '')) : old('telepon')) ?>"<?= field_aria($errors, $fn) ?>>
+      <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="telepon-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
     </div>
     <?php $fn = 'email'; ?>
     <div class="field <?= e(field_error_class($errors, $fn)) ?>">
       <label class="field__label" for="email">Email</label>
       <input class="input" type="email" id="email" name="email"
-        value="<?= e($is_edit ? old('email', (string) ($kontraktor['email'] ?? '')) : old('email')) ?>">
-      <?php if (isset($errors[$fn])): ?><p class="field__error" id="email-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        value="<?= e($is_edit ? old('email', (string) ($kontraktor['email'] ?? '')) : old('email')) ?>"<?= field_aria($errors, $fn) ?>>
+      <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="email-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
     </div>
   </div>
 
   <?php $fn = 'alamat'; ?>
   <div class="field <?= e(field_error_class($errors, $fn)) ?>">
     <label class="field__label" for="alamat">Alamat</label>
-    <textarea class="textarea" id="alamat" name="alamat"><?= e($is_edit ? old('alamat', (string) ($kontraktor['alamat'] ?? '')) : old('alamat')) ?></textarea>
-    <?php if (isset($errors[$fn])): ?><p class="field__error" id="alamat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+    <textarea class="textarea" id="alamat" name="alamat"<?= field_aria($errors, $fn) ?>><?= e($is_edit ? old('alamat', (string) ($kontraktor['alamat'] ?? '')) : old('alamat')) ?></textarea>
+    <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="alamat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
   </div>
 
   <?php if (!$is_edit): ?>
@@ -162,9 +162,9 @@ require __DIR__ . '/../includes/header.php';
   <div class="field <?= e(field_error_class($errors, $fn)) ?>">
     <label class="field__label" for="username">Username Akun Login <span class="field__required">*</span></label>
     <input class="input" type="text" id="username" name="username" required minlength="4" maxlength="50" pattern="[a-zA-Z0-9_.]+"
-      value="<?= e(old('username')) ?>" autocomplete="off">
+      value="<?= e(old('username')) ?>" autocomplete="off"<?= field_aria($errors, $fn) ?>>
     <p class="field__hint">Password dibuat otomatis oleh sistem dan ditampilkan sekali setelah kontraktor ini tersimpan — admin tidak mengetik password di sini.</p>
-    <?php if (isset($errors[$fn])): ?><p class="field__error" id="username-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+    <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="username-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
   </div>
   <?php endif; ?>
 

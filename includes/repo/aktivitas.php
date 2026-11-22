@@ -73,7 +73,15 @@ function repo_aktivitas_list(array $filters, int $page, int $per_page, string $s
         $params['tanggal_akhir'] = $filters['tanggal_akhir'];
     }
 
-    $sql = 'SELECT a.*, lt.nama_lokasi, lt.kontraktor_id, m.nama AS material_nama, u.nama_lengkap AS user_nama
+    // Kolom eksplisit (T-24, docs/query-audit.md Q8), BUKAN "SELECT a.*" --
+    // satu-satunya pemanggil (aktivitas/index.php) hanya membaca id,
+    // tanggal_aktivitas, status_aktivitas, nama_lokasi, jenis_kegiatan,
+    // material_nama, user_nama. kontraktor_id TETAP di JOIN (lt.kontraktor_id
+    // di WHERE, T-17) tapi tidak perlu ikut ke SELECT -- dan deskripsi (TEXT,
+    // hingga 2000 karakter) tidak pernah dibaca dari hasil LIST ini (hanya
+    // lewat repo_aktivitas_find() untuk form ubah satu baris).
+    $sql = 'SELECT a.id, a.tanggal_aktivitas, a.jenis_kegiatan, a.status_aktivitas,
+                   lt.nama_lokasi, m.nama AS material_nama, u.nama_lengkap AS user_nama
             FROM aktivitas_tambang a
             JOIN lokasi_tambang lt ON lt.id = a.lokasi_id
             JOIN jenis_material m ON m.id = a.material_id
@@ -145,6 +153,34 @@ function repo_aktivitas_list_for_monitoring(array $filters, int $page, int $per_
     $sql .= ' ORDER BY ' . $order_by;
 
     return paginate($sql, $params, $page, $per_page);
+}
+
+/**
+ * Statement MENTAH (bukan array) daftar aktivitas dalam periode untuk ekspor
+ * CSV (T-23, laporan/unduh.php) -- dipakai dengan db_cursor() +
+ * `while (($row = $stmt->fetch()) !== false)` supaya memori tetap konstan
+ * untuk ribuan baris (SATU baris di memori pada satu waktu, bukan seluruh
+ * resultset lewat fetchAll()/db_all()). JOIN lokasi_tambang (+ koordinat),
+ * kontraktor, jenis_material -- SEMUA lokasi tanpa scope kontraktor (laporan
+ * Dinas selalu lintas-kontraktor, sama seperti repo_lokasi_list_for_laporan(),
+ * T-22). Pemanggil WAJIB ->closeCursor() setelah selesai.
+ */
+function repo_aktivitas_cursor_for_csv(string $tanggal_mulai, string $tanggal_akhir): PDOStatement
+{
+    return db_cursor(
+        'SELECT a.tanggal_aktivitas, a.jenis_kegiatan, a.status_aktivitas,
+                a.jumlah_alat_berat, a.jumlah_pekerja, a.deskripsi,
+                lt.nama_lokasi, lt.latitude, lt.longitude,
+                k.nama_perusahaan AS kontraktor_nama,
+                m.nama AS material_nama
+         FROM aktivitas_tambang a
+         JOIN lokasi_tambang lt ON lt.id = a.lokasi_id
+         JOIN kontraktor k ON k.id = lt.kontraktor_id
+         JOIN jenis_material m ON m.id = a.material_id
+         WHERE a.tanggal_aktivitas BETWEEN :mulai AND :akhir
+         ORDER BY a.tanggal_aktivitas ASC, a.id ASC',
+        ['mulai' => $tanggal_mulai, 'akhir' => $tanggal_akhir]
+    );
 }
 
 /**

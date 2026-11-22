@@ -14,7 +14,13 @@ if (ob_get_level() === 0) {
     ob_start();
 }
 
-define('APP_BOOTSTRAPPED', true);
+// Dicek dulu (T-27): tests/smoke.php men-define ini SENDIRI lebih awal
+// (butuh require config/config.php sebelum bootstrap.php penuh, untuk baca
+// APP_ENV lebih dini) -- tanpa guard ini, define() ulang dengan nilai yang
+// sama tetap memicu E_WARNING "Constant already defined".
+if (!defined('APP_BOOTSTRAPPED')) {
+    define('APP_BOOTSTRAPPED', true);
+}
 
 // Kasus setup awal: config.local.php belum disalin dari contohnya. Ditangani terpisah
 // dari exception handler umum karena APP_ENV belum tentu terdefinisi pada titik ini,

@@ -50,6 +50,10 @@
       errorEl.remove();
     }
     input.removeAttribute('aria-invalid');
+    // T-25: jangan tinggalkan aria-describedby menunjuk ke id yang baru
+    // dihapus di atas -- referensi ARIA basi, walau tidak berbahaya, tetap
+    // tidak bersih untuk pembaca layar.
+    input.removeAttribute('aria-describedby');
   }
 
   // Terjemahan pesan ValidityState bawaan browser ke Bahasa Indonesia --
@@ -80,7 +84,13 @@
   }
 
   function initForm(form) {
-    var fields = form.querySelectorAll('input, select, textarea');
+    // type="file" DIKECUALIKAN (T-25): assets/js/foto-preview.js sudah
+    // mengelola UI pratinjau/hitung fotonya sendiri, validasi unggah
+    // (ukuran/MIME/jumlah) hanya otoritatif di server -- menyertakannya di
+    // sini akan membuat clearError() saat blur MENGHAPUS aria-describedby
+    // permanen ke #foto-preview-count (lihat aktivitas/form.php) walau tidak
+    // ada error apa pun, karena file input nyaris selalu checkValidity()===true.
+    var fields = form.querySelectorAll('input:not([type="file"]), select, textarea');
 
     fields.forEach(function (input) {
       input.addEventListener('blur', function () {
@@ -117,7 +127,23 @@
     });
   }
 
+  // T-25: setelah form gagal validasi SERVER (includes/validator.php) dan
+  // halaman dirender ulang, browser TIDAK mengingat posisi fokus sebelumnya
+  // -- pengguna keyboard/pembaca layar mendarat di posisi default (biasanya
+  // atas halaman), bukan di field yang bermasalah, padahal pesan errornya
+  // sudah ber-aria-describedby (lihat field_aria(), includes/validator.php).
+  // Pindahkan fokus ke field tidak valid PERTAMA begitu halaman dimuat --
+  // efeknya setara pengumuman aria-live: pengguna langsung tahu MASALAHNYA
+  // tanpa harus menjelajah seluruh form dulu.
+  function focusFirstServerError() {
+    var firstInvalid = document.querySelector('.field--invalid input, .field--invalid select, .field--invalid textarea');
+    if (firstInvalid) {
+      firstInvalid.focus();
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('form[data-validate]').forEach(initForm);
+    focusFirstServerError();
   });
 })();

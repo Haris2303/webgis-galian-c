@@ -99,6 +99,7 @@ require __DIR__ . '/../includes/header.php';
       <button type="submit" class="btn btn--primary">Terapkan Filter</button>
       <a class="btn btn--secondary" href="<?= e(url('laporan/index.php')) ?>">Reset</a>
       <button type="button" class="btn btn--primary" id="btn-cetak">Cetak</button>
+      <a class="btn btn--secondary" href="<?= e(url('laporan/unduh.php?' . http_build_query(['tanggal_mulai' => $tanggal_mulai, 'tanggal_akhir' => $tanggal_akhir]))) ?>">Unduh CSV</a>
     </div>
   </form>
 </div>

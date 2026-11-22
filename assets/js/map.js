@@ -35,6 +35,15 @@
   var DEEP_LINK_ZOOM = 16; // spesifikasi T-14, dipakai ulang untuk "pilih hasil cari" (T-15)
   var SEARCH_DEBOUNCE_MS = 250; // spesifikasi T-15
   var SEARCH_MIN_CHARS = 2; // spesifikasi T-15
+  // Edge case wajib T-25: "popup Leaflet melebihi layar kecil". Leaflet TIDAK
+  // punya maxHeight default -- popup berisi beberapa aktivitas + thumbnail
+  // bisa lebih tinggi dari layar ponsel. maxHeight memaksa Leaflet menambah
+  // scroll internal (.leaflet-popup-content) begitu konten melebihi tinggi
+  // ini, bukan meluber keluar viewport. 70% tinggi jendela (bukan angka
+  // tetap) supaya tetap proporsional baik di ponsel pendek maupun tablet.
+  var POPUP_MAX_HEIGHT = function () {
+    return Math.round(window.innerHeight * 0.7);
+  };
 
   function cssVar(name, fallback) {
     try {
@@ -459,7 +468,7 @@
           marker.unbindPopup();
           marker.bindPopup(buildPickerContent(group.items, function (id) {
             handlers.onOpenDetail(marker, id);
-          })).openPopup();
+          }), { maxHeight: POPUP_MAX_HEIGHT() }).openPopup();
         } else {
           handlers.onOpenDetail(marker, firstItem.id);
         }
@@ -592,7 +601,7 @@
       }
 
       marker.unbindPopup();
-      var popup = L.popup().setContent(buildSkeleton());
+      var popup = L.popup({ maxHeight: POPUP_MAX_HEIGHT() }).setContent(buildSkeleton());
       marker.bindPopup(popup).openPopup();
 
       if (activeDetailAbort) {
@@ -983,7 +992,7 @@
           return;
         }
         map.setView([data.koordinat.lat, data.koordinat.lng], DEEP_LINK_ZOOM);
-        L.popup([data.koordinat.lat, data.koordinat.lng]).setContent(buildDetailContent(data)).openOn(map);
+        L.popup([data.koordinat.lat, data.koordinat.lng], { maxHeight: POPUP_MAX_HEIGHT() }).setContent(buildDetailContent(data)).openOn(map);
       }).catch(function () {
         showToast('Lokasi pada tautan (?lokasi=' + id + ') tidak ditemukan.');
       });
@@ -1037,7 +1046,14 @@
       }
 
       if (showLayerControl && Object.keys(overlays).length > 0) {
-        L.control.layers(null, overlays, { position: 'topright', collapsed: false }).addTo(map);
+        // T-25 (edge case "zoom 200% / layar 360px"): collapsed:false (T-13,
+        // demi keterbacaan langsung tanpa klik) + kotak cari 220px (topleft)
+        // bisa tumpang tindih di kanvas peta yang menyempit -- kolapskan
+        // kontrol ini otomatis di bawah 768px/efektif sempit, cukup ikon
+        // kecil yang masih memenuhi 44px (lihat .leaflet-control-layers-toggle
+        // di style.css), diperluas lewat klik/tap seperti biasa.
+        var layerControlCollapsed = window.matchMedia('(max-width: 767px)').matches;
+        L.control.layers(null, overlays, { position: 'topright', collapsed: layerControlCollapsed }).addTo(map);
       }
 
       // Deep-link ?lokasi=ID (T-14) -- dijalankan TERAKHIR supaya setView

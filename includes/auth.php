@@ -80,6 +80,12 @@ function security_headers(): void
         return;
     }
 
+    // T-26: jangan bocorkan versi PHP persis lewat header X-Powered-By.
+    // Idealnya expose_php=Off di php.ini produksi (PRD bagian 11), tapi
+    // TIDAK bisa diasumsikan operator hosting sungguhan mengaturnya --
+    // header_remove() di sini portabel, berlaku apa pun isi php.ini-nya.
+    header_remove('X-Powered-By');
+
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: strict-origin-when-cross-origin');

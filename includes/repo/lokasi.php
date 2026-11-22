@@ -50,7 +50,17 @@ function repo_lokasi_list(array $filters, int $page, int $per_page, string $sort
         $params['search_kel'] = $kata;
     }
 
-    $sql = 'SELECT l.*, k.nama_perusahaan AS kontraktor_nama, m.nama AS material_nama
+    // Kolom eksplisit (T-24, docs/query-audit.md Q1), BUKAN "SELECT l.*" --
+    // daftar ini adalah UNION kolom yang benar-benar dipakai keempat
+    // pemanggil (lokasi/index.php, dashboard.php, aktivitas/index.php &
+    // monitoring.php untuk dropdown, api/cari.php). Sengaja TIDAK termasuk
+    // area_geojson (LONGTEXT, bisa besar per poligon), alamat/keterangan
+    // (TEXT), nomor_izin/tanggal_berlaku_izin -- tidak ada satu pun pemanggil
+    // yang membacanya dari hasil fungsi ini (repo_lokasi_find() dipakai
+    // terpisah untuk form ubah yang BUTUH semua kolom itu).
+    $sql = 'SELECT l.id, l.nama_lokasi, l.kelurahan, l.latitude, l.longitude,
+                   l.status_izin, l.tanggal_berakhir_izin,
+                   k.nama_perusahaan AS kontraktor_nama, m.nama AS material_nama
             FROM lokasi_tambang l
             JOIN kontraktor k ON k.id = l.kontraktor_id
             JOIN jenis_material m ON m.id = l.material_id';

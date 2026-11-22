@@ -216,6 +216,28 @@ function field_error_class(array $errors, string $field): string
 }
 
 /**
+ * Helper template: fragmen atribut `aria-invalid` + `aria-describedby` untuk
+ * satu field, atau string kosong bila field itu valid (T-25). SEBELUM T-25,
+ * `<p class="field__error" id="xxx-error">` sudah punya id, tapi `<input>`-nya
+ * TIDAK PERNAH mereferensikannya lewat aria-describedby pada render server
+ * pertama setelah validasi gagal -- assets/js/validation.js hanya
+ * menambahkannya saat pengguna BERINTERAKSI (blur/submit) dengan field itu,
+ * bukan saat render awal, jadi pembaca layar yang men-Tab ke field yang SUDAH
+ * ditandai error oleh server tidak mendengar apa pun. Dipakai lewat
+ * `<?= field_aria($errors, $fn) ?>` di dalam tag input/select/textarea,
+ * bergantung pada KONVENSI id error = "{field}-error" yang sudah konsisten di
+ * semua form proyek ini.
+ */
+function field_aria(array $errors, string $field): string
+{
+    if (!isset($errors[$field]) || $errors[$field] === []) {
+        return '';
+    }
+
+    return ' aria-invalid="true" aria-describedby="' . e($field) . '-error"';
+}
+
+/**
  * Nilai input SEBELUMNYA (dari $_POST request yang gagal validasi dan
  * langsung di-render ulang PADA REQUEST YANG SAMA -- lihat login.php, pola
  * yang sudah dipakai proyek ini sejak T-06) untuk mengisi ulang form, atau

@@ -17,6 +17,15 @@ declare(strict_types=1);
  * Tanpa argumen, memvalidasi assets/geojson/batas_kota_sorong.geojson.
  */
 
+// T-26: cli-only -- skrip ini SENGAJA berdiri sendiri tanpa bootstrap.php
+// (lihat komentar di atas), jadi tidak punya APP_BOOTSTRAPPED untuk
+// menolak akses web seperti berkas lain; PHP_SAPI adalah satu-satunya
+// penjaga yang tersedia di sini.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden: jalankan hanya lewat command line (php database/validate_geojson.php).');
+}
+
 const MAX_UKURAN_BYTE = 150 * 1024;
 
 // Harus tetap SAMA dengan SORONG_LAT_MIN/MAX, SORONG_LNG_MIN/MAX di
