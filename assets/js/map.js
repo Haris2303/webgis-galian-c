@@ -608,7 +608,7 @@
     map.createPane('wgAreaPane');
     map.getPane('wgAreaPane').style.zIndex = 410;
 
-    // satellite tiles use Google's endpoint without an official API key; fine for preview, not for production SLA
+    // tile satelit memakai endpoint Google tanpa API key resmi; cukup untuk preview, bukan untuk SLA produksi
     var baseJalan = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: MAX_ZOOM,
@@ -644,7 +644,7 @@
       }
 
       if (isPreview) {
-        // preview mode navigates directly instead of fetching a popup here
+        // mode preview langsung menavigasi, bukan fetch popup di sini
         window.location.href = (opts.previewUrl || 'peta.php') + '?lokasi=' + encodeURIComponent(String(id));
         return;
       }
