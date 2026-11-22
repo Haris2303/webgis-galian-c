@@ -153,7 +153,22 @@ CREATE TABLE aktivitas_tambang (
   -- Catatan residual (lihat database/README.md "Risiko tersisa"): query
   -- Monitoring yang memfilter HANYA rentang tanggal tanpa lokasi_id tidak
   -- diuntungkan indeks ini (bukan kolom kiri); itu didata ulang di T-24.
-  INDEX idx_lokasi_tanggal (lokasi_id, tanggal_aktivitas)
+  INDEX idx_lokasi_tanggal (lokasi_id, tanggal_aktivitas),
+
+  -- idx_tanggal (T-24, docs/query-audit.md Q5): monitoring.php memfilter HANYA
+  -- rentang tanggal (TANPA lokasi_id) -- idx_lokasi_tanggal di atas tidak bisa
+  -- dipakai untuk kasus ini karena lokasi_id (kolom kiri komposit) tidak ada di
+  -- WHERE. Dibuktikan dengan EXPLAIN pada data sintetis (300 lokasi/5000
+  -- aktivitas): SEBELUM index ini ada, query itu "Table scan on a (rows=4867)"
+  -- (baca SELURUH tabel); SESUDAH, "Index range scan on a using idx_tanggal
+  -- ... rows=445" (hanya baris dalam rentang). Trade-off (edge case wajib
+  -- T-24 "indeks berlebihan"): satu indeks TAMBAHAN berarti satu B-tree lagi
+  -- yang di-maintain tiap INSERT/UPDATE/DELETE -- diterima di sini karena (a)
+  -- indeks satu kolom (murah dipelihara, bukan komposit lebar), (b) volume
+  -- tulis tabel ini rendah (entri manual per kontraktor, bukan beban OLTP
+  -- tinggi), dan (c) halaman yang diuntungkan (monitoring.php) adalah salah
+  -- satu yang paling sering dibuka Admin.
+  INDEX idx_tanggal (tanggal_aktivitas)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------

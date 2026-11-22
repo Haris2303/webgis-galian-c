@@ -73,7 +73,15 @@ function repo_aktivitas_list(array $filters, int $page, int $per_page, string $s
         $params['tanggal_akhir'] = $filters['tanggal_akhir'];
     }
 
-    $sql = 'SELECT a.*, lt.nama_lokasi, lt.kontraktor_id, m.nama AS material_nama, u.nama_lengkap AS user_nama
+    // Kolom eksplisit (T-24, docs/query-audit.md Q8), BUKAN "SELECT a.*" --
+    // satu-satunya pemanggil (aktivitas/index.php) hanya membaca id,
+    // tanggal_aktivitas, status_aktivitas, nama_lokasi, jenis_kegiatan,
+    // material_nama, user_nama. kontraktor_id TETAP di JOIN (lt.kontraktor_id
+    // di WHERE, T-17) tapi tidak perlu ikut ke SELECT -- dan deskripsi (TEXT,
+    // hingga 2000 karakter) tidak pernah dibaca dari hasil LIST ini (hanya
+    // lewat repo_aktivitas_find() untuk form ubah satu baris).
+    $sql = 'SELECT a.id, a.tanggal_aktivitas, a.jenis_kegiatan, a.status_aktivitas,
+                   lt.nama_lokasi, m.nama AS material_nama, u.nama_lengkap AS user_nama
             FROM aktivitas_tambang a
             JOIN lokasi_tambang lt ON lt.id = a.lokasi_id
             JOIN jenis_material m ON m.id = a.material_id
