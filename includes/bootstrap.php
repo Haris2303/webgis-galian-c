@@ -1,30 +1,20 @@
 <?php
 
-/**
- * Berkas tunggal yang wajib dimuat semua halaman: require_once __DIR__ . '/includes/bootstrap.php';
- * Urutan di sini penting -- jangan diubah tanpa alasan kuat.
- */
+// Berkas tunggal yang wajib dimuat semua halaman. Urutan di sini penting.
 
 declare(strict_types=1);
 
-// Mulai output buffering paling awal, sebelum byte apa pun dicetak. Kalau terjadi
-// exception/error di tengah render halaman, buffer ini bisa dibuang (ob_end_clean)
-// sehingga pengguna tidak melihat halaman HTML setengah jadi.
+// Output buffering agar halaman HTML setengah jadi bisa dibuang (ob_end_clean) saat terjadi exception.
 if (ob_get_level() === 0) {
     ob_start();
 }
 
-// Dicek dulu (T-27): tests/smoke.php men-define ini SENDIRI lebih awal
-// (butuh require config/config.php sebelum bootstrap.php penuh, untuk baca
-// APP_ENV lebih dini) -- tanpa guard ini, define() ulang dengan nilai yang
-// sama tetap memicu E_WARNING "Constant already defined".
+// Guard: define() ulang memicu E_WARNING walau nilainya sama.
 if (!defined('APP_BOOTSTRAPPED')) {
     define('APP_BOOTSTRAPPED', true);
 }
 
-// Kasus setup awal: config.local.php belum disalin dari contohnya. Ditangani terpisah
-// dari exception handler umum karena APP_ENV belum tentu terdefinisi pada titik ini,
-// dan pesan ini sendiri aman ditampilkan di environment apa pun (tidak membocorkan data).
+// Ditangani terpisah dari exception handler umum karena APP_ENV belum tentu terdefinisi pada titik ini.
 $local_config_path = __DIR__ . '/../config/config.local.php';
 if (!is_file($local_config_path)) {
     if (ob_get_level() > 0) {
@@ -54,18 +44,13 @@ unset($local_config_path);
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/functions.php';
 
-// Zona waktu baku seluruh aplikasi (PRD bagian 11).
 date_default_timezone_set('Asia/Jayapura');
 
-// Koneksi PDO + helper akses data (T-03). Lazy: db() belum benar-benar
-// menyambung ke MySQL sampai dipanggil, jadi aman di-require di sini sebelum
-// error handler/timezone selesai disetel.
+// db() lazy-connect, aman di-require sebelum error handler/timezone selesai disetel.
 require_once __DIR__ . '/../config/database.php';
 
-// error_reporting & display_errors menurut APP_ENV. Semua level tetap DICATAT lewat
-// app_log(); bedanya hanya apakah detailnya ditampilkan ke pengguna atau tidak.
 error_reporting(E_ALL);
-ini_set('log_errors', '0'); // logging ditangani manual oleh app_log(), bukan log PHP bawaan
+ini_set('log_errors', '0'); // logging ditangani manual oleh app_log()
 if (APP_ENV === 'prod') {
     ini_set('display_errors', '0');
     ini_set('display_startup_errors', '0');
@@ -74,12 +59,7 @@ if (APP_ENV === 'prod') {
     ini_set('display_startup_errors', '1');
 }
 
-/**
- * Error PHP biasa (warning/notice/deprecated): dicatat ke log, eksekusi tetap berjalan
- * (konsisten dengan pengaturan display_errors di atas). Error setingkat fatal
- * (E_USER_ERROR/E_RECOVERABLE_ERROR) diubah jadi ErrorException agar ditangani
- * secara konsisten lewat exception handler di bawah (buffer dibersihkan, respons adaptif).
- */
+// Error setingkat fatal diubah jadi ErrorException agar ditangani lewat exception handler di bawah.
 set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
     if (!(error_reporting() & $severity)) {
         return false;
@@ -95,11 +75,7 @@ set_error_handler(static function (int $severity, string $message, string $file,
     return true;
 });
 
-/**
- * Semua exception/error fatal yang tidak ditangkap jatuh ke sini. Ini satu-satunya
- * tempat yang menentukan bentuk respons akhir: HTML ramah untuk browser, JSON untuk AJAX,
- * detail lengkap hanya di APP_ENV=dev.
- */
+// Satu-satunya tempat yang menentukan bentuk respons akhir: HTML untuk browser, JSON untuk AJAX, detail lengkap hanya di APP_ENV=dev.
 set_exception_handler(static function (Throwable $e): void {
     if (ob_get_level() > 0) {
         @ob_end_clean();
@@ -139,10 +115,7 @@ set_exception_handler(static function (Throwable $e): void {
     exit;
 });
 
-/**
- * Jaring pengaman terakhir untuk fatal error yang tidak lewat set_error_handler
- * (mis. error parse/compile, out-of-memory, exceed max_execution_time).
- */
+// Jaring pengaman terakhir untuk fatal error yang tidak lewat set_error_handler.
 register_shutdown_function(static function (): void {
     $error = error_get_last();
     if ($error === null) {
@@ -184,19 +157,11 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/validator.php';
 require_once __DIR__ . '/upload_foto.php';
 
-// Edge case wajib T-18: ekstensi GD tidak aktif. Diperiksa SEKALI di sini
-// (log saja, tidak menghentikan aplikasi -- hanya FITUR UNGGAH FOTO yang
-// butuh GD, bukan seluruh aplikasi) supaya admin melihatnya di log server
-// SEBELUM ada pengguna yang melaporkan unggah foto gagal. Pesan yang
-// benar-benar tampil ke pengguna saat mereka mencoba unggah ada di
-// upload_foto_validate() (includes/upload_foto.php).
+// Log saja (tidak menghentikan aplikasi) karena hanya fitur unggah foto yang butuh GD.
 if (!upload_gd_tersedia()) {
     app_log('warning', 'Ekstensi PHP GD tidak aktif/lengkap -- unggah foto dokumentasi aktivitas (FR-14) tidak akan berfungsi. Pasang/aktifkan ekstensi gd di php.ini.');
 }
 
-// Header keamanan + session hardening (T-05, PRD bagian 11). Diletakkan di
-// AKHIR bootstrap.php, setelah error handler di atas terpasang, supaya
-// exception yang muncul di dalamnya (misalnya gagal konek DB saat cek
-// throttle) tertangkap rapi, bukan jatuh ke error handler default PHP.
+// Diletakkan di akhir, setelah error handler terpasang, supaya exception di dalamnya tertangkap rapi.
 security_headers();
 auth_start_session();

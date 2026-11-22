@@ -7,10 +7,7 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/repo/login_attempts.php — akses data tabel login_attempts (T-05).
- * Tabel ini di luar PRD bagian 7 — lihat database/schema.sql dan Keputusan T-05.
- */
+// includes/repo/login_attempts.php — akses data tabel login_attempts.
 
 function repo_login_attempt_record(string $username, string $ip_address): void
 {
@@ -20,7 +17,7 @@ function repo_login_attempt_record(string $username, string $ip_address): void
     );
 }
 
-/** Satu-satunya query yang dijalankan tabel ini: hitung percobaan gagal dalam $window_minutes terakhir. */
+// Hitung percobaan gagal dalam $window_minutes terakhir.
 function repo_login_attempt_count_recent(string $username, string $ip_address, int $window_minutes): int
 {
     $row = db_one(

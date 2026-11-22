@@ -2,13 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * kontraktor/hapus.php — hapus kontraktor (FR-11). Hanya POST+CSRF (pola
- * sama dengan logout.php, T-06) -- aksi hapus tidak boleh bisa dipicu lewat
- * link GET biasa. Hapus HANYA diizinkan bila kontraktor tidak punya lokasi
- * (FK RESTRICT, database/schema.sql); akun login terkait (jika ada) ikut
- * dihapus dalam transaksi yang sama -- lihat Keputusan T-08.
- */
+// Hapus hanya diizinkan bila kontraktor tidak punya lokasi (FK RESTRICT); akun login terkait ikut dihapus dalam transaksi yang sama.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/kontraktor.php';
@@ -32,9 +26,7 @@ if ($kontraktor === null) {
     redirect($kembali);
 }
 
-// Pengecekan dulu demi pesan yang jelas (jumlah pasti); FK RESTRICT di bawah
-// tetap jadi penjaga akhir yang otoritatif terhadap race condition (kontraktor
-// ini diberi lokasi baru oleh admin lain tepat di antara cek ini dan DELETE).
+// Pengecekan dulu demi pesan yang jelas; FK RESTRICT tetap jadi penjaga akhir terhadap race condition.
 $jumlah_lokasi = repo_lokasi_count_by_kontraktor($id);
 if ($jumlah_lokasi > 0) {
     flash('error', "Kontraktor \"{$kontraktor['nama_perusahaan']}\" masih memiliki {$jumlah_lokasi} lokasi terdaftar. Hapus atau pindahkan lokasinya dulu sebelum menghapus kontraktor ini.");
@@ -43,10 +35,7 @@ if ($jumlah_lokasi > 0) {
 
 try {
     db_transaction(function () use ($id) {
-        // Hapus akun login dulu -- tanpa ini, FK users.kontraktor_id ON DELETE
-        // SET NULL (database/schema.sql) akan membuat akun itu jadi role=kontraktor
-        // TANPA kontraktor_id: persis kondisi "data rusak" yang ditolak login.php
-        // (T-06). Lebih baik akun ikut terhapus bersih daripada dibiarkan rusak.
+        // Hapus akun login dulu -- tanpa ini FK ON DELETE SET NULL akan membuat akun role=kontraktor tanpa kontraktor_id, data yang ditolak login.php.
         foreach (repo_user_list_by_kontraktor($id) as $akun) {
             repo_user_delete((int) $akun['id']);
         }

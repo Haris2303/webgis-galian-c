@@ -2,11 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * kontraktor/form.php — tambah (FR-11+FR-12 sekaligus, atomik) & ubah profil
- * kontraktor (FR-11 saja). Username/password HANYA ada di mode tambah --
- * reset password & nonaktifkan akun ada di kontraktor/index.php (T-08).
- */
+// Tambah kontraktor+akun sekaligus (atomik) & ubah profil. Username/password hanya ada di mode tambah; reset/nonaktifkan akun ada di kontraktor/index.php.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/kontraktor.php';
@@ -91,12 +87,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             );
             redirect('kontraktor/index.php');
         } catch (PDOException $e) {
-            // SQLSTATE 23000 / errno 1062 = duplicate entry pada UNIQUE KEY username
-            // (database/schema.sql). Edge case T-08: dua admin menambah username
-            // sama bersamaan -- SELECT cek-duluan tidak menutup race ini, hanya
-            // constraint DB + penangkapan error di sini yang otoritatif. Transaksi
-            // (T-03 db_transaction) SUDAH rollback otomatis sebelum exception ini
-            // sampai ke sini, jadi tidak ada baris kontraktor yatim.
+            // errno 1062 = duplicate entry pada UNIQUE KEY username (race antar dua admin); transaksi sudah rollback otomatis sebelum exception sampai ke sini.
             if (($e->errorInfo[1] ?? null) === 1062) {
                 $errors['username'][] = 'Username sudah digunakan, silakan pilih username lain.';
             } else {

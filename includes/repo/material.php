@@ -7,10 +7,7 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/repo/material.php — akses data tabel jenis_material (master data
- * tetap, lihat database/schema.sql). Tabel kecil & statis -- tanpa pagination.
- */
+// includes/repo/material.php — akses data tabel jenis_material (master data tetap, tanpa pagination).
 
 function repo_material_find(int $id): ?array
 {

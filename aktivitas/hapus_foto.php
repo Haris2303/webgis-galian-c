@@ -2,13 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * aktivitas/hapus_foto.php — hapus SATU foto dokumentasi (FR-14/FR-15; T-18).
- * Boleh dilakukan oleh pemilik aktivitas (kontraktor) ATAU admin -- sama
- * dengan otorisasi UBAH aktivitas (FR-15), BUKAN seketat hapus aktivitas
- * (FR-16, admin saja), karena menghapus satu foto adalah bagian dari mengedit
- * dokumentasinya sendiri, bukan menghapus catatan aktivitasnya.
- */
+// aktivitas/hapus_foto.php — hapus satu foto; boleh pemilik aktivitas (kontraktor) atau admin, beda dari hapus aktivitas (admin saja).
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/aktivitas.php';
@@ -32,9 +26,7 @@ if ($foto === null) {
     redirect($kembali);
 }
 
-// Otorisasi tingkat objek lewat AKTIVITAS pemilik foto ini -- IDOR yang sama
-// persis dengan aktivitas/form.php (T-17): kontraktor lain tidak boleh
-// menghapus foto aktivitas yang bukan miliknya, walau tahu ID foto-nya.
+// Otorisasi lewat aktivitas pemilik foto -- kontraktor lain tidak boleh hapus foto yang bukan miliknya.
 if (!can_access_aktivitas($user, (int) $foto['aktivitas_id'])) {
     abort(403);
 }

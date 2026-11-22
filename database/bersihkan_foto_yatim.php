@@ -2,27 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * database/bersihkan_foto_yatim.php — skrip CLI pembersih file foto "yatim"
- * (T-18, FR-14). File yatim adalah berkas di uploads/aktivitas/**  yang TIDAK
- * dirujuk oleh foto_aktivitas.file_path manapun -- bisa terjadi bila proses
- * PHP terhenti paksa (kill -9, OOM) di antara move/tulis file dan commit
- * transaksi (jendela yang TIDAK tertutup oleh rollback try/catch di
- * aktivitas/form.php, karena itu hanya menangani Exception PHP biasa, bukan
- * proses yang mati total), atau sisa dari versi aplikasi lama sebelum
- * mekanisme rollback T-18 ada.
- *
- * MODE AMAN secara default: hanya MELAPORKAN, tidak menghapus apa pun, kecuali
- * diberi --hapus.
- *
- * Pemakaian:
- *   php database/bersihkan_foto_yatim.php            (dry-run, hanya laporan)
- *   php database/bersihkan_foto_yatim.php --hapus     (sungguh menghapus)
- *   php database/bersihkan_foto_yatim.php --hapus --lebih-tua-dari=24
- *       (hanya hapus file yatim yang mtime-nya lebih tua dari N jam --
- *       default 1 jam, supaya file yang SEDANG ditulis oleh request lain
- *       yang masih berjalan tidak ikut terhapus -- lihat Risiko tersisa.)
- */
+// Skrip CLI pembersih file foto yatim (tidak dirujuk foto_aktivitas.file_path manapun); default dry-run, pakai --hapus untuk menghapus sungguhan, --lebih-tua-dari=JAM untuk ubah ambang umur (default 1).
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
@@ -44,8 +24,7 @@ foreach ($args as $arg) {
 }
 $batas_detik = $batas_jam * 3600;
 
-// Kumpulkan SEMUA path yang TERDAFTAR di DB -- file utama DAN thumbnail
-// turunannya (thumbnail tidak punya baris sendiri, lihat upload_foto_path_thumbnail()).
+// File utama dan thumbnail turunannya (thumbnail tidak punya baris sendiri di DB).
 $terdaftar = [];
 foreach (db_all('SELECT file_path FROM foto_aktivitas') as $row) {
     $path = str_replace('\\', '/', (string) $row['file_path']);
@@ -89,9 +68,7 @@ foreach ($iterator as $file) {
     $umur_detik = time() - $file->getMTime();
 
     if ($umur_detik < $batas_detik) {
-        // Edge case: upload YANG SEDANG BERJALAN (file sudah tertulis ke
-        // disk, transaksi DB belum commit) terlihat "yatim" sesaat -- jangan
-        // dihapus kalau masih sangat baru, beri jendela aman (default 1 jam).
+        // Upload yang sedang berjalan (file tertulis, transaksi belum commit) bisa terlihat yatim sesaat.
         $dilewati_baru++;
         continue;
     }

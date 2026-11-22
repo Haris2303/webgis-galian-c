@@ -7,22 +7,9 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * config/database.php — koneksi PDO tunggal + helper akses data (T-03).
- *
- * Dikumpulkan dalam satu berkas (bukan dipisah ke includes/) karena struktur
- * folder PRD bagian 8 hanya menyebut satu berkas config database, dan semua
- * helper di sini (db_one/db_all/db_exec/db_transaction/paginate/...) selalu
- * dipakai bersama db() — memisahkannya ke berkas lain hanya menambah
- * indirection tanpa manfaat. Repository per entitas (includes/repo/) memanggil
- * fungsi-fungsi di sini, bukan memanggil PDO langsung.
- */
+// Koneksi PDO tunggal + helper akses data.
 
-/**
- * Koneksi PDO singleton. Lazy: koneksi baru dibuka saat pertama kali dipanggil,
- * bukan saat berkas ini di-require — supaya date_default_timezone_set() di
- * bootstrap.php sudah pasti berjalan duluan sebelum SET time_zone di bawah.
- */
+// Lazy: koneksi dibuka saat pertama dipanggil, setelah date_default_timezone_set() di bootstrap.php sudah berjalan.
 function db(): PDO
 {
     static $pdo = null;
@@ -41,18 +28,12 @@ function db(): PDO
     try {
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
 
-        // Samakan time_zone sesi MySQL dengan timezone PHP (Asia/Jayapura, PRD
-        // bagian 11) lewat OFFSET NUMERIK ('+09:00'), bukan nama zona
-        // ('Asia/Jayapura'/'Asia/Jakarta') — nama zona butuh tabel
-        // mysql.time_zone_name yang belum tentu di-load (umum di instalasi
-        // XAMPP/Laragon default), sedangkan offset numerik selalu didukung.
+        // Pakai offset numerik, bukan nama zona: nama zona butuh tabel mysql.time_zone_name yang belum tentu di-load.
         $offset = (new DateTime('now', new DateTimeZone(date_default_timezone_get())))->format('P');
         $pdo->exec('SET time_zone = ' . $pdo->quote($offset));
     } catch (PDOException $e) {
         $pdo = null;
-        // Detail koneksi (host, port, nama DB) hanya masuk log lokal, TIDAK PERNAH
-        // ke pesan exception yang bisa tampil ke browser — bahkan di APP_ENV=dev,
-        // supaya perilaku ini tidak bergantung pada operator lupa set APP_ENV=prod.
+        // Detail koneksi hanya masuk log lokal, tidak pernah ke pesan exception yang bisa tampil ke browser.
         app_log('error', 'Koneksi database gagal: ' . $e->getMessage());
         throw new RuntimeException('Tidak dapat terhubung ke database. Silakan coba lagi nanti.', 0, $e);
     }
@@ -60,14 +41,7 @@ function db(): PDO
     return $pdo;
 }
 
-/**
- * Siapkan statement, bind setiap parameter dengan tipe PDO yang sesuai tipe PHP-nya
- * (int -> PARAM_INT, bool -> PARAM_INT 0/1, null -> PARAM_NULL, selain itu -> PARAM_STR),
- * lalu eksekusi. Satu-satunya titik prepare+bind+execute dipakai semua helper di bawah,
- * supaya LIMIT/OFFSET yang dikirim sebagai int PHP otomatis ter-bind PARAM_INT —
- * tanpa ini, PDO::execute($array) mem-bind semua nilai sebagai string, dan MySQL native
- * prepared statement (EMULATE_PREPARES=false) menolak string untuk posisi LIMIT/OFFSET.
- */
+// Bind tiap parameter dengan tipe PDO yang sesuai (int, bool, null, string); PDO::execute($array) saja mem-bind semuanya sebagai string, yang ditolak MySQL untuk posisi LIMIT/OFFSET.
 function db_run(string $sql, array $params = []): PDOStatement
 {
     $stmt = db()->prepare($sql);
@@ -92,13 +66,7 @@ function db_run(string $sql, array $params = []): PDOStatement
     return $stmt;
 }
 
-/**
- * Hitung jumlah query (db_run()) yang sudah dijalankan pada request ini.
- * Murni alat debug (T-21): dipakai memverifikasi "jumlah query per halaman
- * TIDAK bertambah seiring jumlah baris" -- paginate() selalu 2 query (COUNT +
- * SELECT) berapa pun total barisnya, bukan N+1. $increment=true HANYA
- * dipanggil dari db_run() di bawah; pemanggil lain membaca saja (default false).
- */
+// Hitung jumlah query yang sudah dijalankan pada request ini; alat debug saja.
 function db_query_count(bool $increment = false): int
 {
     static $count = 0;
@@ -116,15 +84,7 @@ function db_all(string $sql, array $params = []): array
     return db_run($sql, $params)->fetchAll();
 }
 
-/**
- * Jalankan $sql tapi KEMBALIKAN PDOStatement mentah, bukan array hasil
- * fetchAll(). Dipakai HANYA saat pemanggil perlu mengiterasi baris SATU PER
- * SATU (mis. `while (($row = $stmt->fetch()) !== false) { ... }`) supaya
- * memori PHP tetap konstan untuk dataset besar -- fetchAll() (db_all()) harus
- * memuat SELURUH baris ke satu array PHP dulu sebelum pemanggil bisa
- * memprosesnya, yang untuk ribuan baris bisa jadi signifikan (T-23: ekspor CSV
- * streaming). Pemanggil WAJIB memanggil ->closeCursor() setelah selesai.
- */
+// Kembalikan PDOStatement mentah untuk iterasi baris satu per satu (dataset besar); pemanggil wajib ->closeCursor() setelah selesai.
 function db_cursor(string $sql, array $params = []): PDOStatement
 {
     return db_run($sql, $params);
@@ -144,19 +104,7 @@ function db_exec(string $sql, array $params = []): int
     return db_run($sql, $params)->rowCount();
 }
 
-/**
- * Jalankan $callback di dalam transaksi. Aman dipanggil bersarang: panggilan
- * terluar (depth 0) membuka transaksi InnoDB sungguhan; panggilan di dalamnya
- * memakai SAVEPOINT, sehingga rollback di level dalam tidak membatalkan
- * perubahan level luar yang sudah berhasil (selama level luar menangkap
- * exception-nya sendiri). $depth adalah static function-level, bukan variabel
- * instance, karena desain fungsional ini tidak punya objek untuk menyimpannya.
- *
- * Deadlock/lock-wait-timeout (SQLSTATE 40001, errno 1205/1213) pada transaksi
- * TERLUAR diulang sekali secara otomatis sebelum menyerah — mengulang baru
- * masuk akal di level terluar karena hanya level itu yang benar-benar
- * membuka/menutup transaksi InnoDB.
- */
+// Aman dipanggil bersarang: panggilan terluar membuka transaksi InnoDB, panggilan dalam memakai SAVEPOINT; deadlock di level terluar diulang sekali otomatis.
 function db_transaction(callable $callback)
 {
     static $depth = 0;
@@ -222,12 +170,7 @@ function db_is_deadlock(Throwable $e): bool
     return $sqlstate === '40001' || in_array($driver_code, [1205, 1213], true);
 }
 
-/**
- * Bangun fragmen "`kolom` ARAH" yang aman untuk ditempel langsung ke SQL (PDO
- * tidak bisa bind nama kolom/arah sort sebagai parameter). Aman karena $column
- * dan $direction HARUS lolos whitelist $allowed_columns di sini dulu — tidak
- * pernah ada jalur di mana nilai mentah dari input pengguna langsung masuk SQL.
- */
+// Fragmen "`kolom` ARAH" aman ditempel ke SQL karena $column divalidasi lewat whitelist $allowed_columns.
 function db_order_by(string $column, string $direction, array $allowed_columns, string $default_column, string $default_direction = 'asc'): string
 {
     $safe_column = in_array($column, $allowed_columns, true) ? $column : $default_column;
@@ -240,24 +183,13 @@ function db_order_by(string $column, string $direction, array $allowed_columns, 
     return '`' . $safe_column . '` ' . $direction_upper;
 }
 
-/**
- * Escape literal untuk karakter spesial LIKE (% dan _) serta backslash itu
- * sendiri (harus di-escape duluan, sebelum % dan _, supaya tidak dobel-escape).
- * MySQL memakai backslash sebagai escape char default untuk LIKE, jadi tidak
- * perlu klausa ESCAPE tambahan di query. Caller tetap menambahkan wildcard
- * '%' di luar hasil fungsi ini, mis. '%' . db_like_escape($q) . '%'.
- */
+// Escape backslash duluan (sebelum % dan _) agar tidak dobel-escape; caller menambahkan wildcard '%' sendiri.
 function db_like_escape(string $value): string
 {
     return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
 }
 
-/**
- * Jalankan $sql (SELECT tanpa LIMIT/OFFSET/titik-koma) dengan pagination.
- * Mengembalikan [rows, total]. $page/$per_page dari input pengguna tidak pernah
- * dipercaya mentah: $page dipaksa >= 1, $per_page dibatasi 1..200 di sini supaya
- * permintaan ?per_page=999999 tidak memaksa MySQL men-scan seluruh tabel.
- */
+// $per_page dibatasi 1..200 agar ?per_page=999999 tidak memaksa MySQL men-scan seluruh tabel.
 function paginate(string $sql, array $params, int $page, int $per_page): array
 {
     $page = max(1, $page);

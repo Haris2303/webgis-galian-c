@@ -1,15 +1,4 @@
-/**
- * assets/js/monitoring-detail.js — panel "Lihat" di monitoring.php: detail
- * satu aktivitas (lokasi, kontraktor, material, pencatat, foto, peta kecil)
- * diambil lazy lewat api/aktivitas_detail.php saat tombol diklik, SELALU
- * dirender lewat DOM API (createElement + textContent), TIDAK PERNAH
- * innerHTML dari data server -- pola yang sama dengan assets/js/map.js (T-14).
- *
- * Peta kecil pakai instans Leaflet SENDIRI (bukan assets/js/map.js, yang
- * dirancang untuk peta penuh dengan filter/cari/lightbox) -- hanya satu
- * marker statis, dibuat sekali & dipakai ulang (setView + pindah marker)
- * setiap panel dibuka untuk aktivitas yang berbeda.
- */
+// assets/js/monitoring-detail.js — panel detail selalu dirender lewat DOM API (createElement/textContent), tidak pernah innerHTML, karena datanya dari server.
 (function () {
   'use strict';
 
@@ -125,7 +114,7 @@
     function showMiniMap(lat, lng) {
       mapEl.hidden = false;
       if (typeof L === 'undefined') {
-        return; // Leaflet gagal dimuat dari CDN -- panel teks tetap berfungsi tanpa peta
+        return; // Leaflet gagal dimuat: panel teks tetap berfungsi tanpa peta
       }
       if (!miniMap) {
         miniMap = L.map(mapEl, {
@@ -147,9 +136,7 @@
         miniMap.setView([lat, lng], 15);
         miniMarker.setLatLng([lat, lng]);
       }
-      // Dialog baru showModal() -- kontainer peta baru punya ukuran NYATA
-      // setelah ini, bukan sebelumnya (edge case yang sama dengan
-      // assets/js/map.js: "peta di dalam elemen tersembunyi tampil abu-abu").
+      // kontainer baru punya ukuran nyata setelah showModal(), karenanya invalidateSize di frame berikutnya
       window.requestAnimationFrame(function () {
         miniMap.invalidateSize();
       });

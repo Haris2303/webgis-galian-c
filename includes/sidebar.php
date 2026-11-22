@@ -7,23 +7,13 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/sidebar.php — menu navigasi per peran (T-04/T-06, PRD bagian 9;
- * migrasi UI DESIGN.md: menu Admin dikelompokkan, "Data Master" [Lokasi,
- * Kontraktor] ditaruh sebagai grup di bagian bawah daftar menu, tepat
- * sebelum Logout -- bukan lagi bercampur di urutan bebas seperti T-04 asli).
- *
- * Membaca peran lewat current_user() (T-06), bukan $_SESSION langsung --
- * default 'admin' kalau null tetap dipertahankan untuk tests/ui_preview.php
- * (lihat berkas itu), BUKAN keputusan otorisasi; guard akses sesungguhnya
- * ada di require_login()/require_role(), dijalankan sebelum sidebar ini di-require.
- */
+// Menu navigasi per peran. Default 'admin' kalau current_user() null hanya untuk tests/ui_preview.php, bukan keputusan otorisasi.
 
 $sidebar_user = current_user();
 $role = $sidebar_user['role'] ?? 'admin';
 $active_menu = $active_menu ?? '';
 
-/** Ikon SVG minimal (20x20, dekoratif/aria-hidden) per kunci menu -- tangan sendiri, konsisten dengan dashboard_ikon() di dashboard.php. */
+// Ikon SVG minimal (20x20, dekoratif/aria-hidden) per kunci menu.
 function sidebar_ikon(string $kunci): string
 {
     $path = match ($kunci) {
@@ -41,21 +31,7 @@ function sidebar_ikon(string $kunci): string
     return '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">' . $path . '</svg>';
 }
 
-// Admin: menu ALUR KERJA dulu (Dashboard -> Peta -> Monitoring -> Laporan),
-// BARU grup "Data Master" (Lokasi, Kontraktor) di bagian bawah -- permintaan
-// eksplisit: data master bukan hal yang paling sering dibuka sehari-hari,
-// jadi tidak mengambil posisi teratas yang lebih sering dilihat.
-//
-// "Aktivitas" SENGAJA tidak lagi jadi menu sendiri untuk admin -- Monitoring
-// sudah menampilkan semua aktivitas lintas lokasi, dan tombol "Lihat" di
-// sana (assets/js/monitoring-detail.js) membuka panel detail lengkap
-// (termasuk peta kecil) + tautan Ubah/Hapus ke aktivitas/form.php &
-// aktivitas/hapus.php -- jadi aktivitas/index.php tetap ADA dan tetap
-// dipakai (link Ubah mengarah ke situ), hanya tidak lagi dipromosikan
-// sebagai menu utama admin. Kontraktor TETAP punya menu "Aktivitas Saya"
-// sendiri (lihat $menu_kontraktor_utama) -- halaman itu satu-satunya cara
-// kontraktor input/kelola aktivitasnya, tidak tergantikan oleh Monitoring
-// yang khusus admin (require_role('admin'), monitoring.php).
+// Admin tidak punya menu "Aktivitas" sendiri -- Monitoring sudah menampilkan semua aktivitas lintas lokasi, dengan tautan Ubah/Hapus ke aktivitas/form.php & aktivitas/hapus.php.
 $menu_admin_utama = [
     'dashboard' => ['label' => 'Dashboard', 'href' => 'dashboard.php'],
     'peta' => ['label' => 'Peta Interaktif', 'href' => 'peta.php'],
@@ -67,8 +43,7 @@ $menu_admin_master = [
     'kontraktor' => ['label' => 'Data Kontraktor', 'href' => 'kontraktor/index.php'],
 ];
 
-// Kontraktor: tidak punya "Data Master" sama sekali (tidak berwenang kelola
-// lokasi/kontraktor, PRD bagian 2) -- tetap satu grup datar seperti semula.
+// Kontraktor tidak berwenang kelola lokasi/kontraktor, jadi tidak punya grup "Data Master".
 $menu_kontraktor_utama = [
     'dashboard' => ['label' => 'Dashboard', 'href' => 'dashboard.php'],
     'aktivitas_saya' => ['label' => 'Aktivitas Saya', 'href' => 'aktivitas/index.php'],

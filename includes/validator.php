@@ -7,21 +7,11 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/validator.php — satu-satunya mekanisme validasi input server-side
- * (T-07, PRD bagian 5, 7, 11). assets/js/validation.js HANYA memperbaiki UX
- * (pesan inline instan); yang dijalankan di sini tetap otoritas akhir --
- * setiap form (T-08/T-09/T-17) wajib memanggil validate() sebelum menulis DB,
- * terlepas dari apa pun yang sudah "lolos" di klien.
- */
+// Satu-satunya mekanisme validasi input server-side; assets/js/validation.js hanya memperbaiki UX, bukan otoritas akhir.
 
 define('GEOJSON_POLYGON_MAX_BYTES', 200 * 1024);
 
-/**
- * Hilangkan spasi di tepi + karakter kontrol (edge case T-07: nama berisi
- * karakter kontrol). Unicode BIASA (huruf aksara apa pun, termasuk di luar
- * Latin) SENGAJA dipertahankan apa adanya -- nama orang/lokasi sah memuat itu.
- */
+// Hilangkan spasi tepi + karakter kontrol; Unicode biasa (aksara non-Latin) dipertahankan karena nama orang/lokasi sah memuat itu.
 function normalize_string(?string $value): ?string
 {
     if ($value === null) {
@@ -33,18 +23,13 @@ function normalize_string(?string $value): ?string
     return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value) ?? $value;
 }
 
-/**
- * Koma desimal -> titik (PRD bagian 7: "-0,8762" jadi "-0.8762"), HANYA bila
- * seluruh string berbentuk persis "[-]digit+,digit+" -- supaya tidak salah
- * menyentuh teks bebas yang memang memuat koma (mis. field keterangan), atau
- * angka yang sudah memakai titik/pemisah ribuan ambigu.
- */
+// Koma desimal -> titik, hanya bila seluruh string berbentuk persis "[-]digit+,digit+" agar tidak menyentuh teks bebas yang memuat koma.
 function normalize_decimal(string $value): string
 {
     return preg_match('/^-?\d+,\d+$/', $value) === 1 ? str_replace(',', '.', $value) : $value;
 }
 
-/** Label Indonesia default dari nama field ("nama_lokasi" -> "nama lokasi") bila tidak diberi $labels eksplisit. */
+// Label Indonesia default dari nama field ("nama_lokasi" -> "nama lokasi") bila tidak diberi $labels eksplisit.
 function field_label(string $field, array $labels): string
 {
     return $labels[$field] ?? str_replace('_', ' ', $field);
@@ -61,12 +46,7 @@ function is_valid_date_string(string $value): bool
     return checkdate($m, $d, $y);
 }
 
-/**
- * Terapkan satu aturan ("nama" + parameter opsional) pada satu nilai yang
- * SUDAH dinormalisasi. Mengembalikan pesan error (string) atau null bila lolos.
- * $is_numeric_field menentukan apakah min/max membandingkan ANGKA (field itu
- * juga punya aturan 'numeric'/'between') atau PANJANG STRING (field teks biasa).
- */
+// $is_numeric_field menentukan apakah min/max membandingkan angka atau panjang string.
 function apply_validation_rule(string $name, ?string $param, string $value, string $field, array $input, array $labels, bool $is_numeric_field): ?string
 {
     $label = field_label($field, $labels);
@@ -79,7 +59,6 @@ function apply_validation_rule(string $name, ?string $param, string $value, stri
             return is_numeric($value) ? null : "{$label} harus berupa angka.";
 
         case 'integer':
-            // Edge case T-07: jumlah pekerja/alat berat tidak boleh pecahan.
             // "5.0" tetap lolos (nilainya bulat); "2.5" ditolak.
             if (!is_numeric($value)) {
                 return "{$label} harus berupa bilangan bulat.";
@@ -123,7 +102,7 @@ function apply_validation_rule(string $name, ?string $param, string $value, stri
         case 'after_or_equal':
             $other_raw = $input[$param] ?? null;
             if (is_array($other_raw) || $other_raw === null) {
-                return null; // field pembanding tidak ada/tidak sah -- biarkan aturan field itu sendiri yang menangani
+                return null; // field pembanding tidak ada/tidak sah
             }
             $other = normalize_string((string) $other_raw) ?? '';
             if ($other === '' || !is_valid_date_string($value) || !is_valid_date_string($other)) {
@@ -136,8 +115,7 @@ function apply_validation_rule(string $name, ?string $param, string $value, stri
             return filter_var($value, FILTER_VALIDATE_EMAIL) !== false ? null : "{$label} harus alamat email yang valid.";
 
         case 'phone':
-            // Pola longgar nomor Indonesia: 08xx / +628xx / 628xx, 9-14 digit
-            // setelah prefiks. PRD tidak memberi format baku -- lihat Keputusan T-07.
+            // Pola longgar nomor Indonesia: 08xx / +628xx / 628xx, 9-14 digit setelah prefiks.
             $bersih = preg_replace('/[\s\-()]/', '', $value);
 
             return preg_match('/^(\+62|62|0)8\d{8,12}$/', (string) $bersih) === 1 ? null : "{$label} harus nomor telepon Indonesia yang valid.";
@@ -150,14 +128,8 @@ function apply_validation_rule(string $name, ?string $param, string $value, stri
     }
 }
 
-/**
- * Validasi $input terhadap $rules. $rules: ['field' => 'required|max:150'] ATAU
- * ['field' => ['required', 'regex:/^[0-9]+$/']] -- bentuk array dipakai saat
- * parameter aturan (terutama regex) mengandung karakter '|' yang kalau tidak
- * akan salah terpisah oleh explode('|', ...).
- *
- * @return array{valid: bool, errors: array<string, string[]>, data: array<string, mixed>}
- */
+// $rules bisa 'required|max:150' atau ['required', 'regex:/^[0-9]+$/'] -- bentuk array dipakai saat parameter regex mengandung '|'.
+// @return array{valid: bool, errors: array<string, string[]>, data: array<string, mixed>}
 function validate(array $input, array $rules, array $labels = []): array
 {
     $errors = [];
@@ -167,7 +139,7 @@ function validate(array $input, array $rules, array $labels = []): array
         $rule_list = is_array($rule_spec) ? $rule_spec : explode('|', $rule_spec);
         $raw = $input[$field] ?? null;
 
-        // Edge case T-07: field[]=... tak terduga pada field yang didefinisikan skalar.
+        // field[]=... tak terduga pada field yang didefinisikan skalar.
         if (is_array($raw)) {
             $errors[$field][] = field_label($field, $labels) . ' memiliki format data yang tidak valid.';
             continue;
@@ -203,31 +175,13 @@ function validate(array $input, array $rules, array $labels = []): array
     return ['valid' => $errors === [], 'errors' => $errors, 'data' => $data];
 }
 
-/**
- * Helper template: class CSS "field--invalid" bila $errors memuat pesan untuk
- * $field, string kosong jika tidak. Dipakai lewat e(field_error_class(...))
- * di form -- bukan aturan validasi, sekadar menghindari ternary inline
- * `<?= $var ? ... : ... ?>` yang lolos pola "echo tanpa e()" (PRD bagian 11)
- * walau secara praktik aman (hasilnya selalu string literal tetap).
- */
+// Class CSS "field--invalid" bila $errors memuat pesan untuk $field, string kosong jika tidak.
 function field_error_class(array $errors, string $field): string
 {
     return isset($errors[$field]) && $errors[$field] !== [] ? 'field--invalid' : '';
 }
 
-/**
- * Helper template: fragmen atribut `aria-invalid` + `aria-describedby` untuk
- * satu field, atau string kosong bila field itu valid (T-25). SEBELUM T-25,
- * `<p class="field__error" id="xxx-error">` sudah punya id, tapi `<input>`-nya
- * TIDAK PERNAH mereferensikannya lewat aria-describedby pada render server
- * pertama setelah validasi gagal -- assets/js/validation.js hanya
- * menambahkannya saat pengguna BERINTERAKSI (blur/submit) dengan field itu,
- * bukan saat render awal, jadi pembaca layar yang men-Tab ke field yang SUDAH
- * ditandai error oleh server tidak mendengar apa pun. Dipakai lewat
- * `<?= field_aria($errors, $fn) ?>` di dalam tag input/select/textarea,
- * bergantung pada KONVENSI id error = "{field}-error" yang sudah konsisten di
- * semua form proyek ini.
- */
+// Fragmen atribut aria-invalid + aria-describedby untuk satu field; bergantung pada konvensi id error = "{field}-error" di semua form.
 function field_aria(array $errors, string $field): string
 {
     if (!isset($errors[$field]) || $errors[$field] === []) {
@@ -237,14 +191,7 @@ function field_aria(array $errors, string $field): string
     return ' aria-invalid="true" aria-describedby="' . e($field) . '-error"';
 }
 
-/**
- * Nilai input SEBELUMNYA (dari $_POST request yang gagal validasi dan
- * langsung di-render ulang PADA REQUEST YANG SAMA -- lihat login.php, pola
- * yang sudah dipakai proyek ini sejak T-06) untuk mengisi ulang form, atau
- * $default bila belum ada submit / field tidak ada di POST. TIDAK memakai
- * session: form yang gagal validasi di proyek ini selalu dirender ulang
- * langsung, tidak lewat redirect, jadi $_POST request saat ini sudah cukup.
- */
+// Tidak memakai session: form yang gagal validasi selalu dirender ulang langsung pada request yang sama, bukan lewat redirect.
 function old(string $field, string $default = ''): string
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !array_key_exists($field, $_POST)) {
@@ -253,20 +200,12 @@ function old(string $field, string $default = ''): string
 
     $value = $_POST[$field];
 
-    // Edge case T-07: field[]=... tak terduga -- jangan loloskan array ke
-    // atribut value="" (akan memicu error e() mengharap string).
+    // field[]=... tak terduga -- jangan loloskan array ke atribut value="" (e() mengharap string).
     return is_array($value) ? $default : (string) $value;
 }
 
-/**
- * Validator koordinat (PRD bagian 7 & 11). Rentang WGS84 (-90..90/-180..180)
- * adalah ERROR keras (konsisten dengan CHECK constraint database/schema.sql).
- * Di luar bounding box Kota Sorong (config/config.php, SORONG_LAT/LNG_*) HANYA
- * peringatan (warning) -- TIDAK memblokir simpan, sesuai spesifikasi T-07
- * (titik tepi batas kota atau galat GPS kecil tetap harus bisa disimpan).
- *
- * @return array{errors: array<string, string[]>, warnings: array<string, string[]>, latitude: ?float, longitude: ?float}
- */
+// Rentang WGS84 di luar -90..90/-180..180 adalah error keras; di luar bounding box Kota Sorong hanya warning, tidak memblokir simpan.
+// @return array{errors: array<string, string[]>, warnings: array<string, string[]>, latitude: ?float, longitude: ?float}
 function validate_koordinat($lat_raw, $lng_raw): array
 {
     $errors = [];
@@ -307,16 +246,13 @@ function validate_koordinat($lat_raw, $lng_raw): array
     ];
 }
 
-/** Produk silang 2D (A->B) x (A->C); tanda menentukan arah belok, dipakai uji potong segmen. */
+// Produk silang 2D (A->B) x (A->C); tanda menentukan arah belok.
 function cross_sign(array $a, array $b, array $c): float
 {
     return ($b[0] - $a[0]) * ($c[1] - $a[1]) - ($b[1] - $a[1]) * ($c[0] - $a[0]);
 }
 
-/**
- * True bila segmen p1-p2 BENAR-BENAR memotong p3-p4 (persilangan tegas, bukan
- * cuma bersentuhan di satu titik ujung/kolinear) -- uji orientasi standar.
- */
+// True bila segmen p1-p2 benar-benar memotong p3-p4 (bukan cuma bersentuhan di titik ujung/kolinear).
 function segments_intersect(array $p1, array $p2, array $p3, array $p4): bool
 {
     $d1 = cross_sign($p3, $p4, $p1);
@@ -328,14 +264,10 @@ function segments_intersect(array $p1, array $p2, array $p3, array $p4): bool
         && (($d3 > 0 && $d4 < 0) || ($d3 < 0 && $d4 > 0));
 }
 
-/**
- * Deteksi DASAR self-intersection pada satu cincin tertutup (edge case T-07) --
- * cek semua pasangan sisi yang TIDAK bertetangga. Cukup untuk kasus umum sisi
- * saling bersilangan; bukan pustaka geometri lengkap (lihat Risiko tersisa).
- */
+// Deteksi dasar self-intersection: cek semua pasangan sisi yang tidak bertetangga. Bukan pustaka geometri lengkap.
 function ring_has_self_intersection(array $ring): bool
 {
-    $n = count($ring) - 1; // titik terakhir == titik pertama (cincin tertutup) -> n = jumlah sisi
+    $n = count($ring) - 1; // titik terakhir == titik pertama (cincin tertutup)
 
     for ($i = 0; $i < $n; $i++) {
         for ($j = $i + 1; $j < $n; $j++) {
@@ -352,16 +284,8 @@ function ring_has_self_intersection(array $ring): bool
     return false;
 }
 
-/**
- * Validator poligon area tambang (FR-09, PRD bagian 7 & 11). Menerima baik
- * {"type":"Feature","geometry":{"type":"Polygon",...}} MAUPUN geometry
- * Polygon telanjang {"type":"Polygon","coordinates":[...]} -- keduanya
- * "struktur Feature/Polygon" yang valid menurut spesifikasi GeoJSON, dan
- * Leaflet.draw (T-10) bisa menghasilkan salah satunya tergantung konfigurasi.
- * Kosong (poligon opsional, FR-09) BUKAN error.
- *
- * @return array{errors: array<string, string[]>, warnings: array<string, string[]>, geojson: ?array}
- */
+// Menerima baik GeoJSON Feature maupun geometry Polygon telanjang, karena Leaflet.draw bisa menghasilkan salah satunya. Kosong bukan error.
+// @return array{errors: array<string, string[]>, warnings: array<string, string[]>, geojson: ?array}
 function validate_geojson_polygon(?string $raw): array
 {
     $kosong = ['errors' => [], 'warnings' => [], 'geojson' => null];
@@ -408,7 +332,7 @@ function validate_geojson_polygon(?string $raw): array
             return ['errors' => $errors, 'warnings' => [], 'geojson' => null];
         }
 
-        // Urutan GeoJSON WAJIB [lng, lat] (kebalikan konvensi umum "lat, lng").
+        // Urutan GeoJSON wajib [lng, lat], kebalikan konvensi umum "lat, lng".
         $lng = (float) $posisi[0];
         $lat = (float) $posisi[1];
         if ($lng < -180 || $lng > 180 || $lat < -90 || $lat > 90) {

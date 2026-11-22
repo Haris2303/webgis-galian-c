@@ -7,19 +7,14 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/repo/aktivitas.php — akses data tabel aktivitas_tambang.
- */
+// includes/repo/aktivitas.php — akses data tabel aktivitas_tambang.
 
 function repo_aktivitas_find(int $id): ?array
 {
     return db_one('SELECT * FROM aktivitas_tambang WHERE id = :id', ['id' => $id]);
 }
 
-/**
- * "N aktivitas terakhir per lokasi" (popup peta, api/lokasi_detail.php). Memakai
- * idx_lokasi_tanggal (lokasi_id, tanggal_aktivitas) — lihat database/schema.sql.
- */
+// Pakai idx_lokasi_tanggal (lokasi_id, tanggal_aktivitas).
 function repo_aktivitas_latest_by_lokasi(int $lokasi_id, int $limit = 5): array
 {
     $limit = max(1, min(50, $limit));
@@ -31,13 +26,7 @@ function repo_aktivitas_latest_by_lokasi(int $lokasi_id, int $limit = 5): array
 }
 
 /**
- * Filter yang dikenali: lokasi_id, user_id, status_aktivitas, tanggal_mulai,
- * tanggal_akhir, kontraktor_id (T-17 -- scope "milik sendiri" kontraktor
- * ditentukan lewat PERUSAHAAN/lokasi, bukan user_id individu, konsisten
- * dengan can_access_aktivitas() di includes/auth.php). JOIN lokasi_tambang,
- * jenis_material & users SELALU dilakukan (bukan hanya saat kontraktor_id
- * diisi) supaya daftar bisa menampilkan nama lokasi/material/pencatat, bukan
- * ID mentah -- aman karena FK ketiganya NOT NULL (tidak ada baris anak yatim).
+ * kontraktor_id scope ditentukan lewat lokasi, bukan user_id individu.
  * @return array{0: array<int, array<string, mixed>>, 1: int} [rows, total]
  */
 function repo_aktivitas_list(array $filters, int $page, int $per_page, string $sort_column = 'tanggal_aktivitas', string $sort_direction = 'desc'): array
@@ -73,13 +62,7 @@ function repo_aktivitas_list(array $filters, int $page, int $per_page, string $s
         $params['tanggal_akhir'] = $filters['tanggal_akhir'];
     }
 
-    // Kolom eksplisit (T-24, docs/query-audit.md Q8), BUKAN "SELECT a.*" --
-    // satu-satunya pemanggil (aktivitas/index.php) hanya membaca id,
-    // tanggal_aktivitas, status_aktivitas, nama_lokasi, jenis_kegiatan,
-    // material_nama, user_nama. kontraktor_id TETAP di JOIN (lt.kontraktor_id
-    // di WHERE, T-17) tapi tidak perlu ikut ke SELECT -- dan deskripsi (TEXT,
-    // hingga 2000 karakter) tidak pernah dibaca dari hasil LIST ini (hanya
-    // lewat repo_aktivitas_find() untuk form ubah satu baris).
+    // Kolom eksplisit, bukan "SELECT a.*" -- hanya kolom yang dipakai aktivitas/index.php.
     $sql = 'SELECT a.id, a.tanggal_aktivitas, a.jenis_kegiatan, a.status_aktivitas,
                    lt.nama_lokasi, m.nama AS material_nama, u.nama_lengkap AS user_nama
             FROM aktivitas_tambang a
@@ -95,19 +78,7 @@ function repo_aktivitas_list(array $filters, int $page, int $per_page, string $s
 }
 
 /**
- * Daftar aktivitas untuk monitoring.php (FR-21, T-21, khusus Admin). SATU
- * query dengan JOIN lokasi_tambang + kontraktor + jenis_material, PLUS dua
- * scalar subquery agregat per baris (jumlah foto & tanggal aktivitas terakhir
- * lokasi itu) -- keduanya bagian dari SATU statement SQL yang sama (pola yang
- * sama dengan repo_lokasi_list_for_map(), T-12), BUKAN query terpisah per
- * baris dari PHP (N+1). paginate() di bawah selalu menjalankan tepat 2 query
- * (COUNT + SELECT) apa pun jumlah total barisnya -- lihat db_query_count().
- *
- * Filter yang dikenali: lokasi_id, kontraktor_id, status_aktivitas,
- * tanggal_mulai, tanggal_akhir (inklusif, >=/<=). TIDAK ada parameter scope
- * kontraktor wajib di sini (beda dari repo_aktivitas_list()) karena
- * monitoring.php khusus Admin (require_role('admin')) -- kontraktor_id di
- * sini murni salah satu FILTER dropdown, bukan guard kepemilikan data.
+ * kontraktor_id di sini hanya filter dropdown, bukan scope keamanan (beda dari repo_aktivitas_list()).
  * @return array{0: array<int, array<string, mixed>>, 1: int} [rows, total]
  */
 function repo_aktivitas_list_for_monitoring(array $filters, int $page, int $per_page, string $sort_column = 'tanggal_aktivitas', string $sort_direction = 'desc'): array
@@ -155,20 +126,7 @@ function repo_aktivitas_list_for_monitoring(array $filters, int $page, int $per_
     return paginate($sql, $params, $page, $per_page);
 }
 
-/**
- * Statement MENTAH (bukan array) daftar aktivitas dalam periode untuk ekspor
- * CSV (T-23, laporan/unduh.php) -- dipakai dengan db_cursor() +
- * `while (($row = $stmt->fetch()) !== false)` supaya memori tetap konstan
- * untuk ribuan baris (SATU baris di memori pada satu waktu, bukan seluruh
- * resultset lewat fetchAll()/db_all()). JOIN lokasi_tambang (+ koordinat),
- * kontraktor, jenis_material -- SEMUA lokasi tanpa scope kontraktor (laporan
- * Dinas selalu lintas-kontraktor, sama seperti repo_lokasi_list_for_laporan(),
- * T-22). Pemanggil WAJIB ->closeCursor() setelah selesai.
- *
- * $tanggal_mulai/$tanggal_akhir null berarti sisi itu TERBUKA (tidak dibatasi)
- * -- sama seperti repo_lokasi_list_for_laporan(), diganti sentinel tanggal
- * MIN/MAX MySQL supaya BETWEEN tetap berfungsi.
- */
+// Pemanggil wajib ->closeCursor() setelah selesai; null tanggal berarti sisi itu terbuka (pakai sentinel MIN/MAX).
 function repo_aktivitas_cursor_for_csv(?string $tanggal_mulai, ?string $tanggal_akhir): PDOStatement
 {
     $tanggal_mulai ??= '1000-01-01';
@@ -190,12 +148,7 @@ function repo_aktivitas_cursor_for_csv(?string $tanggal_mulai, ?string $tanggal_
     );
 }
 
-/**
- * Edge case wajib T-17: aktivitas ganda untuk lokasi & tanggal yang sama --
- * BUKAN diblokir, hanya dicek di sini supaya form.php bisa menampilkan
- * PERINGATAN sebelum/setelah simpan. $exclude_id dipakai saat mode ubah
- * supaya baris yang sedang diedit tidak menghitung dirinya sendiri.
- */
+// Dipakai form.php untuk peringatan (bukan blokir) aktivitas ganda per lokasi+tanggal.
 function repo_aktivitas_exists_same_date(int $lokasi_id, string $tanggal, ?int $exclude_id = null): bool
 {
     $sql = 'SELECT COUNT(*) AS jumlah FROM aktivitas_tambang WHERE lokasi_id = :lokasi_id AND tanggal_aktivitas = :tanggal';
@@ -261,13 +214,13 @@ function repo_aktivitas_update(int $id, array $data): bool
     return $affected > 0;
 }
 
-/** ON DELETE CASCADE ke foto_aktivitas (lihat database/schema.sql). */
+// ON DELETE CASCADE ke foto_aktivitas.
 function repo_aktivitas_delete(int $id): bool
 {
     return db_exec('DELETE FROM aktivitas_tambang WHERE id = :id', ['id' => $id]) > 0;
 }
 
-/** Dipakai lokasi/form.php (T-09): deteksi lokasi berizin->tidak_berizin yang sudah punya riwayat aktivitas. */
+// Dipakai lokasi/form.php untuk deteksi lokasi berizin->tidak_berizin yang sudah punya riwayat aktivitas.
 function repo_aktivitas_count_by_lokasi(int $lokasi_id): int
 {
     $row = db_one('SELECT COUNT(*) AS jumlah FROM aktivitas_tambang WHERE lokasi_id = :lokasi_id', ['lokasi_id' => $lokasi_id]);

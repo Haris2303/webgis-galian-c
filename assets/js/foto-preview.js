@@ -1,15 +1,4 @@
-/**
- * assets/js/foto-preview.js — pratinjau multi-file SEBELUM unggah (T-18,
- * FR-14). Murni kenyamanan klien -- validasi SUNGGUHAN (kode error $_FILES,
- * ukuran, jumlah, finfo MIME, getimagesize, dimensi) tetap 100% di server
- * (includes/upload_foto.php). Pratinjau ini hanya mengurangi kejutan sebelum
- * submit (lihat foto mana yang terpilih, batalkan satu tanpa mengulang semua),
- * BUKAN lapis otorisasi/keamanan apa pun.
- *
- * Berfungsi sebagai <input type="file" multiple> biasa bila JS gagal/nonaktif
- * -- form tetap terkirim dan tervalidasi penuh di server (PRD bagian 3:
- * "tampilan dinamis tanpa reload" adalah peningkatan, bukan prasyarat fungsi).
- */
+// assets/js/foto-preview.js — hanya pratinjau di klien; validasi sungguhan tetap di server (includes/upload_foto.php).
 (function () {
   'use strict';
 
@@ -23,7 +12,7 @@
       return;
     }
 
-    var selected = []; // State kita sendiri -- input.files bawaan readonly.
+    var selected = []; // input.files bersifat read-only, jadi seleksi dilacak terpisah di sini
 
     function render() {
       preview.textContent = '';
@@ -65,12 +54,9 @@
     }
 
     function syncInput() {
-      // input.files bersifat read-only -- satu-satunya cara "membatalkan"
-      // satu berkas dari pilihan adalah membangun ulang lewat DataTransfer
-      // lalu menimpa input.files dengan hasilnya, supaya submit form
-      // sungguhan hanya mengirim berkas yang masih ada di `selected`.
+      // input.files read-only; dibangun ulang lewat DataTransfer untuk menerapkan penghapusan
       if (typeof DataTransfer === 'undefined') {
-        return; // browser sangat lama -- batalkan satu per satu tidak tersedia, submit tetap aman (server tetap validasi semua)
+        return;
       }
       var dt = new DataTransfer();
       selected.forEach(function (file) {
@@ -85,11 +71,7 @@
     });
   }
 
-  /**
-   * Seret & lepas berkas ke .ds-dropzone yang membungkus <input type="file">
-   * -- hanya jalan TAMBAHAN ke klik biasa, input tetap terlihat & bisa
-   * dioperasikan lewat keyboard bila drag-and-drop tidak dipakai/didukung.
-   */
+  // Drag-and-drop bersifat tambahan; input tetap terlihat dan bisa dioperasikan lewat keyboard
   function initDropzone(input) {
     var zone = input.closest('.ds-dropzone');
     if (!zone) {

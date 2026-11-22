@@ -2,14 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * monitoring.php — daftar aktivitas terbaru semua lokasi, khusus Admin
- * (FR-21; PRD bagian 5, 9; T-21). Filter lokasi/kontraktor/status/rentang
- * tanggal (default 30 hari), SATU query dengan JOIN + subquery agregat
- * (repo_aktivitas_list_for_monitoring(), includes/repo/aktivitas.php) supaya
- * tidak ada pola N+1 -- lihat debug jumlah query di bagian bawah halaman
- * (APP_ENV=dev saja).
- */
+// Daftar aktivitas terbaru semua lokasi, khusus Admin; filter lokasi/kontraktor/status/rentang tanggal (default 30 hari).
 
 require_once __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/repo/aktivitas.php';
@@ -18,7 +11,7 @@ require_once __DIR__ . '/includes/repo/kontraktor.php';
 
 require_role('admin');
 
-/** "Y-m-d" valid (format DAN tanggal kalender nyata), atau null bila kosong/tidak valid -- input tidak valid diperlakukan SAMA dengan kosong (edge case wajib T-21), bukan error keras. */
+// Tanggal tidak valid diperlakukan sama dengan kosong, bukan error keras.
 function monitoring_valid_date(string $value): ?string
 {
     $value = trim($value);
@@ -31,7 +24,7 @@ function monitoring_valid_date(string $value): ?string
     return ($parsed !== false && $parsed->format('Y-m-d') === $value) ? $value : null;
 }
 
-/** Querystring filter saat ini (TANPA page/sort/dir), dipakai membangun link paginasi & sort konsisten -- menyimpan tanggal EFEKTIF (bukan input mentah), supaya rentang yang sedang berlaku tetap jelas saat pindah halaman/urutan. */
+// Menyimpan tanggal efektif (bukan input mentah) agar rentang tetap jelas saat pindah halaman/urutan.
 function monitoring_filter_query(int $lokasi_id, int $kontraktor_id, string $status, ?string $tanggal_mulai, ?string $tanggal_akhir): array
 {
     return array_filter([
@@ -58,9 +51,6 @@ $dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $per_page = 20;
 
-// Edge case wajib T-21: rentang kosong ATAU terbalik. Input tidak valid (format
-// salah, 31 Februari, dst.) diperlakukan sama dengan kosong -- tidak pernah
-// melempar error ke pengguna.
 $tanggal_mulai = monitoring_valid_date((string) ($_GET['tanggal_mulai'] ?? ''));
 $tanggal_akhir = monitoring_valid_date((string) ($_GET['tanggal_akhir'] ?? ''));
 
@@ -72,9 +62,7 @@ if ($tanggal_mulai !== null && $tanggal_akhir !== null && $tanggal_mulai > $tang
 
 $hari_ini = date('Y-m-d');
 if ($tanggal_mulai === null && $tanggal_akhir === null) {
-    // Spesifikasi T-21: default 30 hari -- HANYA saat KEDUA batas kosong.
-    // Satu batas diisi (mis. hanya "Dari Tanggal") tetap dihormati sebagai
-    // rentang terbuka sebelah, bukan dipaksa jadi 30 hari (Keputusan T-21).
+    // Default 30 hari hanya saat kedua batas kosong; satu batas diisi tetap dihormati sebagai rentang terbuka sebelah.
     $tanggal_akhir = $hari_ini;
     $tanggal_mulai = date('Y-m-d', strtotime($hari_ini . ' -30 days'));
 }
@@ -100,9 +88,6 @@ $filter_query = monitoring_filter_query($lokasi_id, $kontraktor_id, $status_akti
 );
 $total_halaman = max(1, (int) ceil($total / $per_page));
 
-// Dropdown filter: semua lokasi/kontraktor (Admin, tanpa scope) -- paginate()
-// di sini TETAP 2 query (COUNT+SELECT) terlepas dari jumlah lokasi/kontraktor,
-// tidak terkait jumlah BARIS AKTIVITAS yang jadi fokus verifikasi T-21.
 [$daftar_lokasi] = repo_lokasi_list([], 1, 500, 'nama_lokasi', 'asc');
 [$daftar_kontraktor] = repo_kontraktor_list(1, 200, null);
 
@@ -111,9 +96,7 @@ $ambang_tanpa_aktivitas = date('Y-m-d', strtotime($hari_ini . ' -30 days'));
 $page_title = 'Monitoring Aktivitas';
 $layout = 'app';
 $active_menu = 'monitoring';
-// Leaflet dimuat di sini (bukan hanya peta.php/dashboard.php) karena panel
-// detail aktivitas (lihat assets/js/monitoring-detail.js) menampilkan peta
-// kecil lokasi aktivitas yang sedang dilihat.
+// Leaflet dimuat di sini karena panel detail aktivitas menampilkan peta kecil lokasinya.
 $extra_head = [
     '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">',
 ];

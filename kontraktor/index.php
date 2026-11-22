@@ -2,12 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * kontraktor/index.php — daftar kontraktor + aksi baris (FR-11, FR-12, T-08).
- * Khusus Admin. Menangani juga dua aksi POST ringan di halaman yang sama
- * (reset_password, toggle_active) -- "Tambah"/"Ubah" tetap di form.php,
- * "Hapus" tetap di hapus.php, sesuai daftar artefak T-08.
- */
+// Daftar kontraktor + aksi baris, khusus Admin. Menangani juga aksi reset_password & toggle_active; "Tambah"/"Ubah" tetap di form.php, "Hapus" di hapus.php.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/kontraktor.php';
@@ -20,7 +15,7 @@ $search = trim((string) ($_GET['q'] ?? ''));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $per_page = 10;
 
-/** Bangun querystring halaman daftar ini (dipakai redirect balik & link paginasi), SELALU path relatif aman untuk url(). */
+// Bangun querystring halaman daftar ini (dipakai redirect balik & link paginasi), selalu path relatif aman untuk url().
 function kontraktor_list_url(string $search, int $page): string
 {
     $query = array_filter(['q' => $search, 'page' => $page > 1 ? $page : null], static fn ($v) => $v !== null && $v !== '');
@@ -47,9 +42,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if ($akun === null) {
             flash('error', 'Kontraktor ini tidak memiliki akun login untuk di-reset.');
         } else {
-            // Password BARU selalu dibangkitkan sistem (tidak pernah diketik admin)
-            // dan HANYA hash-nya disimpan -- lihat generate_strong_password() di
-            // includes/auth.php (Keputusan T-08: cegah "password awal lemah").
+            // Password baru selalu dibangkitkan sistem (tidak pernah diketik admin), hanya hash-nya disimpan.
             $password_baru = generate_strong_password();
             repo_user_update_password((int) $akun['id'], password_hash($password_baru, PASSWORD_BCRYPT));
 
@@ -75,10 +68,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $aktifkan = !((int) $akun['is_active'] === 1);
             repo_user_set_active((int) $akun['id'], $aktifkan);
 
-            // Tidak perlu memutus session kontraktor yang sedang login secara manual
-            // di sini -- require_login() (T-06) sudah mengecek ulang is_active dari
-            // DB di SETIAP request, jadi request berikutnya dari akun itu otomatis
-            // ter-logout sendiri (edge case T-08, memakai mekanisme T-06 yang sudah ada).
+            // Tidak perlu memutus session manual -- require_login() sudah mengecek ulang is_active dari DB di setiap request.
             flash('success', $aktifkan
                 ? "Akun \"{$akun['username']}\" diaktifkan kembali."
                 : "Akun \"{$akun['username']}\" dinonaktifkan. Sesi yang sedang berjalan akan otomatis ter-logout.");

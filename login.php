@@ -2,10 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * login.php — FR-01 (PRD bagian 5). Satu-satunya pintu masuk aplikasi; tidak
- * ada halaman publik lain (PRD bagian 2).
- */
+// Satu-satunya pintu masuk aplikasi; tidak ada halaman publik lain.
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
@@ -32,18 +29,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     } else {
         $user = repo_user_find_by_username($username);
 
-        // password_verify() SELALU dipanggil, bahkan saat $user null, lewat
-        // DUMMY_PASSWORD_HASH -- supaya waktu respons untuk "username tidak
-        // ada" dan "password salah" setara (cegah timing attack, PRD bagian 11).
+        // password_verify() selalu dipanggil, bahkan saat $user null, lewat DUMMY_PASSWORD_HASH, agar waktu respons tidak membedakan sebabnya (timing attack).
         $password_ok = password_verify($password, $user['password_hash'] ?? DUMMY_PASSWORD_HASH);
 
         if ($user === null || !$password_ok || (int) $user['is_active'] !== 1) {
             login_throttle_record_failure($username, $ip);
             $error_message = $generic_error;
         } elseif ($user['role'] === 'kontraktor' && empty($user['kontraktor_id'])) {
-            // Data rusak: akun kontraktor tanpa kontraktor_id. Pesan ke pengguna
-            // tetap netral (tidak membocorkan detail struktur data); detail
-            // sesungguhnya hanya masuk log untuk admin menindaklanjuti.
+            // Data rusak: akun kontraktor tanpa kontraktor_id. Pesan ke pengguna tetap netral; detail hanya masuk log.
             app_log('error', sprintf(
                 'Login ditolak: user id=%d username="%s" role=kontraktor tapi kontraktor_id kosong (data rusak)',
                 $user['id'],
@@ -67,9 +60,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 $page_title = 'Masuk ke Sistem';
 $layout = 'auth';
-// Migrasi UI DESIGN.md -- Roboto & design-system.css sekarang dimuat GLOBAL
-// lewat includes/header.php (dipakai topbar/sidebar di semua halaman app),
-// jadi tidak perlu diulang di $extra_head lagi di sini.
 $auth_shell_class = 'ds-auth-shell';
 require __DIR__ . '/includes/header.php';
 ?>

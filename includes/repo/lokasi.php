@@ -17,10 +17,7 @@ function repo_lokasi_find(int $id): ?array
 }
 
 /**
- * Filter yang dikenali: status_izin, kontraktor_id, material_id, search
- * (cocok di nama_lokasi ATAU kelurahan, T-09). $sort_column divalidasi lewat
- * whitelist di db_order_by() — tidak pernah dari input mentah. JOIN kontraktor
- * & jenis_material supaya daftar admin menampilkan nama, bukan ID mentah.
+ * $sort_column divalidasi lewat whitelist di db_order_by(), tidak pernah dari input mentah.
  * @return array{0: array<int, array<string, mixed>>, 1: int} [rows, total]
  */
 function repo_lokasi_list(array $filters, int $page, int $per_page, string $sort_column = 'nama_lokasi', string $sort_direction = 'asc'): array
@@ -50,14 +47,7 @@ function repo_lokasi_list(array $filters, int $page, int $per_page, string $sort
         $params['search_kel'] = $kata;
     }
 
-    // Kolom eksplisit (T-24, docs/query-audit.md Q1), BUKAN "SELECT l.*" --
-    // daftar ini adalah UNION kolom yang benar-benar dipakai keempat
-    // pemanggil (lokasi/index.php, dashboard.php, aktivitas/index.php &
-    // monitoring.php untuk dropdown, api/cari.php). Sengaja TIDAK termasuk
-    // area_geojson (LONGTEXT, bisa besar per poligon), alamat/keterangan
-    // (TEXT), nomor_izin/tanggal_berlaku_izin -- tidak ada satu pun pemanggil
-    // yang membacanya dari hasil fungsi ini (repo_lokasi_find() dipakai
-    // terpisah untuk form ubah yang BUTUH semua kolom itu).
+    // Kolom eksplisit, bukan "SELECT l.*" -- tidak termasuk area_geojson/alamat/keterangan yang besar dan tak terpakai di sini.
     $sql = 'SELECT l.id, l.nama_lokasi, l.kelurahan, l.latitude, l.longitude,
                    l.status_izin, l.tanggal_berakhir_izin,
                    k.nama_perusahaan AS kontraktor_nama, m.nama AS material_nama
@@ -72,12 +62,7 @@ function repo_lokasi_list(array $filters, int $page, int $per_page, string $sort
     return paginate($sql, $params, $page, $per_page);
 }
 
-/**
- * Kartu dashboard (PRD bagian 9 #2) & api/statistik.php (T-12). $kontraktor_id
- * null = semua lokasi (Admin); diisi = ter-scope ke satu kontraktor (FR-04:
- * "Kontraktor hanya lokasinya"). Tetap satu query GROUP BY, memakai idx_status
- * (atau idx_status+idx_kontraktor sekaligus saat ter-scope).
- */
+// $kontraktor_id null = semua lokasi (admin); diisi = ter-scope satu kontraktor.
 function repo_lokasi_count_by_status(?int $kontraktor_id = null): array
 {
     $sql = 'SELECT status_izin, COUNT(*) AS jumlah FROM lokasi_tambang';
@@ -98,15 +83,7 @@ function repo_lokasi_count_by_status(?int $kontraktor_id = null): array
     return $hasil;
 }
 
-/**
- * Titik + properti ringan untuk api/lokasi.php (T-12), termasuk tanggal
- * aktivitas terakhir lewat subquery (bukan JOIN langsung ke aktivitas_tambang,
- * supaya tetap SATU baris per lokasi walau aktivitasnya banyak).
- *
- * $kontraktor_id null = semua lokasi (Admin); diisi = ter-scope ke satu
- * kontraktor (peran kontraktor: peta hanya menampilkan lokasi miliknya
- * sendiri, konsisten dengan dashboard.php/repo_lokasi_count_by_status()).
- */
+// Subquery (bukan JOIN langsung) untuk aktivitas terakhir, supaya tetap satu baris per lokasi.
 function repo_lokasi_list_for_map(?string $status_izin, ?int $kontraktor_id = null): array
 {
     $where = [];
@@ -134,7 +111,7 @@ function repo_lokasi_list_for_map(?string $status_izin, ?int $kontraktor_id = nu
     );
 }
 
-/** MAX(updated_at) + COUNT(*) untuk ETag api/lokasi.php (T-12) -- ter-scope ke filter DAN kontraktor yang sama dengan query utamanya. */
+// MAX(updated_at) + COUNT(*) untuk ETag; ter-scope sama dengan query utamanya.
 function repo_lokasi_etag_meta(?string $status_izin, ?int $kontraktor_id = null): array
 {
     $where = [];
@@ -157,11 +134,7 @@ function repo_lokasi_etag_meta(?string $status_izin, ?int $kontraktor_id = null)
     return ['jumlah' => (int) ($row['jumlah'] ?? 0), 'terakhir' => $row['terakhir'] ?? null];
 }
 
-/**
- * Lokasi yang punya area_geojson (poligon), untuk api/area.php (T-12).
- * $kontraktor_id null = semua lokasi (Admin); diisi = ter-scope ke satu
- * kontraktor (peran kontraktor: peta hanya menampilkan area miliknya sendiri).
- */
+// $kontraktor_id null = semua lokasi (admin); diisi = ter-scope satu kontraktor.
 function repo_lokasi_list_with_area(?int $kontraktor_id = null): array
 {
     $where = 'WHERE area_geojson IS NOT NULL';
@@ -181,21 +154,7 @@ function repo_lokasi_list_with_area(?int $kontraktor_id = null): array
 }
 
 /**
- * Rekap laporan monitoring per periode (FR-22, T-22, Admin saja -- selalu
- * SEMUA lokasi lintas kontraktor, tidak ada scope). SATU statement SQL dengan
- * JOIN kontraktor + TIGA scalar subquery agregat per baris (pola yang sama
- * dengan T-12/T-20/T-21): jumlah aktivitas DALAM periode, tanggal aktivitas
- * TERAKHIR dalam periode, dan status aktivitas pada tanggal itu. Lokasi tanpa
- * aktivitas pada periode ini TETAP tampil dengan jumlah=0 dan tanggal/status
- * NULL (edge case wajib T-22 "periode tanpa data"), bukan hilang dari laporan.
- *
- * Nama parameter diberi akhiran 1/2/3 (bukan dipakai ulang) karena MySQL
- * native prepared statement (EMULATE_PREPARES=false, config/database.php)
- * tidak mengizinkan satu placeholder bernama dipakai lebih dari sekali dalam
- * satu statement.
- * $tanggal_mulai/$tanggal_akhir null berarti sisi itu TERBUKA (tidak dibatasi)
- * -- diganti sentinel tanggal MIN/MAX MySQL (bukan dibiarkan null) karena
- * `BETWEEN x AND NULL` selalu bernilai NULL/false, bukan "tanpa batas".
+ * Akhiran 1/2/3 pada parameter wajib -- native prepared statement tidak mengizinkan placeholder bernama dipakai ulang dalam satu statement.
  * @return array<int, array<string, mixed>>
  */
 function repo_lokasi_list_for_laporan(?string $tanggal_mulai, ?string $tanggal_akhir): array
@@ -237,10 +196,7 @@ function repo_lokasi_create(array $data): int
             'distrik' => $data['distrik'] ?? null,
             'kelurahan' => $data['kelurahan'] ?? null,
             'alamat' => $data['alamat'] ?? null,
-            // latitude/longitude dibind sebagai string (PARAM_STR), bukan float,
-            // supaya presisi DECIMAL(10,7) di schema.sql tidak digeser rounding
-            // float PHP — konsisten dengan catatan "DECIMAL dikembalikan sebagai
-            // string" di database/README.md.
+            // Dibind sebagai string, bukan float, supaya presisi DECIMAL(10,7) tidak digeser rounding PHP.
             'latitude' => (string) $data['latitude'],
             'longitude' => (string) $data['longitude'],
             'area_geojson' => $data['area_geojson'] ?? null,
@@ -300,13 +256,13 @@ function repo_lokasi_update(int $id, array $data): bool
     return $affected > 0;
 }
 
-/** ON DELETE CASCADE ke aktivitas_tambang & foto_aktivitas (lihat database/schema.sql). */
+// ON DELETE CASCADE ke aktivitas_tambang & foto_aktivitas.
 function repo_lokasi_delete(int $id): bool
 {
     return db_exec('DELETE FROM lokasi_tambang WHERE id = :id', ['id' => $id]) > 0;
 }
 
-/** Dipakai kontraktor/hapus.php (T-08): kontraktor hanya boleh dihapus bila ini 0 (FK RESTRICT). */
+// Kontraktor hanya boleh dihapus bila ini 0 (FK RESTRICT).
 function repo_lokasi_count_by_kontraktor(int $kontraktor_id): int
 {
     $row = db_one('SELECT COUNT(*) AS jumlah FROM lokasi_tambang WHERE kontraktor_id = :kontraktor_id', ['kontraktor_id' => $kontraktor_id]);

@@ -2,14 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * api/lokasi.php — FeatureCollection titik lokasi tambang (FR-17/18/20; PRD
- * bagian 10, T-12). Keputusan produk (menggantikan catatan T-12 sebelumnya):
- * peran kontraktor di peta HANYA melihat marker lokasi miliknya sendiri --
- * ter-scope lewat kontraktor_id, konsisten dengan dashboard.php
- * ($kontraktor_id_scope) & api/lokasi_detail.php (DETAIL aktivitas, yang
- * tetap dibatasi kepemilikan). Admin tetap melihat semua marker.
- */
+// api/lokasi.php — FeatureCollection titik lokasi tambang; kontraktor hanya melihat marker miliknya sendiri.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/api.php';
@@ -29,9 +22,7 @@ if (isset($_GET['status']) && $_GET['status'] !== '') {
     }
 }
 
-// ETag dari COUNT(*) + MAX(updated_at) PADA FILTER YANG SAMA (spesifikasi
-// T-12) -- supaya peta tidak mengunduh ulang FeatureCollection yang isinya
-// belum berubah sejak permintaan sebelumnya (304 Not Modified).
+// ETag dari COUNT(*) + MAX(updated_at) supaya peta tidak unduh ulang data yang belum berubah.
 $meta = repo_lokasi_etag_meta($status, $kontraktor_id_scope);
 $etag = '"' . $meta['jumlah'] . '-' . ($meta['terakhir'] !== null ? strtotime((string) $meta['terakhir']) : 0) . '"';
 header('ETag: ' . $etag);
@@ -48,15 +39,13 @@ $features = [];
 foreach ($rows as $row) {
     $features[] = [
         'type' => 'Feature',
-        // GeoJSON WAJIB [lng, lat] (RFC 7946) -- lihat juga catatan serupa di
-        // includes/validator.php & assets/js/map-picker.js (T-07/T-10).
+        // GeoJSON pakai urutan [lng, lat], bukan [lat, lng].
         'geometry' => [
             'type' => 'Point',
             'coordinates' => [(float) $row['longitude'], (float) $row['latitude']],
         ],
         'properties' => [
-            // Properti RINGAN saja (spesifikasi T-12) -- detail lengkap +
-            // aktivitas/foto ada di api/lokasi_detail.php, bukan di sini.
+            // Properti ringan saja; detail lengkap ada di api/lokasi_detail.php.
             'id' => (int) $row['id'],
             'nama_lokasi' => $row['nama_lokasi'],
             'kontraktor' => $row['kontraktor_nama'],

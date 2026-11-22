@@ -2,15 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * lokasi/hapus.php — hapus lokasi tambang (FR-10, T-09). POST+CSRF saja.
- * Urutan WAJIB (spesifikasi T-09): kumpulkan path foto SEMUA aktivitas
- * terkait DI DALAM transaksi -> DELETE lokasi (CASCADE menghapus
- * aktivitas_tambang + foto_aktivitas otomatis) -> COMMIT -> baru hapus file
- * fisik SETELAH commit berhasil. Kalau file dihapus duluan lalu transaksi
- * rollback, baris DB tetap ada tapi file sudah hilang (lebih buruk daripada
- * sebaliknya) -- urutan ini sengaja meminimalkan kerusakan pada kegagalan.
- */
+// Urutan wajib: kumpulkan path foto + DELETE lokasi (CASCADE) di dalam transaksi -> commit -> baru hapus file fisik. Menghapus file sebelum commit berisiko baris DB rollback tapi file sudah hilang.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/lokasi.php';
@@ -45,10 +37,7 @@ foreach ($foto_paths as $path) {
     $path = str_replace('\\', '/', (string) $path);
     $full_path = rtrim(PROJECT_ROOT, '/\\') . '/' . ltrim($path, '/');
 
-    // Edge case T-09: file fisik sudah hilang dari disk sebelum lokasi
-    // dihapus (mis. terhapus manual, atau race dengan proses lain). is_file()
-    // membuatnya skip dengan tenang -- baris DB SUDAH terhapus di atas lewat
-    // transaksi, jadi ini bukan kegagalan yang perlu membatalkan apa pun.
+    // File fisik bisa sudah hilang dari disk sebelum lokasi dihapus -- is_file() membuatnya skip dengan tenang, bukan kegagalan.
     if (is_file($full_path)) {
         if (!@unlink($full_path)) {
             $gagal_hapus_file++;

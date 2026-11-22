@@ -7,19 +7,14 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/repo/users.php — akses data tabel users.
- * password_hash tidak pernah diterima lewat repo_user_update(); ganti password
- * lewat repo_user_update_password() terpisah agar jalur ubah password mudah
- * diaudit/diberi aturan berbeda (mis. wajib re-auth) tanpa menyentuh update profil.
- */
+// includes/repo/users.php — akses data tabel users; password_hash tidak pernah lewat repo_user_update(), hanya lewat repo_user_update_password().
 
 function repo_user_find(int $id): ?array
 {
     return db_one('SELECT * FROM users WHERE id = :id', ['id' => $id]);
 }
 
-/** Dipakai jalur login — mengandalkan UNIQUE KEY username (lihat database/schema.sql). */
+// Mengandalkan UNIQUE KEY username.
 function repo_user_find_by_username(string $username): ?array
 {
     return db_one('SELECT * FROM users WHERE username = :username', ['username' => $username]);
@@ -93,13 +88,13 @@ function repo_user_touch_last_login(int $id): bool
     return db_exec('UPDATE users SET last_login = NOW() WHERE id = :id', ['id' => $id]) > 0;
 }
 
-/** Nonaktifkan/aktifkan akun (T-08) tanpa perlu mengirim ulang semua kolom seperti repo_user_update(). */
+// Nonaktifkan/aktifkan akun tanpa mengirim ulang semua kolom seperti repo_user_update().
 function repo_user_set_active(int $id, bool $active): bool
 {
     return db_exec('UPDATE users SET is_active = :is_active WHERE id = :id', ['is_active' => $active ? 1 : 0, 'id' => $id]) > 0;
 }
 
-/** Akun (biasanya satu) yang terhubung ke satu kontraktor_id. Dipakai kontraktor/index.php (T-08). */
+// Akun (biasanya satu) yang terhubung ke satu kontraktor_id.
 function repo_user_list_by_kontraktor(int $kontraktor_id): array
 {
     return db_all('SELECT * FROM users WHERE kontraktor_id = :kontraktor_id ORDER BY id ASC', ['kontraktor_id' => $kontraktor_id]);

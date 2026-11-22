@@ -2,12 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * api/aktivitas_detail.php — detail satu aktivitas (lokasi, kontraktor,
- * material, pencatat, foto) untuk panel "Lihat" di monitoring.php. Admin
- * saja -- monitoring.php sendiri require_role('admin'), endpoint ini
- * menegakkan ulang di sisi server, tidak pernah mempercayai sisi klien.
- */
+// api/aktivitas_detail.php — detail satu aktivitas untuk panel "Lihat" di monitoring.php.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/api.php';
@@ -34,8 +29,7 @@ if ($aktivitas === null) {
 
 $lokasi = repo_lokasi_find((int) $aktivitas['lokasi_id']);
 if ($lokasi === null) {
-    // Edge case: lokasi sudah dihapus tapi baris aktivitas masih ada --
-    // seharusnya tidak terjadi (FK), tapi jangan tampilkan 500 kalau terjadi.
+    // Seharusnya tidak terjadi (FK), tapi jangan tampilkan 500 kalau ternyata terjadi.
     api_error(404, 'Lokasi aktivitas ini tidak ditemukan.');
 }
 
@@ -64,8 +58,6 @@ api_json([
             'lng' => (float) $lokasi['longitude'],
         ],
     ],
-    // Sama seperti api/lokasi_detail.php: thumb untuk grid kecil, full untuk
-    // lihat besar (klik thumbnail membuka tab baru ke ukuran penuh).
     'foto' => array_values(array_map(
         static fn (array $f): array => [
             'thumb' => url('media.php?id=' . $f['id'] . '&size=thumb'),

@@ -7,10 +7,7 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/footer.php — penutup shell halaman (T-04). Wajib dipasangkan
- * dengan includes/header.php (lihat variabel $layout di sana).
- */
+// Penutup shell halaman; wajib dipasangkan dengan includes/header.php.
 
 $layout = $layout ?? 'app';
 ?>

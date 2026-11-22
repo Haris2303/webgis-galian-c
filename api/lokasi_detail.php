@@ -2,19 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * api/lokasi_detail.php — detail satu lokasi + aktivitas terakhir + foto
- * (FR-19; PRD bagian 10, T-12).
- *
- * Keputusan T-12 (lihat laporan): FR-19 (PRD bagian 5) bilang popup "Semua"
- * peran dapat lihat aktivitas terakhir TANPA kualifikasi kepemilikan, tapi
- * paragraf pembuka PRD bagian 10 bilang "Kontraktor tetap boleh melihat semua
- * marker ..., tetapi detail aktivitas hanya miliknya" -- LEBIH KETAT. Sesuai
- * instruksi task ("ambil yang paling ketat"), endpoint ini SELALU mengembalikan
- * data lokasi dasar untuk siapa pun yang login, tapi field aktivitas_terakhir
- * HANYA diisi bila admin ATAU lokasi ini milik kontraktor yang login.
- * KEPUTUSAN INI PERLU DIKONFIRMASI pemilik produk -- lihat laporan T-12.
- */
+// api/lokasi_detail.php — detail satu lokasi + aktivitas terakhir + foto. aktivitas_terakhir hanya diisi untuk admin atau pemilik lokasi; lainnya tetap dapat data lokasi dasar.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/api.php';
@@ -56,10 +44,7 @@ $respons = [
     'kontraktor' => $kontraktor['nama_perusahaan'] ?? null,
     'material' => $material['nama'] ?? null,
     'aktivitas_terakhir' => [],
-    // Penanda EKSPLISIT ke klien: array di atas kosong karena memang dibatasi
-    // kepemilikan, bukan karena lokasi ini tidak punya riwayat aktivitas sama
-    // sekali -- UI (T-14) bisa menampilkan pesan yang tepat, bukan "belum ada
-    // aktivitas" yang menyesatkan.
+    // Membedakan "dibatasi otorisasi" dari "memang belum ada riwayat".
     'aktivitas_dibatasi' => !$boleh_lihat_aktivitas,
 ];
 
@@ -71,11 +56,7 @@ if ($boleh_lihat_aktivitas) {
             'tanggal' => $aktivitas['tanggal_aktivitas'],
             'jenis_kegiatan' => $aktivitas['jenis_kegiatan'],
             'status_aktivitas' => $aktivitas['status_aktivitas'],
-            // media.php (T-19), bukan URL uploads/ langsung -- folder itu
-            // sekarang tertutup total. "thumb" untuk pratinjau kecil di popup
-            // peta (PRD bagian 9: "thumbnail foto"), "full" untuk lightbox
-            // (UI: "lihat detail serta di slide") -- dua ukuran sekaligus
-            // supaya klien tidak perlu menyusun ulang URL dari string thumb.
+            // Lewat media.php, bukan URL uploads/ langsung (folder itu tertutup).
             'foto' => array_values(array_map(
                 static fn (array $f): array => [
                     'thumb' => url('media.php?id=' . $f['id'] . '&size=thumb'),

@@ -2,18 +2,9 @@
 
 declare(strict_types=1);
 
-/**
- * tests/db_smoke.php — smoke test manual lapisan akses data (T-03).
- * Jalankan: php tests/db_smoke.php
- *
- * Semua baris yang dibuat skrip ini diberi prefiks SMOKE_/smoke_ dan dihapus
- * sendiri di bagian 2 (atau ikut rollback di bagian 3-4), jadi aman dijalankan
- * berulang kali di database dev tanpa menyisakan sampah permanen.
- */
+// Smoke test manual lapisan akses data; baris yang dibuat diberi prefiks SMOKE_/smoke_ dan dihapus/rollback sendiri, aman dijalankan berulang di database dev.
 
-// T-26: skrip ini menulis & menghapus baris DB -- TIDAK PERNAH boleh terpicu
-// lewat web oleh siapa pun (dev atau bukan). cli-only, bukan APP_ENV=dev,
-// karena tujuannya memang hanya dijalankan manual dari terminal.
+// Skrip ini menulis & menghapus baris DB -- tidak pernah boleh terpicu lewat web.
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     exit('Forbidden: jalankan hanya lewat command line (php tests/db_smoke.php).');
@@ -210,8 +201,7 @@ db_transaction(function () use ($nama_luar, $nama_dalam) {
             throw new RuntimeException('gagal di level dalam');
         });
     } catch (RuntimeException $e) {
-        // Ditangkap di sini secara sengaja: transaksi luar harus tetap lanjut
-        // dan commit walau transaksi dalam di-rollback ke SAVEPOINT-nya sendiri.
+        // Sengaja ditangkap: transaksi luar harus tetap commit walau transaksi dalam di-rollback.
     }
 });
 

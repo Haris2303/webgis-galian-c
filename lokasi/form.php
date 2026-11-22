@@ -2,12 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * lokasi/form.php — tambah & ubah lokasi tambang (FR-07, FR-08, FR-09, FR-10;
- * T-09 + T-10). Picker peta (T-10) murni UX lewat assets/js/map-picker.js --
- * input lat/lng/area_geojson di bawah tetap field biasa yang berfungsi penuh
- * tanpa JS (edge case wajib: Leaflet gagal dimuat dari CDN).
- */
+// Picker peta murni UX lewat assets/js/map-picker.js -- input lat/lng/area_geojson tetap field biasa yang berfungsi penuh tanpa JS.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/lokasi.php';
@@ -62,9 +57,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     csrf_require();
 
     if (!form_token_consume($_POST['_form_token'] ?? null)) {
-        // Edge case T-09: double submit (klik ganda/kirim ulang). Token sudah
-        // dipakai -> anggap submit PERTAMA sudah/tengah diproses, jangan buat
-        // baris kedua. Diam-diam arahkan ke daftar, bukan pesan error menakutkan.
+        // Token sudah dipakai (double submit) -- arahkan ke daftar, bukan pesan error.
         flash('warning', 'Formulir ini sudah diproses sebelumnya.');
         redirect('lokasi/index.php');
     }
@@ -73,8 +66,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $errors = $hasil['errors'];
     $data = $hasil['data'];
 
-    // kontraktor_id & material_id: FK, bukan field skalar biasa -- divalidasi
-    // keberadaannya sendiri (bukan lewat aturan 'in:' yang perlu daftar statis).
+    // FK divalidasi keberadaannya sendiri, bukan lewat aturan 'in:' yang perlu daftar statis.
     $kontraktor_id = (int) ($_POST['kontraktor_id'] ?? 0);
     if ($kontraktor_id <= 0 || repo_kontraktor_find($kontraktor_id) === null) {
         $errors['kontraktor_id'][] = 'Kontraktor wajib dipilih dan harus valid.';
@@ -84,8 +76,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $errors['material_id'][] = 'Jenis material wajib dipilih dan harus valid.';
     }
 
-    // Aturan bisnis status izin (PRD bagian 7 & spesifikasi T-09), ditegakkan
-    // di SERVER terlepas apa pun yang dikirim klien:
     if ($data['status_izin'] === 'berizin') {
         if ($data['nomor_izin'] === '') {
             $errors['nomor_izin'][] = 'Nomor izin wajib diisi untuk status Berizin.';
@@ -94,8 +84,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $errors['tanggal_berlaku_izin'][] = 'Tanggal berlaku izin wajib diisi untuk status Berizin.';
         }
     } elseif ($data['status_izin'] === 'tidak_berizin') {
-        // "Tidak berizin" MENGOSONGKAN field izin apa pun yang terlanjur
-        // terkirim dari form -- bukan sekadar membiarkannya opsional.
+        // "Tidak berizin" mengosongkan field izin apa pun yang terlanjur terkirim dari form.
         $data['nomor_izin'] = '';
         $data['tanggal_berlaku_izin'] = '';
         $data['tanggal_berakhir_izin'] = '';
@@ -109,20 +98,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     $area_geojson_tersimpan = null;
     if ($geojson_hasil['geojson'] !== null) {
-        // "properties" GeoJSON WAJIB objek ({}), bukan array ([]) -- json_decode(...,
-        // true) tidak bisa membedakan objek kosong dari array kosong, jadi di-cast
-        // (object) secara eksplisit sebelum di-encode ulang untuk disimpan.
+        // "properties" GeoJSON wajib objek ({}); json_decode(..., true) tidak bisa membedakan objek kosong dari array kosong.
         $geojson_untuk_simpan = $geojson_hasil['geojson'];
         $geojson_untuk_simpan['properties'] = (object) ($geojson_untuk_simpan['properties'] ?? []);
         $area_geojson_tersimpan = json_encode($geojson_untuk_simpan);
     }
 
     if ($errors === []) {
-        // Edge case T-09 (mass assignment): array di bawah dibangun EKSPLISIT
-        // field demi field dari nilai yang SUDAH divalidasi -- tidak pernah
-        // $_POST (atau bahkan $data hasil validate() mentah) disebar langsung
-        // ke repo_lokasi_create()/update(), yang sendiri juga hanya membaca
-        // key bernama persis (lihat includes/repo/lokasi.php) sebagai lapis kedua.
+        // Dibangun eksplisit field demi field dari nilai yang sudah divalidasi, tidak menyebar $_POST langsung (mass assignment).
         $lokasi_data = [
             'nama_lokasi' => $data['nama_lokasi'],
             'kontraktor_id' => $kontraktor_id,
@@ -142,9 +125,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         ];
 
         if ($is_edit) {
-            // Edge case T-09: lokasi berizin -> tidak_berizin yang SUDAH punya
-            // riwayat aktivitas. Tidak diblokir (data lama tetap sah sebagai
-            // riwayat), hanya diberi tahu ke admin lewat flash setelah simpan.
+            // Lokasi berizin -> tidak_berizin dengan riwayat aktivitas tidak diblokir, hanya diberi tahu ke admin lewat flash.
             if ($lokasi['status_izin'] === 'berizin' && $lokasi_data['status_izin'] === 'tidak_berizin') {
                 $jumlah_aktivitas = repo_aktivitas_count_by_lokasi($id);
                 if ($jumlah_aktivitas > 0) {
@@ -156,8 +137,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             flash('success', "Lokasi \"{$lokasi_data['nama_lokasi']}\" berhasil diperbarui." . ($status_warning ? ' ' . $status_warning : ''));
             redirect('lokasi/index.php');
         } else {
-            // created_by WAJIB dari sesi admin yang login, bukan dari form
-            // (edge case T-09: mass assignment/pemalsuan created_by).
+            // created_by wajib dari sesi admin yang login, bukan dari form.
             $lokasi_data['created_by'] = $user['id'];
             repo_lokasi_create($lokasi_data);
             flash('success', "Lokasi \"{$lokasi_data['nama_lokasi']}\" berhasil ditambahkan.");
@@ -312,12 +292,6 @@ require __DIR__ . '/../includes/header.php';
           Peta tidak dapat dimuat (kemungkinan CDN Leaflet tidak terjangkau). Isi koordinat secara manual di bawah ini.
         </p>
         <p class="ds-field__error" role="alert" id="peta-warning" hidden>Koordinat di luar perkiraan wilayah Kota Sorong, periksa kembali sebelum menyimpan.</p>
-        <!-- Edge case wajib T-25: peta ini bisa digeser/zoom dengan satu jari
-             (dibutuhkan untuk memilih titik), sehingga ikut menangkap gestur
-             gulir satu jari yang dimulai di atasnya. Field latitude/longitude
-             di bawah tetap berfungsi penuh tanpa menyentuh peta sama sekali
-             (edge case wajib T-10), jadi ini sekadar petunjuk, bukan satu-
-             satunya jalan. -->
         <p class="ds-field__hint">Peta bisa digeser/diperbesar langsung dengan sentuhan. Untuk menggulir halaman di perangkat sentuh, mulai gulir dari luar area peta, atau isi Latitude/Longitude secara manual di bawah.</p>
 
         <div

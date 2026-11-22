@@ -7,23 +7,12 @@ if (!defined('APP_BOOTSTRAPPED')) {
   exit('Forbidden');
 }
 
-/**
- * includes/header.php — <head> + pembuka shell halaman (T-04, PRD bagian 9).
- *
- * Variabel yang bisa diset pemanggil SEBELUM require:
- * - $page_title   (string)  judul tab browser, default "WebGIS Galian C".
- * - $layout       ('app'|'auth') 'app' = topbar+sidebar (default), 'auth' =
- *                  shell login tanpa sidebar (PRD #1: "Tanpa sidebar").
- * - $active_menu  (string)  kunci menu aktif, dibaca includes/sidebar.php untuk aria-current.
- *
- * Wajib ditutup dengan require includes/footer.php di akhir halaman.
- */
+// <head> + pembuka shell halaman. Wajib ditutup dengan require includes/footer.php di akhir halaman.
+// Variabel yang bisa diset pemanggil sebelum require: $page_title, $layout ('app'|'auth'), $active_menu.
 
 $page_title = $page_title ?? 'WebGIS Galian C';
 $layout = $layout ?? 'app';
-// Dibaca HANYA saat $layout === 'auth' -- pemanggil (mis. login.php, saat
-// migrasi ke tampilan DESIGN.md) bisa menimpanya SEBELUM require ini untuk
-// ganti class pembungkus tanpa mengubah berkas ini lagi per halaman.
+// Dibaca hanya saat $layout === 'auth'; pemanggil bisa menimpanya sebelum require untuk ganti class pembungkus.
 $auth_shell_class = $auth_shell_class ?? 'auth-shell';
 
 $flash_messages = flash_pull();
@@ -38,9 +27,6 @@ $flash_messages = flash_pull();
   <link rel="shortcut icon" href="<?= e(asset('assets/img/favicon/favicon.ico')) ?>" type="image/x-icon">
   <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
   <link rel="stylesheet" href="<?= e(asset('assets/css/print.css')) ?>" media="print">
-  <!-- Migrasi UI DESIGN.md (T-04 asli dipertahankan sebagai fallback/cetak) --
-     dimuat GLOBAL (bukan per halaman lewat $extra_head lagi) karena topbar
-     & sidebar di bawah ini sekarang dipakai SEMUA halaman layout="app". -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700;800;900&display=swap">
@@ -61,7 +47,6 @@ $flash_messages = flash_pull();
               <span class="sr-only">Buka menu navigasi</span>
             </button>
             <a class="ds-topbar__brand" href="<?= e(url('dashboard.php')) ?>">
-              <!-- <span class="ds-topbar__brand-mark" aria-hidden="true">WG</span> -->
               <img src="<?= e(asset("assets/img/favicon/android-chrome-192x192.png")) ?>" alt="logo" width="40px">
               WebGIS Galian C
             </a>

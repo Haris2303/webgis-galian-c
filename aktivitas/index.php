@@ -2,12 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * aktivitas/index.php — daftar aktivitas tambang (FR-13, FR-15, FR-16; T-17,
- * PRD bagian 2, 5, 7). Kontraktor: HANYA aktivitas di lokasi milik
- * perusahaannya sendiri (lewat kontraktor_id, bukan user_id individu --
- * lihat can_access_aktivitas() di includes/auth.php). Admin: semua aktivitas.
- */
+// aktivitas/index.php — daftar aktivitas tambang; kontraktor hanya lokasi milik perusahaannya (via kontraktor_id, bukan user_id individu).
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/aktivitas.php';
@@ -24,7 +19,7 @@ $dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $per_page = 10;
 
-/** Querystring filter saat ini (TANPA page/sort/dir), dipakai membangun link paginasi & sort konsisten. */
+// Querystring filter saat ini (tanpa page/sort/dir), dipakai membangun link paginasi & sort konsisten.
 function aktivitas_filter_query(int $lokasi_id, string $status, string $tanggal_mulai, string $tanggal_akhir): array
 {
     return array_filter([
@@ -51,18 +46,13 @@ $filters = [
     'tanggal_akhir' => $tanggal_akhir,
 ];
 if ($user['role'] !== 'admin') {
-    // Scope WAJIB dari sesi, tidak pernah dari GET -- kombinasi dengan
-    // lokasi_id dari GET (bila diisi) otomatis menghasilkan nol baris untuk
-    // lokasi_id milik kontraktor lain, bukan membocorkan datanya (lihat
-    // repo_aktivitas_list(): kedua kondisi di-AND, bukan dipilih salah satu).
+    // Scope selalu dari sesi, tidak pernah dari GET.
     $filters['kontraktor_id'] = (int) ($user['kontraktor_id'] ?? 0);
 }
 
 [$daftar, $total] = repo_aktivitas_list($filters, $page, $per_page, $sort, $dir);
 $total_halaman = max(1, (int) ceil($total / $per_page));
 
-// Dropdown lokasi filter: scope sama seperti form.php -- kontraktor hanya
-// lokasi miliknya, admin semua.
 if ($user['role'] === 'admin') {
     [$daftar_lokasi] = repo_lokasi_list([], 1, 500, 'nama_lokasi', 'asc');
 } else {
