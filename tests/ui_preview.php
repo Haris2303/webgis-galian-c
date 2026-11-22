@@ -5,19 +5,16 @@ declare(strict_types=1);
 /**
  * tests/ui_preview.php — pratinjau komponen UI T-04, BUKAN bagian dari PRD.
  *
- * dashboard.php belum dibangun (menyusul T-08/T-20) sehingga kriteria selesai
- * T-04 ("Jalankan Lighthouse pada ... dashboard") tidak punya target nyata.
  * Berkas ini mensimulasikan tata letak dashboard dari PRD memakai
  * includes/header.php + sidebar.php + footer.php yang sama, supaya CSS/markup
- * T-04 bisa diuji manual dan lewat Lighthouse SEKARANG, sebelum halaman
- * aslinya ada. login.php SUDAH nyata sejak T-06 -- gunakan itu langsung,
- * bukan mode view=login di sini (sudah dihapus).
+ * T-04 bisa diuji manual dan lewat Lighthouse. login.php SUDAH nyata sejak
+ * T-06, dan dashboard.php SUDAH nyata sejak T-20 -- gunakan keduanya langsung
+ * (lihat tautan di bawah), bukan mode view=login/dashboard di sini (sudah
+ * dihapus begitu halaman aslinya ada).
  *
- * Harus 404 di luar APP_ENV=dev (lihat cek di bawah) dan WAJIB dihapus atau
- * diganti pengujian ke halaman asli begitu T-08/T-20 selesai — lihat
- * "Risiko tersisa" pada laporan T-04/T-06.
+ * Harus 404 di luar APP_ENV=dev (lihat cek di bawah).
  *
- * Akses: /tests/ui_preview.php?view=dashboard|components&role=admin|kontraktor
+ * Akses: /tests/ui_preview.php?role=admin|kontraktor
  */
 
 if (!defined('APP_BOOTSTRAPPED')) {
@@ -29,10 +26,7 @@ if (APP_ENV !== 'dev') {
     exit('Not Found');
 }
 
-$view = $_GET['view'] ?? 'components';
-if (!in_array($view, ['dashboard', 'components'], true)) {
-    $view = 'components';
-}
+$view = 'components';
 
 // user_id palsu (bukan ID nyata mana pun) HANYA supaya current_user() (T-06)
 // mengembalikan array, bukan null, saat preview ini dipakai tanpa login asli.
@@ -55,61 +49,6 @@ if (isset($_GET['set_flash'])) {
     redirect('tests/ui_preview.php?view=' . $view . '&role=' . $simulated_role);
 }
 
-if ($view === 'dashboard') {
-    $page_title = 'Dashboard';
-    $layout = 'app';
-    $active_menu = 'dashboard';
-    require __DIR__ . '/../includes/header.php';
-    $judul_dashboard = $simulated_role === 'admin' ? 'Dashboard — Admin Dinas Perindustrian' : 'Dashboard — CV Sorong Jaya Tambang';
-    ?>
-    <h1 class="app-main__title"><?= e($judul_dashboard) ?></h1>
-
-    <div class="stat-grid">
-      <div class="card stat-card">
-        <p class="stat-card__label">Total Lokasi Tambang</p>
-        <p class="stat-card__value">12</p>
-      </div>
-      <div class="card stat-card stat-card--berizin">
-        <p class="stat-card__label">Berizin</p>
-        <p class="stat-card__value">7</p>
-      </div>
-      <div class="card stat-card stat-card--tidak-berizin">
-        <p class="stat-card__label">Tidak Berizin</p>
-        <p class="stat-card__value">3</p>
-      </div>
-      <div class="card stat-card stat-card--proses">
-        <p class="stat-card__label">Proses</p>
-        <p class="stat-card__value">2</p>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="card">
-        <h2 class="card__title">Pratinjau Peta Persebaran Galian C</h2>
-        <div class="map-shell" role="img" aria-label="Pratinjau peta persebaran lokasi tambang (placeholder, Leaflet dipasang di T-13)"></div>
-      </div>
-      <div class="card">
-        <h2 class="card__title">Daftar Lokasi Tambang</h2>
-        <div class="table-responsive">
-          <table class="data-table">
-            <caption class="sr-only">Daftar lokasi tambang dan status izinnya</caption>
-            <thead>
-              <tr><th scope="col">Nama Lokasi</th><th scope="col">Kontraktor</th><th scope="col">Status</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Lokasi Klasaman</td><td>CV Sorong Jaya Tambang</td><td><span class="badge badge--berizin">Berizin</span></td></tr>
-              <tr><td>Lokasi Matalamagi</td><td>PT Papua Mineral Sejahtera</td><td><span class="badge badge--tidak-berizin">Tidak Berizin</span></td></tr>
-              <tr><td>Lokasi Mariat Pantai</td><td>CV Mitra Galian Sorong</td><td><span class="badge badge--proses">Proses</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <?php
-    require __DIR__ . '/../includes/footer.php';
-    exit;
-}
-
 // --- $view === 'components': katalog semua komponen T-04 untuk uji manual ---
 $page_title = 'Katalog Komponen (T-04)';
 $layout = 'app';
@@ -121,8 +60,8 @@ require __DIR__ . '/../includes/header.php';
 <p>
   Pratinjau peran saat ini: <strong><?= e($simulated_role) ?></strong>.
   Ganti via <code>?role=admin</code> atau <code>?role=kontraktor</code>.
-  Lihat juga <a href="<?= e(url('login.php')) ?>">halaman login</a> (asli, T-06) dan
-  <a href="<?= e(url('tests/ui_preview.php?view=dashboard&role=' . $simulated_role)) ?>">tampilan dashboard</a> (masih pratinjau, dashboard.php asli menyusul T-08/T-20).
+  Lihat juga <a href="<?= e(url('login.php')) ?>">halaman login</a> dan
+  <a href="<?= e(url('dashboard.php')) ?>">dashboard</a> (keduanya asli, T-06/T-20 — tidak lagi disimulasikan di sini).
 </p>
 
 <section class="card">
