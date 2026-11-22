@@ -35,6 +35,13 @@ $flash_messages = flash_pull();
 <title><?= e($page_title) ?> — WebGIS Galian C Kota Sorong</title>
 <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
 <link rel="stylesheet" href="<?= e(asset('assets/css/print.css')) ?>" media="print">
+<!-- Migrasi UI DESIGN.md (T-04 asli dipertahankan sebagai fallback/cetak) --
+     dimuat GLOBAL (bukan per halaman lewat $extra_head lagi) karena topbar
+     & sidebar di bawah ini sekarang dipakai SEMUA halaman layout="app". -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="<?= e(asset('assets/css/design-system.css')) ?>">
 <?= render_raw_tags($extra_head ?? []) ?>
 </head>
 <body>
@@ -43,29 +50,32 @@ $flash_messages = flash_pull();
   <main id="konten-utama">
 <?php else: ?>
 <a class="skip-link" href="#konten-utama">Lewati ke konten utama</a>
-<div class="app-shell">
-  <header class="app-topbar">
-    <button type="button" class="hamburger-btn" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar-utama">
-      <span class="hamburger-btn__icon"></span>
+<div class="ds-app-shell">
+  <header class="ds-topbar">
+    <button type="button" class="ds-hamburger-btn" data-sidebar-toggle aria-expanded="false" aria-controls="sidebar-utama">
+      <span class="ds-hamburger-btn__icon"></span>
       <span class="sr-only">Buka menu navigasi</span>
     </button>
-    <a class="app-topbar__brand" href="<?= e(url('dashboard.php')) ?>">WebGIS Galian C — Kota Sorong</a>
-    <span class="app-topbar__spacer"></span>
+    <a class="ds-topbar__brand" href="<?= e(url('dashboard.php')) ?>">
+      <span class="ds-topbar__brand-mark" aria-hidden="true">WG</span>
+      WebGIS Galian C
+    </a>
+    <span class="ds-topbar__spacer"></span>
     <?php $topbar_user = current_user(); ?>
-    <div class="app-topbar__user">
+    <div class="ds-topbar__user">
       <?php if ($topbar_user !== null): ?>
-        <span class="app-topbar__user-name"><?= e($topbar_user['nama_lengkap']) ?></span>
+        <span class="ds-topbar__user-name"><?= e($topbar_user['nama_lengkap']) ?></span>
       <?php endif; ?>
       <form method="post" action="<?= e(url('logout.php')) ?>" class="logout-form">
         <?= csrf_field() ?>
-        <button type="submit" class="btn-link">Keluar</button>
+        <button type="submit" class="ds-btn-text">Keluar</button>
       </form>
     </div>
   </header>
-  <div class="app-sidebar-backdrop" hidden></div>
-  <div class="app-body">
+  <div class="ds-sidebar-backdrop" hidden></div>
+  <div class="ds-app-body">
     <?php require __DIR__ . '/sidebar.php'; ?>
-    <main id="konten-utama" class="app-main">
+    <main id="konten-utama" class="ds-app-main">
 <?php endif; ?>
 <?php if ($flash_messages !== []): ?>
 <ul class="flash-list" aria-live="polite">

@@ -11,9 +11,12 @@
   'use strict';
 
   function initSidebarToggle() {
+    // .ds-sidebar (migrasi UI DESIGN.md, app-shell/sidebar global) menggantikan
+    // .app-sidebar lama -- dicek DUA kelas supaya toggle ini tidak putus pada
+    // halaman mana pun yang belum/sudah dimigrasi di masa transisi.
     var toggleBtn = document.querySelector('[data-sidebar-toggle]');
-    var sidebar = document.querySelector('.app-sidebar');
-    var backdrop = document.querySelector('.app-sidebar-backdrop');
+    var sidebar = document.querySelector('.ds-sidebar, .app-sidebar');
+    var backdrop = document.querySelector('.ds-sidebar-backdrop, .app-sidebar-backdrop');
 
     if (!toggleBtn || !sidebar) {
       return;

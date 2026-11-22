@@ -63,34 +63,11 @@ function dashboard_badge_status(?string $status_izin): string
     return '<span class="ds-badge ' . $class . '">' . e($label) . '</span>';
 }
 
-/**
- * Ikon SVG minimal (20x20, dekoratif/aria-hidden) per kartu statistik --
- * tangan sendiri, bukan pustaka ikon (PRD bagian 3: tanpa dependensi
- * tambahan), konsisten dengan ikon error di login.php (migrasi DESIGN.md).
- */
-function dashboard_ikon(string $nama): string
-{
-    $path = match ($nama) {
-        'total' => '<path d="M10 2.5c-3.6 0-6.5 2.8-6.5 6.3 0 4.6 6.5 8.7 6.5 8.7s6.5-4.1 6.5-8.7c0-3.5-2.9-6.3-6.5-6.3Z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="8.8" r="2.1" stroke="currentColor" stroke-width="1.5"/>',
-        'berizin' => '<circle cx="10" cy="10" r="7.3" stroke="currentColor" stroke-width="1.5"/><path d="M6.8 10.2l2.1 2.1 4.3-4.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
-        'tidak_berizin' => '<circle cx="10" cy="10" r="7.3" stroke="currentColor" stroke-width="1.5"/><path d="M7.3 7.3l5.4 5.4M12.7 7.3l-5.4 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-        'proses' => '<circle cx="10" cy="10" r="7.3" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.2v4l2.6 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
-        default => '',
-    };
-
-    return '<svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">' . $path . '</svg>';
-}
-
 $page_title = 'Dashboard';
 $layout = 'app';
 $active_menu = 'dashboard';
 $extra_head = [
     '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">',
-    // Migrasi UI DESIGN.md (lihat login.php) -- halaman per halaman.
-    '<link rel="preconnect" href="https://fonts.googleapis.com">',
-    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
-    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;800;900&display=swap">',
-    '<link rel="stylesheet" href="' . e(asset('assets/css/design-system.css')) . '">',
 ];
 require __DIR__ . '/includes/header.php';
 ?>
@@ -99,34 +76,22 @@ require __DIR__ . '/includes/header.php';
     <h1 class="ds-page-header__title"><?= e($judul_dashboard) ?></h1>
   </div>
 
-  <div class="ds-stat-grid">
-    <div class="ds-stat-card">
-      <span class="ds-stat-card__icon"><?= dashboard_ikon('total') ?></span>
-      <div>
-        <p class="ds-stat-card__label">Total Lokasi Tambang</p>
-        <p class="ds-stat-card__value"><?= e((string) $total_lokasi) ?></p>
-      </div>
+  <div class="ds-stat-cols">
+    <div class="ds-stat-col">
+      <p class="ds-stat-col__label">Total Lokasi Tambang</p>
+      <p class="ds-stat-col__value"><?= e((string) $total_lokasi) ?></p>
     </div>
-    <div class="ds-stat-card ds-stat-card--berizin">
-      <span class="ds-stat-card__icon"><?= dashboard_ikon('berizin') ?></span>
-      <div>
-        <p class="ds-stat-card__label">Berizin</p>
-        <p class="ds-stat-card__value"><?= e((string) $stat['berizin']) ?></p>
-      </div>
+    <div class="ds-stat-col ds-stat-col--berizin">
+      <p class="ds-stat-col__label">Berizin</p>
+      <p class="ds-stat-col__value"><?= e((string) $stat['berizin']) ?></p>
     </div>
-    <div class="ds-stat-card ds-stat-card--tidak-berizin">
-      <span class="ds-stat-card__icon"><?= dashboard_ikon('tidak_berizin') ?></span>
-      <div>
-        <p class="ds-stat-card__label">Tidak Berizin</p>
-        <p class="ds-stat-card__value"><?= e((string) $stat['tidak_berizin']) ?></p>
-      </div>
+    <div class="ds-stat-col ds-stat-col--tidak-berizin">
+      <p class="ds-stat-col__label">Tidak Berizin</p>
+      <p class="ds-stat-col__value"><?= e((string) $stat['tidak_berizin']) ?></p>
     </div>
-    <div class="ds-stat-card ds-stat-card--proses">
-      <span class="ds-stat-card__icon"><?= dashboard_ikon('proses') ?></span>
-      <div>
-        <p class="ds-stat-card__label">Proses</p>
-        <p class="ds-stat-card__value"><?= e((string) $stat['proses']) ?></p>
-      </div>
+    <div class="ds-stat-col ds-stat-col--proses">
+      <p class="ds-stat-col__label">Proses</p>
+      <p class="ds-stat-col__value"><?= e((string) $stat['proses']) ?></p>
     </div>
   </div>
 

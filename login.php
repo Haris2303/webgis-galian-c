@@ -67,16 +67,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 $page_title = 'Masuk ke Sistem';
 $layout = 'auth';
-// Migrasi UI DESIGN.md (dikerjakan satu halaman per satu halaman, dimulai di
-// sini) -- lihat includes/header.php untuk bagaimana variabel ini dibaca, dan
-// assets/css/design-system.css untuk definisi kelas ds-*/token-nya.
+// Migrasi UI DESIGN.md -- Roboto & design-system.css sekarang dimuat GLOBAL
+// lewat includes/header.php (dipakai topbar/sidebar di semua halaman app),
+// jadi tidak perlu diulang di $extra_head lagi di sini.
 $auth_shell_class = 'ds-auth-shell';
-$extra_head = [
-    '<link rel="preconnect" href="https://fonts.googleapis.com">',
-    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
-    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;800;900&display=swap">',
-    '<link rel="stylesheet" href="' . e(asset('assets/css/design-system.css')) . '">',
-];
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="ds-auth-shell__content">

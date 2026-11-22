@@ -41,6 +41,7 @@
   --ds-radius-card-lg: 24px;
   --ds-radius-panel: 28px;
   --ds-radius-pill: 999px;
+  --ds-radius-input: 14px;
 
   /* Bayangan (DESIGN.md "shadows") */
   --ds-shadow-card: 0 18px 44px rgba(15, 23, 42, 0.08);
@@ -186,7 +187,7 @@
   color: var(--ds-on-bg);
   background: var(--ds-surface);
   border: 1.5px solid var(--ds-outline);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-input);
   transition: border-color var(--ds-motion-normal), box-shadow var(--ds-motion-normal);
 }
 
@@ -280,73 +281,6 @@
   margin: 0;
 }
 
-/* --- Kartu statistik --- */
-.ds-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 28px;
-}
-
-@media (max-width: 1024px) {
-  .ds-stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  .ds-stat-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.ds-stat-card {
-  background: var(--ds-surface);
-  border-radius: var(--ds-radius-card);
-  box-shadow: var(--ds-shadow-card);
-  padding: 22px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.ds-stat-card__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: var(--ds-stat-accent-soft, var(--ds-primary-soft));
-  color: var(--ds-stat-accent, var(--ds-primary));
-}
-
-/* Warna status TETAP warna yang diwajibkan PRD bagian 9 (hijau/merah/kuning,
-   HARUS konsisten dengan badge & legenda peta di seluruh aplikasi) -- yang
-   berubah di sini HANYA bentuk/tipografi/shadow mengikuti DESIGN.md, bukan
-   semantik warnanya. */
-.ds-stat-card--berizin { --ds-stat-accent: #2E9E4F; --ds-stat-accent-soft: #E8F5EC; }
-.ds-stat-card--tidak-berizin { --ds-stat-accent: #D64545; --ds-stat-accent-soft: #FBEAEA; }
-.ds-stat-card--proses { --ds-stat-accent: #E5A823; --ds-stat-accent-soft: #FDF3DD; }
-
-.ds-stat-card__label {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #64748b;
-  margin: 0 0 4px;
-}
-
-.ds-stat-card__value {
-  font-size: 28px;
-  font-weight: 900;
-  color: var(--ds-on-bg);
-  margin: 0;
-  line-height: 1;
-}
-
 /* --- Grid dua kolom & kartu generik --- */
 .ds-grid-2 {
   display: grid;
@@ -369,7 +303,7 @@
 
 .ds-card__title {
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--ds-on-bg);
   margin: 0 0 16px;
 }
@@ -472,3 +406,345 @@
 .ds-badge--proses::before { background: #E5A823; }
 .ds-badge--tidak-diketahui { background: #f1f5f9; color: #64748b; }
 .ds-badge--tidak-diketahui::before { background: #94a3b8; }
+
+/* -----------------------------------------------------------------------------
+   App shell: topbar TERANG (fokus bisnis flow, tidak berebut perhatian
+   dengan data) + sidebar GELAP aurora (identitas visual, dipakai statis/
+   tanpa animasi di sini -- beda dari .ds-auth-shell yang animasinya terus
+   bergerak, karena ini CHROME PERMANEN yang dilihat sepanjang hari kerja,
+   bukan momen hero sekali lihat). Dimuat global lewat includes/header.php
+   untuk SEMUA halaman layout="app" (bukan lagi satu per satu lewat extra_head).
+   ----------------------------------------------------------------------------- */
+.ds-app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--ds-font);
+  background: var(--ds-bg);
+}
+
+.ds-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 64px;
+  padding: 0 20px;
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-outline);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ds-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ds-on-bg);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-topbar__brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--ds-primary) 0%, #1e40af 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.ds-topbar__spacer {
+  flex: 1;
+}
+
+.ds-topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.ds-topbar__user-name {
+  color: var(--ds-on-bg);
+  font-weight: 700;
+}
+
+.ds-btn-text {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: #64748b;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color var(--ds-motion-fast);
+}
+
+.ds-btn-text:hover {
+  color: var(--ds-danger);
+}
+
+.ds-hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ds-on-bg);
+  cursor: pointer;
+}
+
+.ds-hamburger-btn:hover {
+  background: var(--ds-bg);
+}
+
+.ds-hamburger-btn__icon,
+.ds-hamburger-btn__icon::before,
+.ds-hamburger-btn__icon::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--ds-on-bg);
+  border-radius: 1px;
+  position: relative;
+  transition: transform var(--ds-motion-fast), opacity var(--ds-motion-fast);
+}
+
+.ds-hamburger-btn__icon::before { content: ""; top: -5px; }
+.ds-hamburger-btn__icon::after { content: ""; bottom: -5px; }
+
+.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon { background: transparent; }
+.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon::before { transform: translateY(5px) rotate(45deg); }
+.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon::after { transform: translateY(-5px) rotate(-45deg); }
+
+.ds-app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Sidebar gelap SOLID (warna dark DESIGN.md) -- sempat memakai gradien/glow
+   aurora, dicabut karena terlalu ramai untuk chrome yang dilihat sepanjang
+   hari kerja. Warna gelap tetap dipertahankan sebagai identitas. */
+.ds-sidebar {
+  width: 248px;
+  flex-shrink: 0;
+  position: relative;
+  overflow-y: auto;
+  background: var(--ds-dark-surface);
+  color: var(--ds-dark-on-surface-muted);
+  padding: 20px 14px;
+}
+
+.ds-sidebar__nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-sidebar__group-label {
+  margin: 18px 12px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ds-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  color: var(--ds-dark-on-surface-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ds-motion-fast), color var(--ds-motion-fast);
+}
+
+.ds-sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.ds-sidebar__link svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.ds-sidebar__link[aria-current="page"] {
+  background: rgba(37, 99, 235, 0.22);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--ds-primary);
+}
+
+.ds-sidebar__link[aria-current="page"] svg {
+  opacity: 1;
+  color: #93c5fd;
+}
+
+.ds-sidebar__logout-item {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* .logout-form (assets/css/style.css, T-04) default-nya inline-flex --
+   di dalam sidebar baru ini perlu block/full-width agar sejajar dengan
+   tombol menu lain (dulu ditimpa oleh `.app-sidebar .logout-form`, yang
+   tidak lagi relevan karena kelas pembungkusnya sekarang .ds-sidebar). */
+.ds-sidebar .logout-form {
+  display: block;
+  width: 100%;
+}
+
+.ds-sidebar-backdrop {
+  position: fixed;
+  inset: 64px 0 0 0;
+  z-index: 20;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.ds-app-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px;
+}
+
+@media (max-width: 767px) {
+  .ds-hamburger-btn {
+    display: inline-flex;
+  }
+
+  .ds-topbar__user .ds-topbar__user-name {
+    display: none;
+  }
+
+  .ds-sidebar {
+    position: fixed;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    transform: translateX(-100%);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+    transition: transform var(--ds-motion-normal);
+  }
+
+  .ds-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .ds-app-main {
+    padding: 18px;
+  }
+}
+
+/* Flash message (markup lama, includes/header.php) di dalam konten "app" --
+   penyesuaian visual murni, biar senada dengan kartu/tipografi baru. */
+.ds-app-main .flash-list {
+  margin-bottom: 24px;
+}
+
+.ds-app-main .flash {
+  font-family: var(--ds-font);
+  border-radius: var(--ds-radius-card);
+}
+
+/* -----------------------------------------------------------------------------
+   Statistik dashboard — per KOLOM, minimalis (bukan panel gelap, bukan kartu
+   berbayang terpisah): satu baris terang dipisah garis tipis antar kolom,
+   aksen warna status hanya lewat titik kecil + angka, tanpa ikon/chip warna
+   besar. Riwayat: kartu putih individual -> panel gelap aurora -> panel gelap
+   solid -> desain minimal ini (diminta lebih sederhana).
+   ----------------------------------------------------------------------------- */
+.ds-stat-cols {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--ds-outline);
+  border: 1px solid var(--ds-outline);
+  border-radius: var(--ds-radius-card);
+  overflow: hidden;
+  gap: 1px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1024px) {
+  .ds-stat-cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .ds-stat-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ds-stat-col {
+  background: var(--ds-surface);
+  padding: 18px 20px;
+}
+
+.ds-stat-col__label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 8px;
+}
+
+.ds-stat-col__label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--ds-stat-accent, var(--ds-primary));
+}
+
+.ds-stat-col__value {
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-on-bg);
+  margin: 0;
+  line-height: 1;
+}
+
+/* Warna aksen TETAP sesuai PRD bagian 9 -- hanya titik kecil di label, bukan
+   latar/ikon besar (konsisten dengan arah "lebih minimalis"). */
+.ds-stat-col--berizin { --ds-stat-accent: #2E9E4F; }
+.ds-stat-col--tidak-berizin { --ds-stat-accent: #D64545; }
+.ds-stat-col--proses { --ds-stat-accent: #E5A823; }
