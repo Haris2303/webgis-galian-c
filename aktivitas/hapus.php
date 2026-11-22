@@ -2,20 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * aktivitas/hapus.php — hapus aktivitas (FR-16; T-17). Admin SAJA -- spesifikasi
- * T-17 ("hapus hanya admin") tidak mengenal nuansa kepemilikan di sini sama
- * sekali, beda dengan ubah (FR-15) yang masih mengizinkan pemilik lewat
- * can_access_aktivitas(). require_role('admin') di bawah SEKALIGUS menjadi
- * jawaban untuk skenario IDOR #3 (edge case wajib T-17, "hapus ID orang
- * lain"): kontraktor yang memaksa POST ke sini -- memakai ID miliknya sendiri
- * ATAUPUN milik kontraktor lain -- SELALU 403 di baris pertama, sebelum ID
- * apa pun sempat diperiksa.
- *
- * Urutan hapus file fisik SETELAH commit (bukan sebelum) -- pola yang sama
- * dengan lokasi/hapus.php (T-09): kalau file dihapus duluan lalu transaksi
- * batal, baris DB tetap ada tapi file sudah hilang (lebih buruk).
- */
+// aktivitas/hapus.php — hapus aktivitas, admin saja (beda dari ubah, yang juga mengizinkan pemilik).
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/aktivitas.php';
@@ -41,9 +28,7 @@ if ($aktivitas === null) {
 $foto_lama = repo_foto_list_by_aktivitas($id);
 
 db_transaction(function () use ($id) {
-    // ON DELETE CASCADE ke foto_aktivitas (database/schema.sql) -- baris foto
-    // ikut terhapus otomatis, $foto_lama di atas sudah dikumpulkan SEBELUM ini
-    // supaya path filenya tetap bisa dibaca untuk hapus fisik di bawah.
+    // $foto_lama dikumpulkan sebelum delete karena ON DELETE CASCADE ikut menghapus baris foto.
     repo_aktivitas_delete($id);
 });
 

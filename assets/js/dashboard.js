@@ -1,13 +1,4 @@
-/**
- * assets/js/dashboard.js — dashboard.php (T-20, FR-05).
- * initWebGISMap() (map.js, T-13) butuh kontainer yang SUDAH punya ukuran
- * nyata (edge case wajib T-20: "peta pratinjau terhitung ukuran nol karena
- * berada di kontainer yang belum terlihat") -- di dashboard.php, pratinjau
- * peta ada di kolom kanan grid-2, bisa saja berada di bawah lipatan (fold).
- * IntersectionObserver menunda initWebGISMap() sampai kontainer benar-benar
- * masuk viewport, lalu observer berhenti mengamati (peta hanya perlu
- * di-init SEKALI).
- */
+// assets/js/dashboard.js — menunda init peta sampai kontainer pratinjau terlihat, karena Leaflet menghitung ukurannya nol bila diinisialisasi saat masih di luar layar.
 (function () {
   'use strict';
 
@@ -27,8 +18,6 @@
     }
 
     if (typeof IntersectionObserver === 'undefined') {
-      // Fallback untuk browser tanpa dukungan (jarang) -- init langsung,
-      // lebih baik ukuran nol sesekali daripada peta tidak pernah tampil.
       initPreview();
       return;
     }

@@ -2,13 +2,9 @@
 
 declare(strict_types=1);
 
-/**
- * tests/validator_test.php — uji unit includes/validator.php (T-07).
- * Jalankan: php tests/validator_test.php
- */
+// Uji unit includes/validator.php. Jalankan: php tests/validator_test.php
 
-// T-26: cli-only, konsisten dengan skrip tests/database lain -- tidak ada
-// alasan skrip pengujian internal bisa dipicu lewat web oleh siapa pun.
+// cli-only: skrip pengujian internal tidak boleh dipicu lewat web.
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     exit('Forbidden: jalankan hanya lewat command line (php tests/validator_test.php).');

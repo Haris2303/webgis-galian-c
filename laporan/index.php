@@ -2,21 +2,14 @@
 
 declare(strict_types=1);
 
-/**
- * laporan/index.php — laporan monitoring per periode, khusus Admin (FR-22;
- * PRD bagian 5, 9 #7; T-22). Filter periode (default bulan berjalan), rekap
- * per lokasi (status izin, jumlah aktivitas, aktivitas terakhir) lewat SATU
- * query (repo_lokasi_list_for_laporan(), T-22). Tombol Cetak memanggil
- * window.print() (assets/js/laporan.js); layout cetak A4 di assets/css/print.css.
- * "Unduh CSV" mengarah ke laporan/unduh.php (T-23).
- */
+// Laporan monitoring per periode (khusus Admin); tombol Cetak memanggil window.print().
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/lokasi.php';
 
 require_role('admin');
 
-/** "Y-m-d" valid (format DAN tanggal kalender nyata), atau null bila kosong/tidak valid -- sama dengan monitoring.php (T-21): input tidak valid diperlakukan SAMA dengan kosong, bukan error keras. */
+// Tanggal tidak valid diperlakukan sama dengan kosong, bukan error keras.
 function laporan_valid_date(string $value): ?string
 {
     $value = trim($value);
@@ -29,7 +22,7 @@ function laporan_valid_date(string $value): ?string
     return ($parsed !== false && $parsed->format('Y-m-d') === $value) ? $value : null;
 }
 
-/** Format "Y-m-d" -> "22 November 2026" (bahasa Indonesia, tanpa ekstensi intl). */
+// Format tanggal Indonesia tanpa ekstensi intl.
 function laporan_format_tanggal_id(string $ymd): string
 {
     static $nama_bulan = [
@@ -42,12 +35,7 @@ function laporan_format_tanggal_id(string $ymd): string
     return $tanggal . ' ' . $nama_bulan[$bulan] . ' ' . $tahun;
 }
 
-/**
- * Teks "Periode: ..." di kop laporan. Satu sisi null berarti rentang TERBUKA
- * sebelah (pengguna hanya mengisi satu dari dua kolom "Dari"/"Sampai" di
- * dialog filter) -- harus tetap tampil dengan jelas, bukan ikut dipaksa jadi
- * tanggal konkret seperti query (lihat repo_lokasi_list_for_laporan()).
- */
+// Satu sisi null berarti rentang terbuka sebelah, bukan dipaksa jadi tanggal konkret.
 function laporan_format_periode(?string $mulai, ?string $akhir): string
 {
     if ($mulai !== null && $akhir !== null) {
@@ -63,16 +51,14 @@ function laporan_format_periode(?string $mulai, ?string $akhir): string
 $tanggal_mulai = laporan_valid_date((string) ($_GET['tanggal_mulai'] ?? ''));
 $tanggal_akhir = laporan_valid_date((string) ($_GET['tanggal_akhir'] ?? ''));
 
-// Edge case wajib T-22 (sama dengan T-21): rentang terbalik -- ditukar + peringatan.
+// Rentang terbalik: ditukar otomatis + peringatan.
 $rentang_tertukar = false;
 if ($tanggal_mulai !== null && $tanggal_akhir !== null && $tanggal_mulai > $tanggal_akhir) {
     [$tanggal_mulai, $tanggal_akhir] = [$tanggal_akhir, $tanggal_mulai];
     $rentang_tertukar = true;
 }
 
-// Spesifikasi T-22: default BULAN BERJALAN (1 s.d. hari terakhir bulan ini),
-// bukan "30 hari terakhir" seperti T-21 -- hanya saat KEDUA batas kosong/tidak
-// valid. Satu batas diisi tetap dihormati sebagai rentang terbuka sebelah.
+// Default bulan berjalan hanya saat kedua batas kosong/tidak valid.
 $hari_ini = date('Y-m-d');
 if ($tanggal_mulai === null && $tanggal_akhir === null) {
     $tanggal_mulai = date('Y-m-01');
@@ -86,9 +72,7 @@ if ($rentang_tertukar) {
 $daftar_lokasi = repo_lokasi_list_for_laporan($tanggal_mulai, $tanggal_akhir);
 $total_aktivitas_periode = array_sum(array_column($daftar_lokasi, 'jumlah_aktivitas'));
 
-// Ringkasan status izin (standar laporan dinas: rekapitulasi singkat sebelum
-// rincian per lokasi) -- dihitung dari $daftar_lokasi yang SAMA, bukan query
-// terpisah, supaya angkanya selalu konsisten dengan tabel rincian di bawahnya.
+// Dihitung dari $daftar_lokasi yang sama agar konsisten dengan tabel rincian.
 $jumlah_berizin = 0;
 $jumlah_tidak_berizin = 0;
 $jumlah_proses = 0;
@@ -102,10 +86,7 @@ foreach ($daftar_lokasi as $baris_ringkasan) {
     }
 }
 
-// Zona waktu tanggal cetak (edge case wajib T-22): date()/time() di sini SELALU
-// Asia/Jayapura (WIT) karena date_default_timezone_set() global di
-// includes/bootstrap.php -- bukan UTC atau timezone default OS server. Label
-// "WIT" ditulis eksplisit supaya pembaca cetakan tidak perlu menebak zona waktunya.
+// date() di sini selalu WIT karena date_default_timezone_set() global di bootstrap.php.
 $waktu_cetak = date('d/m/Y H:i') . ' WIT';
 
 $page_title = 'Laporan Monitoring';

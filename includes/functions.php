@@ -7,21 +7,12 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * Escape output untuk mencegah XSS. Dipakai di semua tempat yang mencetak data ke HTML.
- * Aturan proyek: TIDAK ADA echo/`<?=` variabel tanpa lewat e() (PRD bagian 11).
- * ENT_SUBSTITUTE: byte UTF-8 tidak valid diganti karakter "replacement", bukan
- * membuat seluruh string kosong (perilaku default htmlspecialchars yang justru
- * bisa menyembunyikan data secara diam-diam).
- */
+// ENT_SUBSTITUTE: byte UTF-8 tidak valid diganti karakter pengganti, bukan mengosongkan seluruh string.
 function e(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/**
- * Bangun URL absolut berbasis BASE_URL, aman dipakai baik di subfolder XAMPP maupun root hosting.
- */
 function url(string $path = ''): string
 {
     $path = ltrim($path, '/');
@@ -29,22 +20,13 @@ function url(string $path = ''): string
     return rtrim(BASE_URL, '/') . ($path !== '' ? '/' . $path : '/');
 }
 
-/**
- * Gabungkan markup <link>/<script> yang SUDAH JADI dari pemanggil (server --
- * mis. tag CDN Leaflet di lokasi/form.php, T-10), bukan dari data pengguna.
- * Dipakai includes/header.php ($extra_head) & footer.php ($extra_scripts)
- * supaya tetap lewat pemanggilan fungsi (konsisten dengan asset()/csrf_field()),
- * bukan `echo $variabel` telanjang yang lolos pola "echo tanpa e()" (PRD 11).
- */
+// Gabungkan markup <link>/<script> yang sudah dibentuk pemanggil (server), bukan dari data pengguna.
 function render_raw_tags(array $tags): string
 {
     return implode("\n", $tags);
 }
 
-/**
- * URL aset statis dengan cache-busting berdasarkan filemtime, supaya browser
- * otomatis ambil versi baru setiap kali berkas CSS/JS diubah.
- */
+// Cache-busting berdasarkan filemtime agar browser otomatis ambil versi baru.
 function asset(string $path): string
 {
     $path = ltrim($path, '/');
@@ -54,10 +36,7 @@ function asset(string $path): string
     return url($path) . '?v=' . $version;
 }
 
-/**
- * Redirect lalu hentikan eksekusi. Buffer output dibersihkan dulu agar tidak
- * memicu error "headers already sent" bila ada output tersisa sebelum redirect.
- */
+// Buffer dibersihkan dulu agar tidak memicu error "headers already sent".
 function redirect(string $path, int $status_code = 302): void
 {
     if (ob_get_level() > 0) {
@@ -69,9 +48,6 @@ function redirect(string $path, int $status_code = 302): void
     exit;
 }
 
-/**
- * Kirim respons JSON lalu hentikan eksekusi. Dipakai endpoint api/*.php.
- */
 function json_response($data, int $status_code = 200): void
 {
     if (ob_get_level() > 0) {
@@ -87,10 +63,6 @@ function json_response($data, int $status_code = 200): void
     exit;
 }
 
-/**
- * Deteksi apakah permintaan ini AJAX/JSON (bukan navigasi browser biasa),
- * lewat header X-Requested-With atau Accept. Dipakai untuk memilih bentuk respons error.
- */
 function is_ajax_request(): bool
 {
     $xhr = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
@@ -106,10 +78,7 @@ function is_ajax_request(): bool
     return false;
 }
 
-/**
- * Hentikan permintaan dengan kode HTTP tertentu dan pesan ramah berbahasa Indonesia.
- * Beradaptasi: JSON untuk permintaan AJAX, halaman HTML untuk navigasi browser biasa.
- */
+// Beradaptasi: JSON untuk permintaan AJAX, halaman HTML untuk navigasi browser biasa.
 function abort(int $code, ?string $message = null): void
 {
     $default_messages = [
@@ -136,11 +105,7 @@ function abort(int $code, ?string $message = null): void
     exit;
 }
 
-/**
- * Tulis satu baris log ke storage/logs/app-YYYYMMDD.log (rotasi harian berdasarkan tanggal).
- * Bila folder log tidak bisa ditulis, jatuh ke error_log() PHP bawaan supaya aplikasi
- * tidak crash hanya karena logging gagal.
- */
+// Jatuh ke error_log() PHP bawaan bila folder log tidak bisa ditulis, supaya aplikasi tidak crash hanya karena logging gagal.
 function app_log(string $level, string $message): void
 {
     $log_dir = STORAGE_PATH . '/logs';
@@ -161,12 +126,7 @@ function app_log(string $level, string $message): void
     @error_log('[webgis-galian-c] ' . $line);
 }
 
-/**
- * Token CSRF: satu token acak per session (bukan per form) -- model
- * "synchronizer token" standar, cukup dibuat sekali dan dipakai ulang selama
- * session berlangsung. Session harus sudah aktif (auth_start_session() di
- * includes/auth.php, dipanggil dari bootstrap.php) sebelum fungsi ini berguna.
- */
+// Satu token acak per session (bukan per form), dibuat sekali dan dipakai ulang selama session berlangsung.
 function csrf_token(): string
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -180,22 +140,13 @@ function csrf_token(): string
     return $_SESSION['csrf_token'];
 }
 
-/**
- * Markup <input hidden> siap tempel di dalam <form method="post">. Berfungsi
- * sama di form biasa maupun enctype="multipart/form-data" (upload foto) --
- * field tersembunyi non-file tetap terbaca di $_POST pada request multipart,
- * tidak butuh penanganan khusus.
- */
+// Field tersembunyi non-file tetap terbaca di $_POST pada request multipart (upload foto), tidak butuh penanganan khusus.
 function csrf_field(): string
 {
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
-/**
- * Bandingkan token dari $_POST ATAU header X-CSRF-Token (dipakai fetch() AJAX,
- * PRD bagian 10) terhadap token session, lewat hash_equals() agar tahan timing
- * attack. Murni predikat -- tidak menghentikan request. Lihat csrf_require().
- */
+// Lewat hash_equals() agar tahan timing attack. Murni predikat -- tidak menghentikan request.
 function csrf_verify(): bool
 {
     if (session_status() !== PHP_SESSION_ACTIVE || empty($_SESSION['csrf_token'])) {
@@ -207,15 +158,7 @@ function csrf_verify(): bool
     return is_string($submitted) && $submitted !== '' && hash_equals($_SESSION['csrf_token'], $submitted);
 }
 
-/**
- * Panggil di baris pertama setiap handler yang menerima POST. No-op untuk
- * method lain, jadi aman dipanggil tanpa pengondisian tambahan di berkas yang
- * merangkap GET (tampilkan form) dan POST (proses form) sekaligus. Token yang
- * tidak ada/tidak cocok -- termasuk kasus session kedaluwarsa di tengah form
- * terbuka, karena auth_start_session() sudah mengosongkan session sebelum
- * baris ini jalan -- berakhir sebagai 419 yang sama, pesan netral tidak
- * membedakan sebabnya ke pengguna.
- */
+// No-op untuk method selain POST, jadi aman dipanggil di berkas yang merangkap GET dan POST sekaligus.
 function csrf_require(): void
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_verify()) {
@@ -223,16 +166,7 @@ function csrf_require(): void
     }
 }
 
-/**
- * Token sekali-pakai anti-double-submit (T-09), berbeda dari csrf_token():
- * csrf_token() SATU per session dan tetap valid untuk banyak form/request;
- * form_token() baru per render form dan HANGUS begitu dikonsumsi sekali --
- * klik ganda/kirim ulang form yang sama akan menemukan token sudah tidak ada.
- * Aman dari race condition: PHP session default mengunci file session per
- * session ID, jadi dua request nyaris bersamaan dari sesi yang sama tetap
- * diproses berurutan (yang kedua baru baca session setelah yang pertama
- * selesai menulis & melepas kunci).
- */
+// Token sekali-pakai anti-double-submit, beda dari csrf_token(): baru per render form dan hangus begitu dikonsumsi.
 function form_token(): string
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -242,8 +176,7 @@ function form_token(): string
     $token = bin2hex(random_bytes(16));
     $_SESSION['form_tokens'][$token] = time();
 
-    // Batasi jumlah token tertunda supaya session tidak membengkak kalau
-    // pengguna membuka banyak tab form tanpa pernah submit.
+    // Batasi jumlah token tertunda supaya session tidak membengkak.
     if (count($_SESSION['form_tokens']) > 20) {
         array_shift($_SESSION['form_tokens']);
     }
@@ -251,7 +184,7 @@ function form_token(): string
     return $token;
 }
 
-/** True & token langsung dihapus (sekali pakai) bila valid; false bila sudah dipakai/tidak pernah ada. */
+// True & token langsung dihapus (sekali pakai) bila valid; false bila sudah dipakai/tidak pernah ada.
 function form_token_consume(?string $token): bool
 {
     if ($token === null || $token === '' || session_status() !== PHP_SESSION_ACTIVE || !isset($_SESSION['form_tokens'][$token])) {
@@ -263,13 +196,7 @@ function form_token_consume(?string $token): bool
     return true;
 }
 
-/**
- * Simpan flash message untuk ditampilkan SEKALI di request berikutnya (umumnya
- * setelah redirect dari aksi simpan/hapus, PRD bagian 9). Cek session_status()
- * tetap dipertahankan sebagai jaring pengaman murah, bukan karena session
- * benar-benar bisa tidak aktif pada jalur normal (auth_start_session() di
- * bootstrap.php sudah menjaminnya sejak T-05).
- */
+// Flash message ditampilkan sekali di request berikutnya (umumnya setelah redirect dari aksi simpan/hapus).
 function flash(string $type, string $message, array $extra = []): void
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -279,10 +206,7 @@ function flash(string $type, string $message, array $extra = []): void
     $_SESSION['flash'][] = ['type' => $type, 'message' => $message, 'extra' => $extra];
 }
 
-/**
- * Ambil semua flash message tertunda lalu hapus dari session -- sekali dibaca,
- * tidak akan tampil lagi walau halaman di-refresh. Dipanggil dari includes/header.php.
- */
+// Sekali dibaca, tidak akan tampil lagi walau halaman di-refresh.
 function flash_pull(): array
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -295,12 +219,7 @@ function flash_pull(): array
     return $messages;
 }
 
-/**
- * Halaman error HTML sederhana, di-styling inline secara sengaja (bukan lewat
- * includes/header.php + style.css) -- fungsi ini juga jadi jaring pengaman saat
- * bootstrap/koneksi DB gagal, jadi tidak boleh ikut bergantung pada berkas lain
- * yang mungkin justru jadi sumber error tersebut. $debug diisi hanya saat APP_ENV=dev.
- */
+// Styling inline sengaja, karena fungsi ini juga jaring pengaman saat bootstrap/koneksi DB gagal dan tidak boleh bergantung pada berkas lain.
 function render_error_page(int $code, string $message, ?array $debug = null): void
 {
     if (!headers_sent()) {

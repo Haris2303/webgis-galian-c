@@ -2,14 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * peta.php — peta interaktif penuh (FR-17, FR-18; PRD bagian 9, T-13).
- * Semua peran yang login boleh membuka halaman ini (lihat includes/sidebar.php);
- * data yang ditampilkan sendiri sudah ter-scope dengan benar di sisi API
- * (api/lokasi.php, api/area.php & api/cari.php) -- peran kontraktor hanya
- * menerima marker/area/hasil cari miliknya sendiri, admin tetap melihat semua
- * -- jadi di sini cukup require_login() biasa.
- */
+// Peta interaktif penuh; scoping per peran sudah ditangani di sisi API, jadi di sini cukup require_login() biasa.
 
 require_once __DIR__ . '/includes/bootstrap.php';
 

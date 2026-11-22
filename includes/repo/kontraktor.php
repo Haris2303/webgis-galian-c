@@ -7,10 +7,7 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/repo/kontraktor.php — akses data tabel kontraktor.
- * Setiap fungsi berisi tepat satu query terparameter lewat helper di config/database.php.
- */
+// includes/repo/kontraktor.php — akses data tabel kontraktor.
 
 function repo_kontraktor_find(int $id): ?array
 {
@@ -73,7 +70,7 @@ function repo_kontraktor_update(int $id, array $data): bool
     return $affected > 0;
 }
 
-/** Bisa melempar PDOException (SQLSTATE 23000) bila masih dirujuk lokasi_tambang (FK RESTRICT). */
+// Bisa melempar PDOException (SQLSTATE 23000) bila masih dirujuk lokasi_tambang (FK RESTRICT).
 function repo_kontraktor_delete(int $id): bool
 {
     return db_exec('DELETE FROM kontraktor WHERE id = :id', ['id' => $id]) > 0;

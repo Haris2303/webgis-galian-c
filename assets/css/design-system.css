@@ -1,16 +1,6 @@
-/* =============================================================================
-   assets/css/design-system.css — token & komponen dari DESIGN.md (migrasi UI
-   baru, dikerjakan satu halaman per satu halaman, mulai dari login.php).
-
-   SENGAJA terpisah dari assets/css/style.css, dengan namespace kelas/variabel
-   `ds-` sendiri -- halaman yang belum dimigrasi TIDAK ikut berubah tampilannya
-   hanya karena berkas ini ada, dan berkas ini HANYA dimuat lewat $extra_head
-   pada halaman yang sudah dimigrasi (bukan lewat includes/header.php secara
-   global). Lihat DESIGN.md untuk sumber token (warna/tipografi/bentuk/bayangan).
-   ============================================================================= */
+/* assets/css/design-system.css — token/komponen bernamespace ds-*, dipisah dari style.css agar halaman yang belum dimigrasi tidak terpengaruh. */
 
 :root {
-  /* Warna (DESIGN.md "colors") */
   --ds-bg: #f6f8fb;
   --ds-on-bg: #172033;
   --ds-surface: #ffffff;
@@ -27,39 +17,26 @@
   --ds-dark-on-surface: #ffffff;
   --ds-dark-on-surface-muted: #cbd5e1;
 
-  /* DESIGN.md tidak mendefinisikan warna error -- dipilih senada (saturasi
-     sebanding dengan --ds-primary/--ds-success), BUKAN famili aksen baru,
-     khusus untuk pesan validasi/gagal login. */
+  /* warna error dipilih sesuai saturasi --ds-primary/--ds-success, bukan famili aksen baru */
   --ds-danger: #dc2626;
   --ds-danger-soft: #fef2f2;
 
-  /* Tipografi (DESIGN.md "typography") */
   --ds-font: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Bentuk (DESIGN.md "rounded") */
   --ds-radius-card: 20px;
   --ds-radius-card-lg: 24px;
   --ds-radius-panel: 28px;
   --ds-radius-pill: 999px;
   --ds-radius-input: 14px;
 
-  /* Bayangan (DESIGN.md "shadows") */
   --ds-shadow-card: 0 18px 44px rgba(15, 23, 42, 0.08);
   --ds-shadow-panel-dark: 0 22px 54px rgba(15, 23, 42, 0.24);
   --ds-shadow-support: 0 22px 52px rgba(37, 99, 235, 0.2);
 
-  /* Gerak (DESIGN.md "motion") */
   --ds-motion-fast: 180ms;
   --ds-motion-normal: 200ms;
 }
 
-/* -----------------------------------------------------------------------------
-   Shell login — latar "aurora gradient": radial-gradient besar & lembut
-   (biru + hijau, DUA warna yang SUDAH ada di palet DESIGN.md, bukan famili
-   aksen baru -- lihat "Do/Don't": "Don't introduce multiple accent families")
-   di atas dasar gelap (--ds-dark-surface), dianimasikan pelan (drift),
-   dimatikan total di prefers-reduced-motion.
-   ----------------------------------------------------------------------------- */
 .ds-auth-shell {
   min-height: 100vh;
   min-height: 100dvh;
@@ -87,9 +64,7 @@
   }
 }
 
-/* Masuk sekali saat halaman dimuat ("hero enters once on load") -- satu kali,
-   bukan animasi berulang/scroll-triggered; dimatikan total di atas lewat
-   prefers-reduced-motion (halaman tetap tampil penuh, bukan tersembunyi). */
+/* berjalan sekali saat load, bukan berulang/dipicu scroll */
 @keyframes ds-enter {
   from {
     opacity: 0;
@@ -108,9 +83,6 @@
   max-width: 420px;
 }
 
-/* -----------------------------------------------------------------------------
-   Kartu login
-   ----------------------------------------------------------------------------- */
 .ds-auth-card {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
@@ -158,9 +130,6 @@
   margin: 0 0 28px;
 }
 
-/* -----------------------------------------------------------------------------
-   Form
-   ----------------------------------------------------------------------------- */
 .ds-field {
   margin-bottom: 18px;
 }
@@ -244,9 +213,6 @@
   margin-bottom: 20px;
 }
 
-/* Flash message (includes/header.php, markup lama) tampil di atas kartu
-   dalam lebar yang sama saat halaman auth memakai desain baru ini --
-   penyesuaian visual murni lewat CSS, markup/PHP flash tidak diubah. */
 .ds-auth-shell .flash-list {
   position: relative;
   z-index: 1;
@@ -260,15 +226,7 @@
   font-family: var(--ds-font);
 }
 
-/* -----------------------------------------------------------------------------
-   Halaman "app" (topbar+sidebar lama, T-04, BELUM dimigrasi semua) -- komponen
-   di bawah ini HANYA untuk ISI konten di dalam <main class="app-main"> (mulai
-   dashboard.php, aktivitas/index.php), bukan topbar/sidebar itu sendiri.
-   .ds-page jadi pembungkus SATU-SATUNYA yang men-set font-family Roboto --
-   turunannya warisi otomatis, tidak perlu diulang di setiap kelas. Jarak
-   vertikal antar blok langsung di bawah .ds-page SATU aturan saja di sini
-   (bukan diulang per halaman) supaya ritme spasi konsisten di semua halaman.
-   ----------------------------------------------------------------------------- */
+/* .ds-page menetapkan font-family sekali; turunannya mewarisi, tidak diulang per kelas */
 .ds-page {
   font-family: var(--ds-font);
   color: var(--ds-on-bg);
@@ -279,9 +237,6 @@
   margin-top: 24px;
 }
 
-/* Header dashboard balik jadi header BIASA (bukan hero banner) -- banner gelap
-   sebelumnya membuat konten di bawahnya terasa terdesak/sulit terlihat penuh;
-   glassmorphism dipindah ke KONTEN (.ds-card, .ds-stat-col) saja, bukan header. */
 .ds-page-header {
   margin-bottom: 28px;
 }
@@ -309,15 +264,13 @@
   margin: 0;
 }
 
-/* --- Grid dua kolom & kartu generik --- */
 .ds-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-/* Cascade masuk HANYA utk pasangan .ds-card langsung (dashboard, form 2 kolom)
-   -- tidak menimpa .ds-grid-2 bersarang yang isinya .ds-field (pasangan input). */
+/* hanya menyasar .ds-card anak langsung, bukan .ds-grid-2 bersarang (mis. pasangan field) */
 .ds-grid-2 > .ds-card:nth-child(1) {
   animation: ds-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -339,9 +292,7 @@
   }
 }
 
-/* Glassmorphism: latar putih TRANSLUSEN + backdrop-filter blur, bukan putih
-   solid -- border highlight tipis & saturate boost supaya efek "kaca"
-   kebaca walau di atas latar halaman yang terang (bukan gelap/kontras). */
+/* latar transparan + blur; boost saturate menjaga efek "kaca" tetap terlihat di atas latar halaman terang */
 .ds-card {
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -373,9 +324,7 @@
   margin: 0 0 16px;
 }
 
-/* Peta pratinjau (dashboard.php) tetap pakai .map-shell/.map-shell--preview
-   (dirujuk assets/js/map.js & dashboard.js lewat ID, BUKAN kelas, jadi aman
-   ditimpa) -- hanya radius sudutnya disamakan dengan .ds-card di sekitarnya. */
+/* map.js/dashboard.js merujuk kontainer peta lewat id, bukan kelas, jadi menimpa radius di sini aman */
 .ds-card .map-shell {
   border-radius: var(--ds-radius-card);
 }
@@ -402,7 +351,6 @@
   border-radius: 6px;
 }
 
-/* --- Tabel --- */
 .ds-table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -444,8 +392,7 @@
   transition: background var(--ds-motion-fast) ease;
 }
 
-/* Masuk bergantian per baris (cascade), ditutup di baris ke-6 supaya daftar
-   panjang tidak menunggu lama -- sisanya tampil bersamaan dengan baris ke-6. */
+/* bertahap per baris, dibatasi sampai baris ke-6 agar daftar panjang tidak menunda sisanya */
 .ds-table tbody tr:nth-child(1) {
   animation-delay: 0ms;
 }
@@ -488,7 +435,6 @@
   }
 }
 
-/* --- Badge status (warna TETAP sesuai PRD bagian 9, bentuk pil baru) --- */
 .ds-badge {
   display: inline-flex;
   align-items: center;
@@ -537,10 +483,7 @@
   background: #94a3b8;
 }
 
-/* Peringatan "perlu pengawasan" (monitoring.php, T-21) -- warna amber yang
-   SAMA dengan status "proses" (dipakai lintas komponen sebagai warna
-   peringatan umum), tapi border putus-putus supaya jelas BUKAN badge status
-   izin/aktivitas, melainkan peringatan operasional terpisah. */
+/* memakai ulang amber "proses" tapi dengan border putus-putus, terbaca sebagai peringatan operasional terpisah, bukan badge status */
 .ds-badge--perlu-pengawasan {
   background: #fdf3dd;
   color: #8a6512;
@@ -550,10 +493,7 @@
   background: #e5a823;
 }
 
-/* Penanda "izin kedaluwarsa" (lokasi/index.php, T-09) -- BUKAN badge
-   status_izin kedua, cuma indikator tambahan saat tanggal_berakhir_izin
-   sudah lewat. Warna senada ds-badge--tidak-berizin, border putus-putus
-   membedakannya dari badge status biasa. */
+/* indikator tambahan, bukan badge status kedua; border putus-putus membedakannya dari badge status biasa */
 .ds-badge--kedaluwarsa {
   background: #fbeaea;
   color: #b83a3a;
@@ -563,9 +503,7 @@
   background: #d64545;
 }
 
-/* --- Tombol aksi inline (toolbar/tabel) -- BUKAN .ds-btn-primary (tombol
-   submit login, penuh lebar/tinggi tetap); ".ds-btn" di sini untuk aksi
-   sebaris: filter, tambah data, ubah/hapus per baris. */
+/* aksi toolbar/tabel sebaris; berbeda dari .ds-btn-primary yang merupakan tombol submit login selebar penuh */
 .ds-btn {
   display: inline-flex;
   align-items: center;
@@ -652,7 +590,6 @@
   }
 }
 
-/* --- Select (dropdown filter), setara .ds-input --- */
 .ds-select {
   width: 100%;
   height: 48px;
@@ -681,14 +618,11 @@
   margin-top: 8px;
 }
 
-/* Form satu baris (input + tombol sejajar) di dalam toolbar -- mis. kotak
-   cari kontraktor/index.php. */
 .ds-inline-form {
   display: flex;
   gap: 8px;
 }
 
-/* --- Textarea, setara .ds-input/.ds-select --- */
 .ds-textarea {
   width: 100%;
   min-height: 110px;
@@ -711,11 +645,7 @@
   box-shadow: 0 0 0 4px var(--ds-primary-soft);
 }
 
-/* --- Sub-elemen .ds-field: wajib (*), hint, error -- dipakai berdampingan
-   dengan helper PHP bersama (includes/validator.php: field_error_class(),
-   field_aria()) yang mengembalikan nama kelas LAMA ("field--invalid") karena
-   dipakai lintas halaman yang belum semuanya dimigrasi; selector gabungan di
-   bawah menerapkannya ke input/select/textarea BARU tanpa mengubah helper itu. */
+/* helper includes/validator.php masih menghasilkan kelas lama "field--invalid"; selector di bawah menerapkannya ke input baru */
 .ds-field__required {
   color: var(--ds-danger);
 }
@@ -742,9 +672,7 @@
   border-color: var(--ds-danger);
 }
 
-/* --- Grid foto: thumbnail + tombol hapus (dipakai server-rendered di
-   aktivitas/form.php DAN dibuat ulang via JS di foto-preview.js -- keduanya
-   memakai nama kelas yang SAMA, lihat berkas itu). --- */
+/* nama kelas di sini dipakai bersama markup yang dibangun dinamis oleh foto-preview.js */
 .ds-photo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -781,10 +709,7 @@
   background: var(--ds-bg);
 }
 
-/* --- Dropzone (unggah foto, aktivitas/form.php) -- input[type=file] bawaan
-   tetap ada & bisa diklik/dinavigasi keyboard (bukan disembunyikan), seret
-   & lepas lewat drag event di assets/js/foto-preview.js hanya tambahan,
-   bukan satu-satunya cara mengunggah. */
+/* input file native tetap terlihat/bisa dipakai keyboard; drag-and-drop di foto-preview.js hanya tambahan */
 .ds-dropzone {
   display: flex;
   flex-direction: column;
@@ -835,7 +760,6 @@
   }
 }
 
-/* --- Toolbar daftar (jumlah hasil + aksi utama) --- */
 .ds-list-toolbar {
   display: flex;
   align-items: center;
@@ -847,7 +771,6 @@
   color: #64748b;
 }
 
-/* --- Pagination --- */
 .ds-pagination {
   display: flex;
   align-items: center;
@@ -873,9 +796,7 @@
   cursor: not-allowed;
 }
 
-/* --- Floating action button (pembuka popup filter) -- z-index di bawah
-   .ds-sidebar-backdrop (20) sengaja, supaya ikut redup saat sidebar mobile
-   terbuka, bukan "mengambang" di atas overlay-nya. */
+/* z-index tetap di bawah .ds-sidebar-backdrop (20) agar ikut redup bersama backdrop saat sidebar mobile terbuka */
 .ds-fab {
   position: fixed;
   right: 24px;
@@ -918,8 +839,6 @@
     0 0 0 1px var(--ds-primary);
 }
 
-/* Aksen saat ada filter aktif -- lingkaran kecil dengan jumlah filter,
-   data nyata (dihitung dari query aktif), bukan hiasan kosong. */
 .ds-fab--active {
   background: var(--ds-primary-strong);
 }
@@ -944,14 +863,6 @@
   }
 }
 
-/* -----------------------------------------------------------------------------
-   App shell: topbar TERANG (fokus bisnis flow, tidak berebut perhatian
-   dengan data) + sidebar GELAP aurora (identitas visual, dipakai statis/
-   tanpa animasi di sini -- beda dari .ds-auth-shell yang animasinya terus
-   bergerak, karena ini CHROME PERMANEN yang dilihat sepanjang hari kerja,
-   bukan momen hero sekali lihat). Dimuat global lewat includes/header.php
-   untuk SEMUA halaman layout="app" (bukan lagi satu per satu lewat extra_head).
-   ----------------------------------------------------------------------------- */
 .ds-app-shell {
   display: flex;
   flex-direction: column;
@@ -961,11 +872,7 @@
   background: var(--ds-bg);
 }
 
-/* Topbar gelap SOLID -- warna sama persis dengan .ds-sidebar (--ds-dark-surface)
-   supaya chrome permanen (topbar+sidebar) terbaca sebagai SATU bidang gelap
-   membungkus kanvas konten terang, bukan dua warna berbeda yang bersaingan.
-   Tidak pakai border, konsisten dengan .ds-sidebar yang juga mengandalkan
-   kontras warna (bukan garis) untuk memisahkan diri dari konten. */
+/* warna sama dengan .ds-sidebar agar topbar+sidebar terbaca sebagai satu bidang gelap, bukan dua warna bersaingan */
 .ds-topbar {
   position: sticky;
   top: 0;
@@ -1087,12 +994,7 @@
   min-height: 0;
 }
 
-/* Sidebar gelap SOLID (warna dark DESIGN.md) -- sempat memakai gradien/glow
-   aurora, dicabut karena terlalu ramai untuk chrome yang dilihat sepanjang
-   hari kerja. Warna gelap tetap dipertahankan sebagai identitas.
-   position:fixed di SEMUA lebar (bukan hanya mobile off-canvas) -- sidebar
-   diam di tempat saat konten .ds-app-main digulir, dengan scroll internal
-   sendiri bila daftar menu lebih tinggi dari viewport. */
+/* fixed di semua lebar (bukan hanya off-canvas mobile) agar diam saat .ds-app-main digulir */
 .ds-sidebar {
   width: 248px;
   flex-shrink: 0;
@@ -1184,9 +1086,7 @@
   --ds-app-main-pad: 28px;
   flex: 1;
   min-width: 0;
-  /* Offset lebar .ds-sidebar (248px, fixed) -- sejak sidebar lepas dari flex
-     flow .ds-app-body, .ds-app-main perlu margin manual supaya kontennya
-     tidak tertindih sidebar. */
+  /* mengimbangi lebar .ds-sidebar yang fixed, karena di luar alur flex .ds-app-body */
   margin-left: 248px;
   padding: var(--ds-app-main-pad);
 }
@@ -1216,8 +1116,6 @@
   }
 }
 
-/* Flash message (markup lama, includes/header.php) di dalam konten "app" --
-   penyesuaian visual murni, biar senada dengan kartu/tipografi baru. */
 .ds-app-main .flash-list {
   margin-bottom: 24px;
 }
@@ -1227,12 +1125,7 @@
   border-radius: var(--ds-radius-card);
 }
 
-/* Modifier .ds-page-header: judul (eyebrow+h1, dibungkus div) sejajar SATU
-   BARIS dengan tombol aksi (mis. "+ Input Aktivitas" khusus peran kontraktor
-   di dashboard.php) -- align-items: flex-end supaya tombol sejajar dengan
-   baseline judul, bukan ikut naik ke sejajar eyebrow kecil di atasnya. Hanya
-   dipakai via modifier, bukan default .ds-page-header, supaya halaman lain
-   yang cuma punya satu <h1> di dalamnya (tanpa pembungkus div) tidak terdampak. */
+/* modifier opt-in, bukan default .ds-page-header, agar halaman tanpa tombol aksi tidak terpengaruh */
 .ds-page-header--row {
   display: flex;
   align-items: flex-end;
@@ -1241,13 +1134,6 @@
   gap: 16px;
 }
 
-/* -----------------------------------------------------------------------------
-   Statistik dashboard — per KOLOM, minimalis (bukan panel gelap, bukan kartu
-   berbayang terpisah): satu baris terang dipisah garis tipis antar kolom,
-   aksen warna status hanya lewat titik kecil + angka, tanpa ikon/chip warna
-   besar. Riwayat: kartu putih individual -> panel gelap aurora -> panel gelap
-   solid -> desain minimal ini (diminta lebih sederhana).
-   ----------------------------------------------------------------------------- */
 .ds-stat-cols {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1280,8 +1166,6 @@
   transition: background var(--ds-motion-normal) ease;
 }
 
-/* Masuk bergantian per kolom (cascade), bukan serempak -- "dealt" satu
-   per satu, tetap SATU jenis gerakan yang sama (ds-enter), hanya ditunda. */
 .ds-stat-col:nth-child(1) {
   animation-delay: 0ms;
 }
@@ -1341,9 +1225,7 @@
   transition: transform var(--ds-motion-normal) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Warna aksen TETAP sesuai PRD bagian 9 -- hanya titik kecil di label, bukan
-   latar/ikon besar (konsisten dengan arah "lebih minimalis"); --ds-stat-soft/
-   --ds-stat-glow HANYA dipakai untuk wash/glow saat hover, bukan latar permanen. */
+/* --ds-stat-soft/--ds-stat-glow hanya wash/glow saat hover, bukan latar permanen */
 .ds-stat-col--berizin {
   --ds-stat-accent: #2e9e4f;
   --ds-stat-soft: rgba(46, 158, 79, 0.16);

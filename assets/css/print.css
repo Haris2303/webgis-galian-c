@@ -1,11 +1,4 @@
-/* =============================================================================
-   assets/css/print.css — WebGIS Galian C Kota Sorong (T-04)
-   Dimuat lewat <link rel="stylesheet" media="print">, jadi semua selector di
-   sini aktif HANYA saat mencetak/"Save as PDF" (PRD bagian 3 & #7: laporan
-   tanpa library PDF, cukup window.print() + CSS ini). Dipakai nyata mulai
-   laporan/index.php (T-22); disiapkan sekarang agar tokennya konsisten dengan
-   style.css.
-   ============================================================================= */
+/* assets/css/print.css — aturan di sini hanya aktif saat mencetak / "Save as PDF" (media="print"). */
 
 * {
   box-shadow: none !important;
@@ -18,11 +11,6 @@ html, body {
   color: #000;
 }
 
-/* Sidebar, topbar, dan semua kontrol interaktif tidak relevan di atas kertas.
-   Bug nyata (ditemukan saat redesign laporan ini): selector di sini masih
-   menyasar kelas LAMA (.app-topbar/.app-sidebar/.hamburger-btn) dari sebelum
-   migrasi ke namespace ds-* -- chrome aplikasi ikut TERCETAK di kertas sejak
-   migrasi itu, karena aturan sembunyikan di sini sudah tidak pernah kena. */
 .ds-topbar,
 .ds-sidebar,
 .ds-sidebar-backdrop,
@@ -41,11 +29,10 @@ dialog.modal {
 
 .ds-app-main {
   padding: 0;
-  margin-left: 0; /* offset lebar sidebar (ds-app-main, desain baru) tidak relevan -- sidebar disembunyikan di atas */
+  margin-left: 0; /* offset sidebar tidak relevan; sidebar disembunyikan di atas */
 }
 
-/* Kartu "kaca" (glassmorphism, desain baru) tidak relevan di atas kertas --
-   blur/transparansi tidak tercetak dengan benar di semua printer/engine PDF. */
+/* blur/transparansi tidak tercetak akurat di semua printer/engine PDF */
 .ds-card {
   background: #fff !important;
   backdrop-filter: none !important;
@@ -59,10 +46,7 @@ a {
   text-decoration: none;
 }
 
-/* Dokumen laporan (laporan/index.php) tercetak selebar halaman A4 -- bingkai
-   "kartu" di layar (style.css: box-shadow/radius/max-width terpusat) tidak
-   relevan di atas kertas, konsisten dengan komentar di atas .laporan-dokumen
-   (style.css): SENGAJA bukan .card supaya tidak kena break-inside:avoid. */
+/* sengaja bukan .card, agar tidak kena aturan break-inside:avoid di bawah */
 .laporan-dokumen {
   max-width: none;
   margin: 0;
@@ -71,10 +55,7 @@ a {
   background: transparent;
 }
 
-/* Tabel laporan: border tegas + cegah satu baris terpotong antar halaman.
-   min-width 560px (style.css) dibuat untuk scroll horizontal di MOBILE --
-   di atas kertas tidak ada scroll, jadi dibatalkan di sini (T-22) agar tabel
-   tidak dipaksa melebar sampai kepotong tepi halaman A4. */
+/* membatalkan min-width mobile (dipakai untuk scroll horizontal) agar tabel pas di halaman A4 */
 .data-table {
   width: 100%;
   min-width: 0;
@@ -86,8 +67,7 @@ a {
   border: 1px solid #000;
   padding: 6px 8px;
   color: #000;
-  /* Edge case wajib T-22: nama lokasi/kontraktor sangat panjang -- patahkan
-     kata di dalam sel, jangan biarkan meluber keluar tabel/halaman. */
+  /* patahkan nama panjang di dalam sel daripada meluber keluar halaman */
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -98,9 +78,7 @@ a {
   print-color-adjust: exact;
 }
 
-/* thead berulang di setiap halaman cetak (spesifikasi T-22) -- perilaku bawaan
-   browser untuk <table><thead> yang terpotong antar halaman; eksplisit di
-   sini sebagai jaring pengaman, bukan andalan satu-satunya pada default. */
+/* mengulang thead di setiap halaman cetak; default browser, dipasang eksplisit sebagai fallback */
 .data-table thead {
   display: table-header-group;
 }
@@ -109,9 +87,7 @@ tr, .card, .stat-card, .ds-card, .ds-stat-col, .laporan-tandatangan, .laporan-ko
   break-inside: avoid;
 }
 
-/* Badge dicetak sebagai teks polos tanpa warna, SAMA seperti tulisan lain di
-   dokumen (bukan latar/border berwarna) -- layaknya dokumen dinas cetak,
-   bukan tampilan UI warna-warni. */
+/* badge dicetak sebagai teks polos, tanpa warna, seperti tulisan lain di dokumen */
 .badge {
   background: none !important;
   color: inherit !important;
@@ -124,11 +100,7 @@ tr, .card, .stat-card, .ds-card, .ds-stat-col, .laporan-tandatangan, .laporan-ko
   display: none;
 }
 
-/* A4 (spesifikasi T-22) + nomor halaman lewat counter(page)/counter(pages)
-   bawaan CSS Paged Media (bukan JS) -- dukungan margin box @page ("@bottom-
-   center") bervariasi antar versi/engine Chrome; lihat Risiko tersisa T-22.
-   Bila tidak didukung, baris ini DIAM SAJA (tidak tampil) -- laporan tetap
-   lengkap dan terbaca tanpa nomor halaman, bukan rusak/error. */
+/* dukungan @bottom-center berbeda tiap engine; nomor halaman cuma tidak tampil bila tak didukung */
 @page {
   size: A4;
   margin: 16mm 14mm;

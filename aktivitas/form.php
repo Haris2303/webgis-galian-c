@@ -2,17 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * aktivitas/form.php — tambah & ubah aktivitas tambang (FR-13, FR-15; T-17,
- * PRD bagian 2, 5, 7). Dipakai Kontraktor (lokasi miliknya saja) dan Admin
- * (semua lokasi). Otorisasi tingkat objek (PRD bagian 7) ditegakkan di SINI,
- * bukan hanya lewat sidebar/menu -- setiap ID dari URL maupun POST diperiksa
- * ulang ke database, tidak pernah dipercaya mentah dari klien.
- *
- * Foto (FR-14, T-18): validasi berlapis + re-encode GD (buang EXIF/GPS &
- * payload polyglot) + thumbnail + rollback file fisik ditangani penuh oleh
- * includes/upload_foto.php -- berkas ini hanya memanggilnya.
- */
+// aktivitas/form.php — tambah & ubah aktivitas tambang; setiap ID dari URL/POST diperiksa ulang ke database, tidak dipercaya mentah dari klien.
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/aktivitas.php';
@@ -33,25 +23,18 @@ if ($id !== null) {
         abort(404, 'Aktivitas tidak ditemukan.');
     }
     if (!can_access_aktivitas($user, $id)) {
-        // Edge case wajib T-17 (IDOR #1 -- "ubah ID di URL"): aktivitas ini
-        // ada, tapi bukan milik kontraktor ini maupun admin yang login.
+        // Aktivitas ada tapi bukan milik kontraktor ini maupun admin yang login.
         abort(403);
     }
 }
 $is_edit = $aktivitas !== null;
 
 if (!$is_edit && $user['role'] !== 'kontraktor') {
-    // FR-13 (PRD bagian 5): hanya Kontraktor yang boleh MEMBUAT aktivitas
-    // baru (kolom "Peran" di PRD hanya mencantumkan Kontraktor untuk FR-13).
-    // Admin tetap bisa UBAH aktivitas siapa pun lewat ?id= (FR-15), tapi
-    // tidak membuat entri baru atas nama kontraktor yang bukan dirinya.
+    // Hanya kontraktor yang boleh membuat aktivitas baru; admin hanya bisa mengubah.
     abort(403);
 }
 
-// Dropdown lokasi: kontraktor hanya lokasi PERUSAHAANNYA, admin semua
-// (spesifikasi T-17). Daftar ini jugalah yang membatasi pilihan WAJAR di
-// klien -- otorisasi SUNGGUHAN tetap diperiksa ulang saat submit di bawah,
-// karena klien bisa mengirim lokasi_id apa pun lewat request mentah.
+// Daftar ini hanya membatasi pilihan di klien; otorisasi sesungguhnya diperiksa ulang saat submit.
 if ($user['role'] === 'admin') {
     [$daftar_lokasi] = repo_lokasi_list([], 1, 500, 'nama_lokasi', 'asc');
 } else {
@@ -89,9 +72,7 @@ $rules = [
 ];
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    // Edge case wajib T-18: post_max_size php.ini terlampaui -- $_POST DAN
-    // $_FILES keduanya kosong di sini, jadi diperiksa SEBELUM csrf_require()
-    // (yang juga akan gagal, tapi dengan pesan yang menyesatkan).
+    // Dicek sebelum csrf_require(): saat post_max_size terlampaui, $_POST dan $_FILES kosong.
     $pesan_post_terlampaui = upload_cek_post_terlampaui();
     if ($pesan_post_terlampaui !== null) {
         flash('error', $pesan_post_terlampaui);
@@ -101,9 +82,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     csrf_require();
 
     if (!form_token_consume($_POST['_form_token'] ?? null)) {
-        // Edge case wajib T-17: double submit. Sama seperti lokasi/form.php
-        // (T-09) -- anggap submit pertama sudah/tengah diproses, jangan buat
-        // baris kedua.
+        // Anggap submit pertama sudah diproses; cegah baris duplikat.
         flash('warning', 'Formulir ini sudah diproses sebelumnya.');
         redirect('aktivitas/index.php');
     }
@@ -112,21 +91,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $errors = $hasil['errors'];
     $data = $hasil['data'];
 
-    // lokasi_id: FK yang juga gerbang otorisasi utama task ini -- divalidasi
-    // keberadaannya (bukan 'in:' statis, daftarnya dinamis) DAN kepemilikannya.
+    // lokasi_id divalidasi keberadaannya (dinamis, bukan 'in:' statis) dan kepemilikannya.
     $lokasi_id = (int) ($_POST['lokasi_id'] ?? 0);
     $lokasi = $lokasi_id > 0 ? repo_lokasi_find($lokasi_id) : null;
     if ($lokasi === null) {
-        // Termasuk edge case wajib T-17: lokasi dihapus saat form masih
-        // terbuka -- lokasi_id yang tadinya valid saat halaman dimuat sudah
-        // tidak ada lagi saat submit. Diberi tahu sebagai error form biasa,
-        // bukan 403 (bukan percobaan akses, cuma kedaluwarsa wajar).
+        // Lokasi mungkin terhapus setelah form dimuat; tampilkan sebagai error form, bukan 403.
         $errors['lokasi_id'][] = 'Lokasi wajib dipilih dan harus masih ada.';
     } elseif (!can_access_lokasi($user, $lokasi_id)) {
-        // Edge case wajib T-17 (IDOR #2 -- "ubah lokasi_id di POST"): lokasi
-        // ini ADA, tapi milik kontraktor lain. 403 tegas -- ini percobaan
-        // akses ke data pihak lain, bukan kesalahan input wajar yang cukup
-        // ditampilkan sebagai pesan error form.
+        // Lokasi ada tapi milik kontraktor lain -- percobaan akses, bukan input tidak valid.
         abort(403);
     }
 
@@ -135,9 +107,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $errors['material_id'][] = 'Jenis material wajib dipilih dan harus valid.';
     }
 
-    // Tanggal tidak boleh di masa depan (spesifikasi T-17) -- validator
-    // generik (includes/validator.php) tidak punya aturan "sebelum hari ini"
-    // dinamis, jadi dicek manual di sini, konsisten dengan pola lokasi/form.php.
+    // Validator generik tidak punya aturan "sebelum hari ini" dinamis, jadi dicek manual.
     if (($data['tanggal_aktivitas'] ?? '') !== '' && $data['tanggal_aktivitas'] > date('Y-m-d')) {
         $errors['tanggal_aktivitas'][] = 'Tanggal aktivitas tidak boleh di masa depan.';
     }
@@ -149,9 +119,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     if ($errors === [] && $lokasi !== null) {
-        // Edge case wajib T-17: aktivitas ganda utk lokasi & tanggal yang
-        // sama -- PERINGATAN, BUKAN blokir. Dicek setelah validasi dasar
-        // lolos supaya tidak menimpa pesan error yang lebih mendasar.
+        // Peringatan saja, bukan blokir; dicek setelah validasi dasar lolos.
         $sudah_ada = repo_aktivitas_exists_same_date($lokasi_id, $data['tanggal_aktivitas'], $is_edit ? $id : null);
         if ($sudah_ada) {
             $status_warning = 'Catatan: sudah ada aktivitas lain tercatat untuk lokasi dan tanggal yang sama. Data ini tetap disimpan sebagai entri terpisah.';
@@ -159,9 +127,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     if ($errors === []) {
-        // Mass assignment: array dibangun EKSPLISIT field demi field dari
-        // nilai yang SUDAH divalidasi, bukan $_POST/$data disebar langsung
-        // (pola yang sama dengan lokasi/form.php, T-09).
+        // Dibangun field demi field dari data yang sudah divalidasi, bukan disebar dari $_POST langsung.
         $aktivitas_data = [
             'lokasi_id' => $lokasi_id,
             'tanggal_aktivitas' => $data['tanggal_aktivitas'],
@@ -175,29 +141,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         $foto_files = $_FILES['foto'] ?? null;
 
-        // Edge case wajib T-18: "rollback file fisik bila transaksi DB gagal".
-        // $written_paths diisi oleh upload_foto_simpan() SETIAP berkas yang
-        // SUDAH tertulis ke disk, SEBELUM baris DB-nya di-insert -- kalau
-        // Exception apa pun terlempar di dalam db_transaction() (termasuk
-        // dari GD saat memproses berkas lain, atau kegagalan DB), file yang
-        // SEMPAT tertulis pada percobaan ini dibersihkan di blok catch.
+        // $written_paths diisi setiap file yang sudah ditulis ke disk, dibersihkan di catch bila transaksi gagal.
         $written_paths = [];
 
         try {
             if ($is_edit) {
                 $aktivitas_id = $id;
-                // user_id SENGAJA tidak disentuh saat ubah -- pencatat asli
-                // tidak berubah hanya karena admin yang mengedit (spesifikasi
-                // T-17: "user_id ditetapkan server", bukan sesuatu yang bisa dipindah).
+                // user_id tidak diubah saat edit -- pencatat asli tetap sama.
                 db_transaction(function () use ($aktivitas_id, $aktivitas_data, $foto_files, &$written_paths) {
                     repo_aktivitas_update($aktivitas_id, $aktivitas_data);
                     upload_foto_simpan($aktivitas_id, $foto_files, $written_paths);
                 });
                 flash('success', 'Aktivitas berhasil diperbarui.' . ($status_warning !== null ? ' ' . $status_warning : ''));
             } else {
-                // created_by/user_id WAJIB dari sesi yang login, bukan dari
-                // form (edge case mass assignment -- spesifikasi T-17:
-                // "user_id ditetapkan server").
+                // user_id diambil dari sesi login, bukan dari form.
                 $aktivitas_data['user_id'] = $user['id'];
                 db_transaction(function () use ($aktivitas_data, $foto_files, &$written_paths) {
                     $new_id = repo_aktivitas_create($aktivitas_data);
@@ -209,9 +166,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             foreach ($written_paths as $path) {
                 @unlink($path);
             }
-            // Pesan asli (bisa berisi path server, dll) HANYA ke log -- yang
-            // ditampilkan ke pengguna selalu generik, konsisten dengan
-            // exception handler global (includes/bootstrap.php).
+            // Pesan asli (bisa berisi path server) hanya ke log; pengguna selalu dapat pesan generik.
             app_log('error', 'aktivitas/form.php: transaksi gagal, ' . count($written_paths) . ' berkas fisik dibersihkan. ' . $e->getMessage());
             flash('error', 'Gagal menyimpan aktivitas karena kesalahan server. Berkas yang sempat terunggah telah dibersihkan, silakan coba lagi.');
             redirect('aktivitas/form.php' . ($is_edit ? '?id=' . $id : ''));
@@ -221,12 +176,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 }
 
-// Lokasi yang SEDANG terpilih (POST gagal validasi -> dari input; mode ubah
-// -> dari data tersimpan; mode tambah baru -> belum ada). Dipakai membangun
-// panel info read-only (kontraktor/koordinat/status izin) di bawah --
-// SELALU diambil ulang dari DB di sini, TIDAK PERNAH dari field tersembunyi
-// manapun (spesifikasi T-17: field read-only "server mengambil ulang dari
-// database dan tidak mempercayai input klien").
+// Panel info read-only di bawah selalu diambil ulang dari DB, tidak pernah dari field tersembunyi.
 $lokasi_id_terpilih = (int) ($_POST['lokasi_id'] ?? ($is_edit ? $aktivitas['lokasi_id'] : 0));
 $lokasi_terpilih = $lokasi_id_terpilih > 0 ? repo_lokasi_find($lokasi_id_terpilih) : null;
 $kontraktor_terpilih = $lokasi_terpilih !== null ? repo_kontraktor_find((int) $lokasi_terpilih['kontraktor_id']) : null;
@@ -413,17 +363,7 @@ require __DIR__ . '/../includes/header.php';
     </div>
   </form>
 
-  <?php
-  // Dialog konfirmasi hapus foto -- SENGAJA di LUAR <form> edit aktivitas di
-  // atas. <form> tidak boleh bersarang (HTML tidak mengizinkan); taruh
-  // <form method="dialog">/<form method="post" ke hapus_foto.php> yang dua-
-  // duanya di dalam .modal__actions di SINI di dalam <form> besar membuat
-  // parser browser menutup <form> besar lebih awal pada </form> pertama yang
-  // ditemuinya (form element pointer sudah menunjuk ke form besar, bukan form
-  // bersarang yang start tag-nya diabaikan) -- akibatnya tombol "Simpan
-  // Perubahan" berakhir di LUAR form mana pun dan tidak melakukan apa-apa saat
-  // diklik. Bug nyata ini terjadi di sesi ini sampai dipindah ke sini.
-  ?>
+  <?php // Di luar <form> utama -- form tidak boleh bersarang, atau submit utama rusak akibat parser browser. ?>
   <?php foreach ($foto_lama as $f): ?>
   <dialog class="modal" id="dialog-hapus-foto-<?= e((string) $f['id']) ?>" aria-labelledby="dialog-hapus-foto-<?= e((string) $f['id']) ?>-title">
     <div class="modal__body">

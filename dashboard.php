@@ -2,13 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * dashboard.php — Dashboard per peran (FR-04 s.d. FR-06; PRD bagian 5, 9; T-20).
- * Kartu statistik + pratinjau peta + tabel 10 lokasi. Admin melihat semua
- * lokasi; Kontraktor hanya lokasi miliknya (PRD bagian 2: "Dashboard
- * statistik: Ya (hanya lokasi miliknya)") -- scoping ini diterapkan ke KEDUA
- * kartu DAN tabel lewat satu variabel $kontraktor_id_scope, bukan hanya kartu.
- */
+// Dashboard per peran: Admin melihat semua lokasi, Kontraktor hanya lokasi miliknya ($kontraktor_id_scope dipakai untuk kartu dan tabel).
 
 require_once __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/repo/lokasi.php';
@@ -18,15 +12,10 @@ $user = require_login();
 
 $kontraktor_id_scope = $user['role'] === 'kontraktor' ? (int) ($user['kontraktor_id'] ?? 0) : null;
 
-// FR-04: satu query GROUP BY status_izin (repo_lokasi_count_by_status(), T-12),
-// BUKAN empat query COUNT terpisah per kartu.
 $stat = repo_lokasi_count_by_status($kontraktor_id_scope);
 $total_lokasi = $stat['berizin'] + $stat['tidak_berizin'] + $stat['proses'];
 
-// FR-06: 10 lokasi: nama, kontraktor, status. Filter kontraktor_id kosong
-// (null) untuk Admin berarti repo_lokasi_list() tidak menyaring sama sekali
-// (lihat !empty() di includes/repo/lokasi.php) -- tetap SATU fungsi untuk
-// kedua peran, bukan dua query berbeda.
+// kontraktor_id null (Admin) berarti repo_lokasi_list() tidak menyaring sama sekali.
 [$daftar_lokasi] = repo_lokasi_list(
     $kontraktor_id_scope !== null ? ['kontraktor_id' => $kontraktor_id_scope] : [],
     1,
@@ -35,12 +24,7 @@ $total_lokasi = $stat['berizin'] + $stat['tidak_berizin'] + $stat['proses'];
 
 $judul_dashboard = 'Dashboard';
 
-/**
- * Markup badge status (teks + warna, PRD bagian 9) untuk satu baris tabel.
- * default menutup edge case wajib T-20: status_izin NULL atau nilai di luar
- * tiga enum (data rusak/kolom berubah) tampil sebagai badge netral, bukan
- * baris rusak atau warning PHP "undefined array key".
- */
+// status_izin NULL atau di luar tiga enum tampil sebagai badge netral, bukan warning PHP.
 function dashboard_badge_status(?string $status_izin): string
 {
     $label = match ($status_izin) {

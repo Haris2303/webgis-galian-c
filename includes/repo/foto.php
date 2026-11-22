@@ -7,11 +7,7 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/repo/foto.php — akses data tabel foto_aktivitas.
- * Hanya menyimpan path file; validasi MIME/ukuran/nama acak (PRD bagian 11)
- * adalah tanggung jawab lapisan upload (T-18), bukan repository ini.
- */
+// includes/repo/foto.php — akses data tabel foto_aktivitas; hanya menyimpan path, validasi dilakukan di layer upload.
 
 function repo_foto_find(int $id): ?array
 {
@@ -26,7 +22,7 @@ function repo_foto_list_by_aktivitas(int $aktivitas_id): array
     );
 }
 
-/** Dipakai menegakkan batas UPLOAD_MAX_FILES (config/config.php) sebelum insert baru. */
+// Dipakai menegakkan batas UPLOAD_MAX_FILES sebelum insert baru.
 function repo_foto_count_by_aktivitas(int $aktivitas_id): int
 {
     $row = db_one(
@@ -56,9 +52,7 @@ function repo_foto_delete(int $id): bool
 }
 
 /**
- * Semua file_path foto dari SELURUH aktivitas milik satu lokasi (T-09: hapus
- * lokasi harus mengumpulkan ini SEBELUM DELETE, karena CASCADE akan membuat
- * baris foto_aktivitas-nya tidak lagi bisa di-query setelah lokasi dihapus).
+ * Dikumpulkan sebelum lokasi dihapus -- CASCADE membuat baris ini tak lagi bisa di-query setelahnya.
  * @return string[]
  */
 function repo_foto_list_paths_by_lokasi(int $lokasi_id): array

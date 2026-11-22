@@ -2,22 +2,9 @@
 
 declare(strict_types=1);
 
-/**
- * tests/smoke.php — uji otomatis black box end-to-end (T-27; skripsi Tabel
- * 3.2; PRD bagian 12). CLI murni, TANPA PHPUnit/Composer (PRD bagian 3: tanpa
- * dependensi tambahan) — HTTP sungguhan lewat ekstensi curl bawaan PHP,
- * cookie jar per KASUS (bukan satu sesi global) supaya kasus benar-benar
- * mandiri (edge case wajib T-27).
- *
- * Jalankan: php tests/smoke.php [base_url]
- * Default base_url: http://webgis-galian-c.test (ganti lewat argumen bila
- * domain dev Anda berbeda, mis. php tests/smoke.php http://localhost/webgis-galian-c).
- *
- * WAJIB dijalankan hanya lewat CLI, hanya saat APP_ENV=dev (skrip ini
- * MERESET TOTAL database ke seed sebelum jalan — edge case wajib "tidak
- * boleh menghapus data produksi" ditegakkan lewat DUA gerbang di bawah,
- * bukan diasumsikan dari konteks pemanggilan).
- */
+// Uji otomatis end-to-end lewat HTTP (curl bawaan PHP, tanpa PHPUnit); cookie jar per kasus agar kasus mandiri.
+// Jalankan: php tests/smoke.php [base_url] (default http://webgis-galian-c.test).
+// Wajib CLI dan APP_ENV=dev -- skrip ini mereset total database ke seed sebelum jalan.
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
@@ -34,14 +21,7 @@ if (APP_ENV !== 'dev') {
 
 $BASE_URL = rtrim($argv[1] ?? 'http://webgis-galian-c.test', '/');
 
-// -----------------------------------------------------------------------------
-// 1. Reset database ke seed. Koneksi PDO TERPISAH dari config/database.php
-//    (bukan db() aplikasi) -- schema.sql men-DROP+CREATE seluruh database,
-//    butuh koneksi tanpa dbname terikat dan MYSQL_ATTR_MULTI_STATEMENTS
-//    (dieksekusi sebagai satu exec() per berkas, bukan statement-per-statement),
-//    yang sengaja TIDAK diaktifkan di koneksi utama aplikasi (lebih kecil
-//    permukaan serangan di luar skrip ini).
-// -----------------------------------------------------------------------------
+// 1. Reset database ke seed, lewat koneksi PDO terpisah dari db() aplikasi (butuh MYSQL_ATTR_MULTI_STATEMENTS untuk schema.sql).
 function reset_database(): void
 {
     echo "Mereset database ke seed...\n";
@@ -59,11 +39,7 @@ require_once __DIR__ . '/../includes/bootstrap.php'; // DB() aplikasi baru conne
 
 reset_database();
 
-// -----------------------------------------------------------------------------
-// 2. Klien HTTP minimal (curl bawaan PHP). FOLLOWLOCATION SENGAJA mati --
-//    kasus uji sering perlu memeriksa status 302/419/403 itu sendiri DAN
-//    Location-nya, bukan hasil akhir setelah diikuti otomatis.
-// -----------------------------------------------------------------------------
+// 2. Klien HTTP minimal; FOLLOWLOCATION sengaja mati karena kasus uji perlu memeriksa status redirect itu sendiri.
 function req(string $method, string $url, ?string $jar, ?array $fields = null): array
 {
     $ch = curl_init($url);
@@ -152,11 +128,7 @@ function login(string $username, string $password): array
     return ['jar' => $jar, 'resp' => $resp];
 }
 
-// -----------------------------------------------------------------------------
-// 3. Assertion + pencatat hasil. Satu exception per kasus (bukan per
-//    assertion) -- cocok dengan format laporan "1 baris = 1 kasus", dan
-//    kegagalan satu kasus tidak menghentikan kasus lain (ditangkap di kasus()).
-// -----------------------------------------------------------------------------
+// 3. Assertion + pencatat hasil; satu exception per kasus, ditangkap di kasus() agar kegagalan satu kasus tidak menghentikan kasus lain.
 class SmokeGagal extends Exception
 {
 }
@@ -213,10 +185,7 @@ function kasus(string $id, string $skenario, string $fr, string $harapan, callab
     }
 }
 
-// -----------------------------------------------------------------------------
-// 4. Helper data seed (cari lewat NAMA, bukan ID literal -- robust terhadap
-//    urutan AUTO_INCREMENT, konsisten dengan prinsip seed.sql sendiri).
-// -----------------------------------------------------------------------------
+// 4. Helper data seed; cari lewat nama, bukan ID literal, agar tidak bergantung urutan AUTO_INCREMENT.
 function id_lokasi(string $nama): int
 {
     $row = db_one('SELECT id FROM lokasi_tambang WHERE nama_lokasi = :n', ['n' => $nama]);
@@ -261,9 +230,7 @@ function id_aktivitas_pertama(string $nama_lokasi): int
     return (int) $row['id'];
 }
 
-// =============================================================================
-// 5. SEBELAS KASUS POSITIF (PRD bagian 12 / skripsi Tabel 3.2)
-// =============================================================================
+// 5. Sebelas kasus positif
 
 kasus('T-1', 'Login Admin', 'FR-01', 'Kredensial valid -> redirect ke dashboard.php', function () use ($BASE_URL) {
     $r = login('admin', 'admin123');
@@ -366,10 +333,7 @@ kasus('T-6', 'Monitoring Aktivitas', 'FR-21', 'Buka halaman monitoring -> aktivi
     $r = login('admin', 'admin123');
     $mon = req('GET', "$BASE_URL/monitoring.php", $r['jar']);
     assert_status(200, $mon['status'], 'GET monitoring.php');
-    // Seed selalu memberi "Lokasi Klasaman" aktivitas tertanggal HARI INI
-    // (DATE_SUB(CURDATE(), INTERVAL 0 DAY), database/seed.sql) -- jendela
-    // default monitoring.php (30 hari) WAJIB memuatnya, deterministik
-    // berapa pun tanggal skrip ini dijalankan.
+    // Seed selalu memberi "Lokasi Klasaman" aktivitas tertanggal hari ini, jadi jendela 30 hari monitoring.php wajib memuatnya.
     assert_contains($mon['body'], 'Lokasi Klasaman', 'Monitoring tidak menampilkan aktivitas terbaru "Lokasi Klasaman" (seed, tanggal hari ini).');
     unlink($r['jar']);
 });
@@ -441,8 +405,7 @@ kasus('T-9', 'Hapus Data Tambang', 'FR-10', 'Pilih data lalu klik hapus -> hilan
         'status_izin' => 'proses',
     ]);
 
-    // Token CSRF per-sesi (bukan per-halaman) -- cukup ambil dari halaman
-    // manapun yang sudah login, konsisten dengan desain csrf_token() (T-05).
+    // Token CSRF per-sesi (bukan per-halaman): cukup ambil dari halaman manapun yang sudah login.
     $halaman = req('GET', "$BASE_URL/lokasi/index.php", $r['jar']);
     $csrf = ambil_csrf($halaman['body']);
 
@@ -479,17 +442,14 @@ kasus('T-11', 'Logout', 'FR-02', 'Klik logout -> sesi dihancurkan, kembali ke lo
     assert_status(302, $logout['status'], 'POST logout.php');
     assert_contains($logout['headers'], 'login.php', 'Logout tidak mengarahkan ke login.php.');
 
-    // Tombol Back TIDAK boleh membuka halaman terproteksi (PRD FR-02) --
-    // jar yang SAMA (sesi sudah dihancurkan) mencoba dashboard.php lagi.
+    // Tombol Back tidak boleh membuka halaman terproteksi: jar yang sama (sesi sudah dihancurkan) mencoba lagi.
     $coba_lagi = req('GET', "$BASE_URL/dashboard.php", $r['jar']);
     assert_status(302, $coba_lagi['status'], 'GET dashboard.php dengan sesi yang sudah logout');
     assert_contains($coba_lagi['headers'], 'login.php', 'Setelah logout, dashboard.php tidak mengarahkan ke login.php.');
     unlink($r['jar']);
 });
 
-// =============================================================================
-// 6. KASUS NEGATIF (spesifikasi T-27 + PRD bagian 12 "kasus negatif tambahan")
-// =============================================================================
+// 6. Kasus negatif
 
 kasus('N-1', 'Login salah', 'FR-01', 'Kredensial tidak valid -> kembali ke login dengan pesan netral, TIDAK redirect', function () use ($BASE_URL) {
     $jar = new_jar();
@@ -502,9 +462,7 @@ kasus('N-1', 'Login salah', 'FR-01', 'Kredensial tidak valid -> kembali ke login
 });
 
 kasus('N-2', 'Throttling login', 'PRD bagian 11', 'Lebih dari 5 percobaan gagal (15 menit) -> pesan berubah jadi "terlalu banyak percobaan"', function () use ($BASE_URL) {
-    // Username KHAYALAN khusus kasus ini (tidak dipakai kasus lain) supaya
-    // penghitung percobaan gagalnya tidak tercampur kasus lain (edge case
-    // wajib T-27: kasus harus mandiri).
+    // Username unik khusus kasus ini supaya penghitung percobaan gagal tidak tercampur kasus lain.
     $jar = new_jar();
     $username = 'smoke_throttle_' . bin2hex(random_bytes(3));
     $pesan_terakhir = '';
@@ -563,8 +521,7 @@ kasus('N-6', 'Unggah berkas .php menyamar sebagai foto', 'FR-14', 'Berkas bukan 
         'status_aktivitas' => 'aktif',
         'jumlah_alat_berat' => '0',
         'jumlah_pekerja' => '0',
-        // Nama+MIME klaim dipalsukan jadi gambar -- server WAJIB menolak
-        // berdasarkan KONTEN (finfo), bukan percaya nama/MIME dari klien.
+        // Nama+MIME dipalsukan jadi gambar; server wajib menolak berdasarkan konten (finfo), bukan nama/MIME dari klien.
         'foto[]' => new CURLFile($tmp, 'image/jpeg', 'evil.php'),
     ]);
     unlink($tmp);
@@ -629,9 +586,7 @@ kasus('N-8', 'Nama lokasi berisi payload XSS', 'PRD bagian 11', 'Nama lokasi ber
     unlink($r['jar']);
 });
 
-// =============================================================================
 // 7. Ringkasan + tests/report.md
-// =============================================================================
 
 $total = count($HASIL);
 $lulus = $total - $GAGAL_TOTAL;

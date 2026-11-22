@@ -2,10 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * lokasi/index.php — daftar lokasi tambang (FR-07/FR-10, T-09). Khusus Admin.
- * Tanpa peta picker (menyusul T-10) -- murni tabel, filter, pagination.
- */
+// Daftar lokasi tambang, khusus Admin. Murni tabel, filter, pagination (tanpa peta picker).
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/repo/lokasi.php';
@@ -23,7 +20,7 @@ $dir = ($_GET['dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $per_page = 10;
 
-/** Querystring filter saat ini (TANPA page/sort/dir), dipakai membangun link paginasi & sort yang konsisten. */
+// Querystring filter saat ini (tanpa page/sort/dir), dipakai membangun link paginasi & sort yang konsisten.
 function lokasi_filter_query(string $search, string $status, int $kontraktor_id, int $material_id): array
 {
     return array_filter([

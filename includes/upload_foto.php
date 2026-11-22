@@ -7,23 +7,9 @@ if (!defined('APP_BOOTSTRAPPED')) {
     exit('Forbidden');
 }
 
-/**
- * includes/upload_foto.php — unggah foto dokumentasi aktivitas yang aman
- * (T-18, FR-14, PRD bagian 5/11). MENGGANTI fungsi sementara T-17
- * (aktivitas_validate_foto()/aktivitas_simpan_foto() di aktivitas/form.php)
- * dengan versi yang dikeraskan penuh: validasi berlapis, re-encode GD
- * (membuang EXIF/GPS & payload apa pun di luar data piksel), thumbnail,
- * rollback file fisik, dan hapus-per-foto.
- *
- * Urutan validasi per berkas SENGAJA mengikuti urutan task secara literal
- * (kode error -> is_uploaded_file -> ukuran -> finfo -> getimagesize ->
- * dimensi) -- yang murah dicek duluan, yang mahal (baca isi berkas) belakangan,
- * dan dimensi SELALU diperiksa lewat getimagesize() SEBELUM imagecreatefrom*()
- * dipanggil (edge case wajib: decompression bomb -- getimagesize() hanya
- * membaca header, imagecreatefrom*() mendekode penuh ke memori).
- */
+// Dimensi selalu diperiksa lewat getimagesize() sebelum imagecreatefrom*() dipanggil, untuk menghindari decompression bomb.
 
-/** Dicek sekali saat bootstrap (lihat includes/bootstrap.php) DAN sebelum dipakai di sini -- pesan instalasi yang jelas, bukan fatal error "call to undefined function". */
+// Dicek ulang di sini (selain saat bootstrap) agar pesan instalasi jelas, bukan fatal error "call to undefined function".
 function upload_gd_tersedia(): bool
 {
     return extension_loaded('gd')
@@ -32,14 +18,7 @@ function upload_gd_tersedia(): bool
         && function_exists('imagecreatetruecolor');
 }
 
-/**
- * Edge case wajib T-18: post_max_size di php.ini TERLAMPAUI oleh seluruh body
- * request -- PHP membuang SELURUH $_POST dan $_FILES tanpa mengisi kode error
- * apa pun yang bisa dibaca kode ini. Satu-satunya sinyal yang tersisa adalah
- * Content-Length header > 0 padahal keduanya kosong. Dipanggil SEBELUM
- * csrf_require() di form, supaya pengguna lihat pesan yang benar (bukan
- * "Token CSRF tidak valid" yang menyesatkan -- token itu sendiri ikut hilang).
- */
+// Bila post_max_size terlampaui, PHP membuang seluruh $_POST/$_FILES tanpa kode error; satu-satunya sinyal adalah Content-Length > 0 padahal keduanya kosong.
 function upload_cek_post_terlampaui(): ?string
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
@@ -57,7 +36,7 @@ function upload_cek_post_terlampaui(): ?string
     return null;
 }
 
-/** Kode error $_FILES LENGKAP (spesifikasi T-18) -- bukan hanya OK/NOT-OK. */
+// Kode error $_FILES lengkap, bukan hanya OK/NOT-OK.
 function upload_pesan_kode_error(int $kode): string
 {
     return match ($kode) {
@@ -71,12 +50,8 @@ function upload_pesan_kode_error(int $kode): string
     };
 }
 
-/**
- * Validasi SEMUA foto baru sebelum apa pun disimpan -- dipanggil dari
- * aktivitas/form.php sebelum db_transaction() dimulai, supaya pengguna lihat
- * pesan error dalam form, bukan kegagalan di tengah transaksi.
- * @return string[] Daftar pesan error; kosong berarti semua foto valid/tidak ada foto baru.
- */
+// Dipanggil sebelum db_transaction() dimulai, supaya pengguna lihat pesan error dalam form, bukan kegagalan di tengah transaksi.
+// @return string[] Daftar pesan error; kosong berarti semua foto valid/tidak ada foto baru.
 function upload_foto_validate(?array $files, int $jumlah_lama): array
 {
     $errors = [];
@@ -86,9 +61,7 @@ function upload_foto_validate(?array $files, int $jumlah_lama): array
     }
 
     if (!upload_gd_tersedia()) {
-        // Edge case wajib T-18: ekstensi GD tidak aktif. Diperiksa ulang di
-        // sini (bukan hanya saat bootstrap) supaya pesannya tampil tepat saat
-        // pengguna benar-benar mencoba mengunggah, bukan hanya di log server.
+        // Diperiksa ulang supaya pesan tampil saat pengguna mencoba unggah, bukan hanya di log server.
         $ada_file_dipilih = false;
         foreach ($files['error'] as $kode) {
             if ($kode !== UPLOAD_ERR_NO_FILE) {
@@ -134,31 +107,20 @@ function upload_foto_validate(?array $files, int $jumlah_lama): array
             continue;
         }
 
-        // finfo membaca KONTEN berkas, bukan ekstensi nama file atau header
-        // Content-Type yang dikirim klien -- keduanya mudah dipalsukan
-        // (edge case wajib: shell.php diberi nama shell.php.jpg).
+        // finfo membaca konten berkas, bukan ekstensi nama file atau Content-Type yang dikirim klien -- keduanya mudah dipalsukan.
         $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp_path);
         if (!in_array($mime, UPLOAD_ALLOWED_MIME, true)) {
-            // Juga menolak GIF/WebP yang menyamar (edge case wajib T-18) --
-            // keduanya memang bukan JPG/PNG menurut KONTEN, apa pun ekstensinya.
             $errors[] = 'Salah satu foto bukan berkas JPG/PNG yang valid.';
             continue;
         }
 
-        // getimagesize() HANYA membaca header gambar, BUKAN mendekode seluruh
-        // bitmap -- aman dipanggil pada berkas apa pun, termasuk upaya
-        // decompression bomb (edge case wajib). imagecreatefrom*() yang
-        // sungguh mendekode baru dipanggil NANTI di upload_foto_simpan(),
-        // SETELAH dimensi di bawah ini dipastikan wajar.
+        // getimagesize() hanya membaca header, aman untuk cek dimensi sebelum imagecreatefrom*() mendekode penuh ke memori (decompression bomb).
         $info = @getimagesize($tmp_path);
         if ($info === false) {
             $errors[] = 'Salah satu foto rusak atau bukan berkas gambar yang valid.';
             continue;
         }
         if ($info['mime'] !== $mime) {
-            // Lapis konsistensi tambahan: finfo dan getimagesize membaca
-            // berkas yang sama dengan cara berbeda -- kalau hasilnya tidak
-            // sama, lebih aman menolak daripada mempercayai salah satunya.
             $errors[] = 'Salah satu foto memiliki format yang tidak konsisten.';
             continue;
         }
@@ -175,7 +137,7 @@ function upload_foto_validate(?array $files, int $jumlah_lama): array
     return $errors;
 }
 
-/** Orientasi EXIF (1-8) sebelum dibuang selamanya oleh re-encode -- tanpa ini foto kamera ponsel yang disimpan "miring" (rotasi lewat tag, bukan piksel) akan tampak terbalik setelah EXIF dihapus. */
+// Dibaca sebelum EXIF dibuang oleh re-encode, agar foto kamera ponsel yang "miring" (rotasi lewat tag) tidak tampak terbalik.
 function upload_foto_orientasi_exif(string $tmp_path): int
 {
     if (!function_exists('exif_read_data')) {
@@ -225,8 +187,7 @@ function upload_foto_resize($sumber, int $lebar, int $tinggi, int $sisi_maks)
     $tinggi_baru = max(1, (int) round($tinggi * $skala));
 
     $hasil = imagecreatetruecolor($lebar_baru, $tinggi_baru);
-    // Pertahankan transparansi PNG -- tanpa ini imagecreatetruecolor() default
-    // hitam, area transparan asli akan jadi blok hitam solid setelah resize.
+    // Pertahankan transparansi PNG -- tanpa ini area transparan jadi blok hitam setelah resize.
     imagealphablending($hasil, false);
     imagesavealpha($hasil, true);
     imagecopyresampled($hasil, $sumber, 0, 0, 0, 0, $lebar_baru, $tinggi_baru, $lebar, $tinggi);
@@ -249,17 +210,9 @@ function upload_foto_path_absolut(string $relative_path): string
     return rtrim(PROJECT_ROOT, '/\\') . '/' . ltrim($relative_path, '/');
 }
 
-/**
- * Decode -> (koreksi orientasi) -> resize dua ukuran -> re-encode -> simpan
- * dengan nama acak. INILAH yang membuang EXIF/GPS dan payload polyglot apa
- * pun (shell.php.jpg, JPG dengan PHP di EXIF, dll): imagecreatefrom*() hanya
- * membaca GRID PIKSEL, dan imagejpeg()/imagepng() menulis berkas JFIF/PNG
- * BARU dari nol -- tidak ada byte dari berkas asli (EXIF, comment, lampiran
- * di belakang EOF) yang tersalin ke berkas keluaran, apa pun isinya.
- *
- * @return array{0: string, 1: string} [path relatif utama, path relatif thumbnail]
- * @throws RuntimeException Gambar tidak bisa didekode, direktori tak bisa dibuat, atau gagal menulis (disk penuh).
- */
+// Re-encode dari grid piksel menulis berkas baru dari nol, sehingga membuang EXIF/GPS dan payload polyglot apa pun dari berkas asli.
+// @return array{0: string, 1: string} [path relatif utama, path relatif thumbnail]
+// @throws RuntimeException Gambar tidak bisa didekode, direktori tak bisa dibuat, atau gagal menulis (disk penuh).
 function upload_foto_proses_dan_simpan(string $tmp_path, string $mime): array
 {
     $image = match ($mime) {
@@ -269,9 +222,7 @@ function upload_foto_proses_dan_simpan(string $tmp_path, string $mime): array
     };
 
     if ($image === false) {
-        // getimagesize() yang lolos TIDAK menjamin imagecreatefrom*() ikut
-        // berhasil -- berkas bisa rusak di bagian yang tidak diperiksa
-        // getimagesize() (edge case wajib: "gambar korup").
+        // getimagesize() yang lolos tidak menjamin imagecreatefrom*() ikut berhasil.
         throw new RuntimeException('Gambar tidak dapat dibaca atau rusak.');
     }
 
@@ -315,9 +266,7 @@ function upload_foto_proses_dan_simpan(string $tmp_path, string $mime): array
     imagedestroy($thumb);
 
     if (!$ok_utama || !$ok_thumb) {
-        // Edge case wajib T-18: disk penuh saat menulis. imagejpeg()/imagepng()
-        // mengembalikan false (bukan melempar exception) saat gagal menulis,
-        // jadi diperiksa manual -- bersihkan sisa berkas yang SEMPAT tertulis.
+        // imagejpeg()/imagepng() mengembalikan false (bukan exception) saat gagal menulis; bersihkan sisa berkas yang sempat tertulis.
         @unlink($path_utama);
         @unlink($path_thumb);
         throw new RuntimeException('Gagal menyimpan berkas gambar ke disk (disk penuh atau tidak dapat ditulis).');
@@ -326,21 +275,9 @@ function upload_foto_proses_dan_simpan(string $tmp_path, string $mime): array
     return [$subdir . '/' . $nama_utama, $subdir . '/' . $nama_thumb];
 }
 
-/**
- * Simpan SEMUA foto baru yang SUDAH lolos upload_foto_validate(). Dipanggil
- * HANYA di dalam db_transaction() (spesifikasi T-17/T-18: aktivitas+foto satu
- * transaksi) -- Exception di sini (termasuk dari upload_foto_proses_dan_simpan())
- * ikut membatalkan INSERT/UPDATE aktivitas lewat rollback SAVEPOINT/transaksi.
- *
- * $written_paths diisi (bukan diganti) SETIAP berkas berhasil ditulis ke disk,
- * SEBELUM baris DB-nya di-insert -- supaya kalau baris foto KE-3 gagal di-insert
- * (atau langkah lain dalam transaksi yang sama gagal setelahnya), pemanggil
- * tetap tahu file ke-1 & ke-2 yang SUDAH ada di disk untuk dibersihkan
- * (spesifikasi wajib T-18: "rollback file fisik bila transaksi DB gagal").
- *
- * @param array<string, mixed>|null $files Bentuk asli $_FILES['foto'].
- * @param string[] &$written_paths Diisi path absolut setiap file (utama+thumbnail) yang berhasil ditulis.
- */
+// Dipanggil hanya di dalam db_transaction(); $written_paths diisi setiap file yang berhasil ditulis ke disk SEBELUM baris DB-nya di-insert, agar pemanggil bisa membersihkan file fisik bila transaksi DB gagal di tengah jalan.
+// @param array<string, mixed>|null $files Bentuk asli $_FILES['foto'].
+// @param string[] &$written_paths Diisi path absolut setiap file (utama+thumbnail) yang berhasil ditulis.
 function upload_foto_simpan(int $aktivitas_id, ?array $files, array &$written_paths): void
 {
     if ($files === null || !isset($files['error']) || !is_array($files['error'])) {
@@ -359,7 +296,7 @@ function upload_foto_simpan(int $aktivitas_id, ?array $files, array &$written_pa
 
         $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp_path);
         if (!in_array($mime, UPLOAD_ALLOWED_MIME, true)) {
-            continue; // jaring pengaman kedua -- seharusnya sudah tersaring di validasi
+            continue; // jaring pengaman kedua
         }
 
         [$path_utama, $path_thumb] = upload_foto_proses_dan_simpan($tmp_path, $mime);
@@ -371,12 +308,7 @@ function upload_foto_simpan(int $aktivitas_id, ?array $files, array &$written_pa
     }
 }
 
-/**
- * Hapus SATU foto: baris DB + berkas utama + thumbnail-nya. Dipanggil dari
- * aktivitas/hapus_foto.php. Urutan: hapus baris DB dulu (bisa di-rollback
- * kalau gagal), baru hapus file fisik SETELAH baris DB benar-benar hilang --
- * pola yang sama dengan lokasi/hapus.php & aktivitas/hapus.php (T-09/T-17).
- */
+// Hapus baris DB dulu (bisa di-rollback kalau gagal), baru hapus file fisik setelah baris DB benar-benar hilang.
 function upload_foto_hapus(array $foto): void
 {
     $file_path = (string) $foto['file_path'];

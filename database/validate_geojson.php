@@ -2,25 +2,9 @@
 
 declare(strict_types=1);
 
-/**
- * database/validate_geojson.php — validasi mandiri (TIDAK butuh koneksi DB)
- * untuk assets/geojson/batas_kota_sorong.geojson (T-11).
- *
- * SENGAJA berdiri sendiri, tidak require includes/bootstrap.php: skrip ini
- * murni memvalidasi berkas statis, tidak ada alasan menyeretnya bergantung ke
- * seluruh aplikasi web (sesi, DB, dsb.) hanya untuk ini. Konstanta
- * SORONG_LAT/LNG_MIN/MAX di bawah SENGAJA diduplikasi dari config/config.php
- * (bukan di-require) untuk alasan yang sama -- beri komentar "harus disamakan
- * manual" sebagai jaring pengaman dokumentasi, bukan otomatis tersinkron.
- *
- * Jalankan: php database/validate_geojson.php [path/ke/berkas.geojson]
- * Tanpa argumen, memvalidasi assets/geojson/batas_kota_sorong.geojson.
- */
+// Validasi mandiri (tidak butuh koneksi DB) untuk assets/geojson/batas_kota_sorong.geojson; berdiri sendiri tanpa bootstrap.php agar tidak bergantung ke sesi/DB hanya untuk ini.
 
-// T-26: cli-only -- skrip ini SENGAJA berdiri sendiri tanpa bootstrap.php
-// (lihat komentar di atas), jadi tidak punya APP_BOOTSTRAPPED untuk
-// menolak akses web seperti berkas lain; PHP_SAPI adalah satu-satunya
-// penjaga yang tersedia di sini.
+// Tidak require bootstrap.php, jadi tidak punya APP_BOOTSTRAPPED; PHP_SAPI satu-satunya penjaga akses web di sini.
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     exit('Forbidden: jalankan hanya lewat command line (php database/validate_geojson.php).');
@@ -28,8 +12,7 @@ if (PHP_SAPI !== 'cli') {
 
 const MAX_UKURAN_BYTE = 150 * 1024;
 
-// Harus tetap SAMA dengan SORONG_LAT_MIN/MAX, SORONG_LNG_MIN/MAX di
-// config/config.php (PRD bagian 11) -- perbarui manual bila itu berubah.
+// Harus tetap sama dengan SORONG_LAT/LNG_MIN/MAX di config/config.php; perbarui manual bila itu berubah.
 const SORONG_LAT_MIN = -1.05;
 const SORONG_LAT_MAX = -0.75;
 const SORONG_LNG_MIN = 131.15;
@@ -59,7 +42,7 @@ function tampilkan_hasil_dan_keluar(array $errors, array $warnings): void
     exit(1);
 }
 
-/** Luas bertanda (shoelace). Positif = counter-clockwise, negatif = clockwise. */
+// Luas bertanda (shoelace); positif = counter-clockwise, negatif = clockwise.
 function luas_bertanda(array $ring): float
 {
     $sum = 0.0;
@@ -90,9 +73,7 @@ if (!is_array($data)) {
     tampilkan_hasil_dan_keluar($errors, $warnings);
 }
 
-// RFC 7946 TIDAK memakai member "crs" sama sekali (WGS84 selalu tersirat).
-// Kehadirannya menandakan berkas diekspor dengan asumsi standar GeoJSON lama
-// (pra-RFC 7946) -- gagalkan hanya bila ISI-nya eksplisit BUKAN WGS84/CRS84.
+// RFC 7946 tidak memakai member "crs" (WGS84 selalu tersirat); gagalkan hanya bila isinya eksplisit bukan WGS84/CRS84.
 if (isset($data['crs'])) {
     $nama_crs = (string) ($data['crs']['properties']['name'] ?? 'tidak diketahui');
     if (stripos($nama_crs, '4326') === false && stripos($nama_crs, 'CRS84') === false) {
@@ -106,8 +87,7 @@ if (($data['properties']['placeholder'] ?? false) === true) {
     $warnings[] = 'Berkas ditandai properties.placeholder=true -- ini BUKAN batas resmi, lihat README untuk status penggantian data asli.';
 }
 
-// Kumpulkan semua geometry Polygon/MultiPolygon dari bentuk Feature,
-// FeatureCollection, atau geometry telanjang.
+// Kumpulkan semua geometry Polygon/MultiPolygon dari bentuk Feature, FeatureCollection, atau geometry telanjang.
 $geometries = [];
 $tipe_root = $data['type'] ?? null;
 if ($tipe_root === 'FeatureCollection') {
@@ -161,8 +141,7 @@ foreach ($geometries as $p_idx => $geom) {
                     continue 3;
                 }
 
-                // Edge case T-11: CRS bukan WGS84 -- koordinat UTM (ratusan
-                // ribu/jutaan meter) alih-alih derajat -90..90 / -180..180.
+                // CRS bukan WGS84: koordinat UTM (ratusan ribu/jutaan meter) alih-alih derajat.
                 if (!$crs_rusak && (abs((float) $titik[0]) > 180 || abs((float) $titik[1]) > 90)) {
                     $errors[] = sprintf(
                         'Ditemukan koordinat [%s, %s] di luar rentang derajat WGS84 -- kemungkinan CRS sumber BUKAN EPSG:4326 (mis. UTM zona 53S untuk Papua). Ekspor ulang dari QGIS dengan "Reproject Layer" ke EPSG:4326 sebelum menyimpan GeoJSON.',
@@ -182,8 +161,7 @@ foreach ($geometries as $p_idx => $geom) {
                 continue;
             }
 
-            // RFC 7946: cincin eksterior (indeks 0) WAJIB counter-clockwise;
-            // cincin lubang (indeks > 0) WAJIB clockwise (edge case T-11).
+            // RFC 7946: cincin eksterior (indeks 0) wajib counter-clockwise; cincin lubang wajib clockwise.
             $luas = luas_bertanda($ring);
             if ($ring_idx === 0 && $luas < 0) {
                 $errors[] = "Geometry[{$p_idx}] polygon[{$poly_idx}]: cincin eksterior arahnya CLOCKWISE -- RFC 7946 mewajibkan counter-clockwise. Balik urutan titiknya.";

@@ -2,20 +2,7 @@
 
 declare(strict_types=1);
 
-/**
- * tests/ui_preview.php — pratinjau komponen UI T-04, BUKAN bagian dari PRD.
- *
- * Berkas ini mensimulasikan tata letak dashboard dari PRD memakai
- * includes/header.php + sidebar.php + footer.php yang sama, supaya CSS/markup
- * T-04 bisa diuji manual dan lewat Lighthouse. login.php SUDAH nyata sejak
- * T-06, dan dashboard.php SUDAH nyata sejak T-20 -- gunakan keduanya langsung
- * (lihat tautan di bawah), bukan mode view=login/dashboard di sini (sudah
- * dihapus begitu halaman aslinya ada).
- *
- * Harus 404 di luar APP_ENV=dev (lihat cek di bawah).
- *
- * Akses: /tests/ui_preview.php?role=admin|kontraktor
- */
+// Pratinjau komponen UI (katalog, bukan halaman nyata); 404 di luar APP_ENV=dev. Akses: /tests/ui_preview.php?role=admin|kontraktor
 
 if (!defined('APP_BOOTSTRAPPED')) {
     require __DIR__ . '/../includes/bootstrap.php';
@@ -28,8 +15,7 @@ if (APP_ENV !== 'dev') {
 
 $view = 'components';
 
-// user_id palsu (bukan ID nyata mana pun) HANYA supaya current_user() (T-06)
-// mengembalikan array, bukan null, saat preview ini dipakai tanpa login asli.
+// user_id palsu agar current_user() mengembalikan array, bukan null, tanpa login asli.
 $simulated_role = ($_GET['role'] ?? 'admin') === 'kontraktor' ? 'kontraktor' : 'admin';
 $_SESSION['user_id'] = 999999;
 $_SESSION['role'] = $simulated_role;
@@ -49,7 +35,6 @@ if (isset($_GET['set_flash'])) {
     redirect('tests/ui_preview.php?view=' . $view . '&role=' . $simulated_role);
 }
 
-// --- $view === 'components': katalog semua komponen T-04 untuk uji manual ---
 $page_title = 'Katalog Komponen (T-04)';
 $layout = 'app';
 $active_menu = '';
