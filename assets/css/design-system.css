@@ -1,0 +1,257 @@
+/* =============================================================================
+   assets/css/design-system.css — token & komponen dari DESIGN.md (migrasi UI
+   baru, dikerjakan satu halaman per satu halaman, mulai dari login.php).
+
+   SENGAJA terpisah dari assets/css/style.css, dengan namespace kelas/variabel
+   `ds-` sendiri -- halaman yang belum dimigrasi TIDAK ikut berubah tampilannya
+   hanya karena berkas ini ada, dan berkas ini HANYA dimuat lewat $extra_head
+   pada halaman yang sudah dimigrasi (bukan lewat includes/header.php secara
+   global). Lihat DESIGN.md untuk sumber token (warna/tipografi/bentuk/bayangan).
+   ============================================================================= */
+
+:root {
+  /* Warna (DESIGN.md "colors") */
+  --ds-bg: #f6f8fb;
+  --ds-on-bg: #172033;
+  --ds-surface: #ffffff;
+  --ds-surface-soft: #eaf2ff;
+  --ds-surface-muted: #e9f8ef;
+  --ds-outline: #dbe4f0;
+  --ds-primary: #2563eb;
+  --ds-primary-strong: #1d4ed8;
+  --ds-primary-soft: #eaf2ff;
+  --ds-success: #16a34a;
+  --ds-success-soft: #e9f8ef;
+  --ds-dark-surface: #0f172a;
+  --ds-dark-panel: #111827;
+  --ds-dark-on-surface: #ffffff;
+  --ds-dark-on-surface-muted: #cbd5e1;
+
+  /* DESIGN.md tidak mendefinisikan warna error -- dipilih senada (saturasi
+     sebanding dengan --ds-primary/--ds-success), BUKAN famili aksen baru,
+     khusus untuk pesan validasi/gagal login. */
+  --ds-danger: #dc2626;
+  --ds-danger-soft: #fef2f2;
+
+  /* Tipografi (DESIGN.md "typography") */
+  --ds-font: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Bentuk (DESIGN.md "rounded") */
+  --ds-radius-card: 20px;
+  --ds-radius-card-lg: 24px;
+  --ds-radius-panel: 28px;
+  --ds-radius-pill: 999px;
+
+  /* Bayangan (DESIGN.md "shadows") */
+  --ds-shadow-card: 0 18px 44px rgba(15, 23, 42, 0.08);
+  --ds-shadow-panel-dark: 0 22px 54px rgba(15, 23, 42, 0.24);
+  --ds-shadow-support: 0 22px 52px rgba(37, 99, 235, 0.2);
+
+  /* Gerak (DESIGN.md "motion") */
+  --ds-motion-fast: 180ms;
+  --ds-motion-normal: 200ms;
+}
+
+/* -----------------------------------------------------------------------------
+   Shell login — latar "aurora gradient": radial-gradient besar & lembut
+   (biru + hijau, DUA warna yang SUDAH ada di palet DESIGN.md, bukan famili
+   aksen baru -- lihat "Do/Don't": "Don't introduce multiple accent families")
+   di atas dasar gelap (--ds-dark-surface), dianimasikan pelan (drift),
+   dimatikan total di prefers-reduced-motion.
+   ----------------------------------------------------------------------------- */
+.ds-auth-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background: var(--ds-dark-surface);
+  font-family: var(--ds-font);
+}
+
+.ds-auth-shell::before,
+.ds-auth-shell::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  background:
+    radial-gradient(40% 35% at 20% 25%, rgba(37, 99, 235, 0.55), transparent 70%),
+    radial-gradient(35% 40% at 80% 20%, rgba(22, 163, 74, 0.35), transparent 70%),
+    radial-gradient(45% 45% at 50% 85%, rgba(29, 78, 216, 0.45), transparent 70%);
+  filter: blur(60px);
+  animation: ds-aurora-drift 22s ease-in-out infinite alternate;
+}
+
+.ds-auth-shell::after {
+  animation-duration: 28s;
+  animation-direction: alternate-reverse;
+  opacity: 0.6;
+}
+
+@keyframes ds-aurora-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, -3%) scale(1.08); }
+  100% { transform: translate(-3%, 4%) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-auth-shell::before,
+  .ds-auth-shell::after {
+    animation: none;
+  }
+}
+
+.ds-auth-shell__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+}
+
+/* -----------------------------------------------------------------------------
+   Kartu login
+   ----------------------------------------------------------------------------- */
+.ds-auth-card {
+  background: var(--ds-surface);
+  color: var(--ds-on-bg);
+  border-radius: var(--ds-radius-panel);
+  box-shadow: var(--ds-shadow-panel-dark);
+  padding: 40px 36px;
+}
+
+@media (max-width: 480px) {
+  .ds-auth-card {
+    padding: 28px 22px;
+    border-radius: var(--ds-radius-card-lg);
+  }
+}
+
+.ds-auth-card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-primary);
+  background: var(--ds-primary-soft);
+  padding: 6px 14px;
+  border-radius: var(--ds-radius-pill);
+  margin-bottom: 18px;
+}
+
+.ds-auth-card__title {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.2;
+  margin: 0 0 6px;
+  color: var(--ds-on-bg);
+}
+
+.ds-auth-card__subtitle {
+  font-size: 15px;
+  font-weight: 400;
+  color: #64748b;
+  margin: 0 0 28px;
+}
+
+/* -----------------------------------------------------------------------------
+   Form
+   ----------------------------------------------------------------------------- */
+.ds-field {
+  margin-bottom: 18px;
+}
+
+.ds-field__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.ds-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  font-family: var(--ds-font);
+  font-size: 15px;
+  color: var(--ds-on-bg);
+  background: var(--ds-surface);
+  border: 1.5px solid var(--ds-outline);
+  border-radius: 14px;
+  transition: border-color var(--ds-motion-normal), box-shadow var(--ds-motion-normal);
+}
+
+.ds-input:focus-visible {
+  outline: none;
+  border-color: var(--ds-primary);
+  box-shadow: 0 0 0 4px var(--ds-primary-soft);
+}
+
+.ds-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  padding: 0 20px;
+  font-family: var(--ds-font);
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--ds-primary);
+  border: none;
+  border-radius: var(--ds-radius-pill);
+  cursor: pointer;
+  transition: background var(--ds-motion-fast), transform var(--ds-motion-fast);
+}
+
+.ds-btn-primary:hover {
+  background: var(--ds-primary-strong);
+}
+
+.ds-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.ds-btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ds-primary-soft), 0 0 0 1px var(--ds-primary);
+}
+
+.ds-alert-error {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
+  border-radius: var(--ds-radius-card);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* Flash message (includes/header.php, markup lama) tampil di atas kartu
+   dalam lebar yang sama saat halaman auth memakai desain baru ini --
+   penyesuaian visual murni lewat CSS, markup/PHP flash tidak diubah. */
+.ds-auth-shell .flash-list {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 16px;
+}
+
+.ds-auth-shell .flash {
+  border-radius: var(--ds-radius-card);
+  font-family: var(--ds-font);
+}

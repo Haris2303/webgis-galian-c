@@ -61,9 +61,14 @@ function csp_nonce(): string
  *                              -- semua skrip proyek sudah di assets/js/*.js (T-04),
  *                              bukan <script> inline, jadi tidak perlu nonce di sini.
  * - style-src ... 'nonce-%s' : gaya hanya dari sendiri + unpkg.com (CSS Leaflet)
- *                              + SATU <style> inline yang masih ada (halaman error
- *                              darurat) lewat nonce per request, bukan 'unsafe-inline'
- *                              blanket.
+ *                              + fonts.googleapis.com (Roboto, migrasi UI
+ *                              DESIGN.md -- mulai login.php) + SATU <style>
+ *                              inline yang masih ada (halaman error darurat)
+ *                              lewat nonce per request, bukan 'unsafe-inline' blanket.
+ * - font-src fonts.gstatic.com : berkas font Google Fonts sungguhan (CSS di
+ *                              atas hanya mendeklarasikan @font-face yang
+ *                              menunjuk ke sana) -- tanpa ini, default-src
+ *                              'self' akan memblokirnya walau style-src sudah diizinkan.
  * - img-src ... tile.openstreetmap.org + unpkg.com : tile peta (PRD bagian 9/11,
  *                              tegas) ditambah unpkg.com (T-10) karena ikon marker
  *                              default Leaflet dimuat lewat path relatif ke CSS-nya
@@ -92,7 +97,8 @@ function security_headers(): void
 
     $csp = sprintf(
         "default-src 'self'; script-src 'self' https://unpkg.com; "
-        . "style-src 'self' https://unpkg.com 'nonce-%s'; "
+        . "style-src 'self' https://unpkg.com https://fonts.googleapis.com 'nonce-%s'; "
+        . "font-src 'self' https://fonts.gstatic.com; "
         . "img-src 'self' https://tile.openstreetmap.org https://unpkg.com; connect-src 'self'; "
         . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
         csp_nonce()

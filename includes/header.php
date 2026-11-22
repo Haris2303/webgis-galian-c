@@ -21,6 +21,10 @@ if (!defined('APP_BOOTSTRAPPED')) {
 
 $page_title = $page_title ?? 'WebGIS Galian C';
 $layout = $layout ?? 'app';
+// Dibaca HANYA saat $layout === 'auth' -- pemanggil (mis. login.php, saat
+// migrasi ke tampilan DESIGN.md) bisa menimpanya SEBELUM require ini untuk
+// ganti class pembungkus tanpa mengubah berkas ini lagi per halaman.
+$auth_shell_class = $auth_shell_class ?? 'auth-shell';
 
 $flash_messages = flash_pull();
 ?><!doctype html>
@@ -35,7 +39,7 @@ $flash_messages = flash_pull();
 </head>
 <body>
 <?php if ($layout === 'auth'): ?>
-<div class="auth-shell">
+<div class="<?= e($auth_shell_class) ?>">
   <main id="konten-utama">
 <?php else: ?>
 <a class="skip-link" href="#konten-utama">Lewati ke konten utama</a>
