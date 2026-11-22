@@ -1,4 +1,4 @@
-/* assets/css/design-system.css — ds-* namespaced tokens/components, kept separate from style.css so unmigrated pages are unaffected. */
+/* assets/css/design-system.css — token/komponen bernamespace ds-*, dipisah dari style.css agar halaman yang belum dimigrasi tidak terpengaruh. */
 
 :root {
   --ds-bg: #f6f8fb;
@@ -17,7 +17,7 @@
   --ds-dark-on-surface: #ffffff;
   --ds-dark-on-surface-muted: #cbd5e1;
 
-  /* error color chosen to match the saturation of --ds-primary/--ds-success, not a new accent family */
+  /* warna error dipilih sesuai saturasi --ds-primary/--ds-success, bukan famili aksen baru */
   --ds-danger: #dc2626;
   --ds-danger-soft: #fef2f2;
 
@@ -64,7 +64,7 @@
   }
 }
 
-/* runs once on load, not repeated/scroll-triggered */
+/* berjalan sekali saat load, bukan berulang/dipicu scroll */
 @keyframes ds-enter {
   from {
     opacity: 0;
@@ -226,7 +226,7 @@
   font-family: var(--ds-font);
 }
 
-/* .ds-page sets font-family once; descendants inherit it instead of repeating it per class */
+/* .ds-page menetapkan font-family sekali; turunannya mewarisi, tidak diulang per kelas */
 .ds-page {
   font-family: var(--ds-font);
   color: var(--ds-on-bg);
@@ -270,7 +270,7 @@
   gap: 20px;
 }
 
-/* only targets direct .ds-card children, not nested .ds-grid-2 (e.g. field pairs) */
+/* hanya menyasar .ds-card anak langsung, bukan .ds-grid-2 bersarang (mis. pasangan field) */
 .ds-grid-2 > .ds-card:nth-child(1) {
   animation: ds-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -292,7 +292,7 @@
   }
 }
 
-/* translucent background + blur; the saturate boost keeps the "glass" effect visible on a light page background */
+/* latar transparan + blur; boost saturate menjaga efek "kaca" tetap terlihat di atas latar halaman terang */
 .ds-card {
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -324,7 +324,7 @@
   margin: 0 0 16px;
 }
 
-/* map.js/dashboard.js reference the map container by id, not class, so overriding the radius here is safe */
+/* map.js/dashboard.js merujuk kontainer peta lewat id, bukan kelas, jadi menimpa radius di sini aman */
 .ds-card .map-shell {
   border-radius: var(--ds-radius-card);
 }
@@ -392,7 +392,7 @@
   transition: background var(--ds-motion-fast) ease;
 }
 
-/* staggered per row, capped at row 6 so a long list doesn't delay the rest */
+/* bertahap per baris, dibatasi sampai baris ke-6 agar daftar panjang tidak menunda sisanya */
 .ds-table tbody tr:nth-child(1) {
   animation-delay: 0ms;
 }
@@ -483,7 +483,7 @@
   background: #94a3b8;
 }
 
-/* reuses the "proses" amber but with a dashed border, to read as a separate operational warning, not a status badge */
+/* memakai ulang amber "proses" tapi dengan border putus-putus, terbaca sebagai peringatan operasional terpisah, bukan badge status */
 .ds-badge--perlu-pengawasan {
   background: #fdf3dd;
   color: #8a6512;
@@ -493,7 +493,7 @@
   background: #e5a823;
 }
 
-/* an extra indicator, not a second status badge; dashed border distinguishes it from a regular status badge */
+/* indikator tambahan, bukan badge status kedua; border putus-putus membedakannya dari badge status biasa */
 .ds-badge--kedaluwarsa {
   background: #fbeaea;
   color: #b83a3a;
@@ -503,7 +503,7 @@
   background: #d64545;
 }
 
-/* inline toolbar/table actions; distinct from .ds-btn-primary which is the full-width login submit button */
+/* aksi toolbar/tabel sebaris; berbeda dari .ds-btn-primary yang merupakan tombol submit login selebar penuh */
 .ds-btn {
   display: inline-flex;
   align-items: center;
@@ -645,7 +645,7 @@
   box-shadow: 0 0 0 4px var(--ds-primary-soft);
 }
 
-/* includes/validator.php's helpers still emit the old "field--invalid" class; selectors below apply it to the new inputs */
+/* helper includes/validator.php masih menghasilkan kelas lama "field--invalid"; selector di bawah menerapkannya ke input baru */
 .ds-field__required {
   color: var(--ds-danger);
 }
@@ -672,7 +672,7 @@
   border-color: var(--ds-danger);
 }
 
-/* class names here are shared with the markup foto-preview.js builds dynamically */
+/* nama kelas di sini dipakai bersama markup yang dibangun dinamis oleh foto-preview.js */
 .ds-photo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -709,7 +709,7 @@
   background: var(--ds-bg);
 }
 
-/* the native file input stays visible/keyboard-usable; drag-and-drop in foto-preview.js is additive only */
+/* input file native tetap terlihat/bisa dipakai keyboard; drag-and-drop di foto-preview.js hanya tambahan */
 .ds-dropzone {
   display: flex;
   flex-direction: column;
@@ -796,7 +796,7 @@
   cursor: not-allowed;
 }
 
-/* z-index stays below .ds-sidebar-backdrop (20) so it dims with the backdrop when the mobile sidebar opens */
+/* z-index tetap di bawah .ds-sidebar-backdrop (20) agar ikut redup bersama backdrop saat sidebar mobile terbuka */
 .ds-fab {
   position: fixed;
   right: 24px;
@@ -872,7 +872,7 @@
   background: var(--ds-bg);
 }
 
-/* same color as .ds-sidebar so topbar+sidebar read as one dark surface, not two competing colors */
+/* warna sama dengan .ds-sidebar agar topbar+sidebar terbaca sebagai satu bidang gelap, bukan dua warna bersaingan */
 .ds-topbar {
   position: sticky;
   top: 0;
@@ -994,7 +994,7 @@
   min-height: 0;
 }
 
-/* fixed at all widths (not just mobile off-canvas) so it stays put while .ds-app-main scrolls */
+/* fixed di semua lebar (bukan hanya off-canvas mobile) agar diam saat .ds-app-main digulir */
 .ds-sidebar {
   width: 248px;
   flex-shrink: 0;
@@ -1086,7 +1086,7 @@
   --ds-app-main-pad: 28px;
   flex: 1;
   min-width: 0;
-  /* offsets the fixed-position .ds-sidebar's width, since it's out of .ds-app-body's flex flow */
+  /* mengimbangi lebar .ds-sidebar yang fixed, karena di luar alur flex .ds-app-body */
   margin-left: 248px;
   padding: var(--ds-app-main-pad);
 }
@@ -1125,7 +1125,7 @@
   border-radius: var(--ds-radius-card);
 }
 
-/* opt-in modifier, not the .ds-page-header default, so pages without an action button are unaffected */
+/* modifier opt-in, bukan default .ds-page-header, agar halaman tanpa tombol aksi tidak terpengaruh */
 .ds-page-header--row {
   display: flex;
   align-items: flex-end;
@@ -1225,7 +1225,7 @@
   transition: transform var(--ds-motion-normal) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* --ds-stat-soft/--ds-stat-glow are hover-only wash/glow, never a permanent background */
+/* --ds-stat-soft/--ds-stat-glow hanya wash/glow saat hover, bukan latar permanen */
 .ds-stat-col--berizin {
   --ds-stat-accent: #2e9e4f;
   --ds-stat-soft: rgba(46, 158, 79, 0.16);

@@ -1000,7 +1000,7 @@
 
       var feature = allFeatures.filter(function (f) { return f.properties && f.properties.id === id; })[0];
       if (feature) {
-        // re-enable the filter if the deep-linked location is currently hidden by it
+        // aktifkan kembali filter bila lokasi tautan-dalam ini sedang tersembunyi karenanya
         if (!activeStatuses.has(feature.properties.status_izin)) {
           activeStatuses.add(feature.properties.status_izin);
           syncFilterCheckboxUI();
@@ -1014,7 +1014,7 @@
         return;
       }
 
-      // id is valid but not among the loaded data; fetch it directly and toast if it truly doesn't exist
+      // id valid tapi tidak ada di data yang sudah dimuat; fetch langsung dan tampilkan toast bila memang tidak ada
       fetchJson(opts.detailUrl + '?id=' + id).then(function (data) {
         if (!data || !data.koordinat) {
           return;
@@ -1070,12 +1070,12 @@
       }
 
       if (showLayerControl && baseLayers) {
-        // collapse the control under 768px so it doesn't overlap the search box on narrow screens
+        // ciutkan kontrol di bawah 768px agar tidak tumpang tindih dengan kotak cari di layar sempit
         var layerControlCollapsed = window.matchMedia('(max-width: 767px)').matches;
         L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: layerControlCollapsed }).addTo(map);
       }
 
-      // run last so its setView wins over the fitBounds from renderFiltered above
+      // jalankan terakhir agar setView-nya menang dari fitBounds renderFiltered di atas
       if (opts.detailUrl) {
         applyDeepLink();
       }
