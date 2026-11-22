@@ -1298,7 +1298,63 @@ dialog.modal::backdrop {
 }
 
 /* -----------------------------------------------------------------------------
-   17. Breakpoint responsif
+   17. Laporan cetak (T-22, FR-22) -- tampilan ON-SCREEN. Layout cetak
+   sesungguhnya (A4, sembunyikan kontrol, dst.) ada di print.css; kelas di sini
+   SENGAJA bukan .card supaya tidak ikut kena aturan break-inside:avoid
+   print.css yang ditujukan untuk kartu kecil, bukan tabel panjang berhalaman.
+   ----------------------------------------------------------------------------- */
+.laporan-dokumen {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+.laporan-kop {
+  text-align: center;
+  margin-bottom: var(--space-5);
+}
+
+.laporan-kop__judul {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xl);
+}
+
+.laporan-kop__instansi {
+  margin: 0 0 var(--space-3);
+  font-weight: 600;
+}
+
+.laporan-kop__periode,
+.laporan-kop__cetak {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.laporan-tandatangan {
+  margin-top: var(--space-5);
+  margin-left: auto;
+  width: max-content;
+  min-width: 260px;
+  text-align: center;
+}
+
+.laporan-tandatangan p {
+  margin: 0;
+}
+
+.laporan-tandatangan__spasi {
+  height: 64px; /* ruang tanda tangan basah di atas kertas cetak */
+}
+
+.laporan-tandatangan__nama {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* -----------------------------------------------------------------------------
+   18. Breakpoint responsif
    ----------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
   .stat-grid {

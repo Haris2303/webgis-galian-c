@@ -42,9 +42,13 @@ a {
   text-decoration: none;
 }
 
-/* Tabel laporan: border tegas + cegah satu baris terpotong antar halaman. */
+/* Tabel laporan: border tegas + cegah satu baris terpotong antar halaman.
+   min-width 560px (style.css) dibuat untuk scroll horizontal di MOBILE --
+   di atas kertas tidak ada scroll, jadi dibatalkan di sini (T-22) agar tabel
+   tidak dipaksa melebar sampai kepotong tepi halaman A4. */
 .data-table {
   width: 100%;
+  min-width: 0;
   border: 1px solid #000;
 }
 
@@ -53,6 +57,10 @@ a {
   border: 1px solid #000;
   padding: 6px 8px;
   color: #000;
+  /* Edge case wajib T-22: nama lokasi/kontraktor sangat panjang -- patahkan
+     kata di dalam sel, jangan biarkan meluber keluar tabel/halaman. */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .data-table thead th {
@@ -61,7 +69,14 @@ a {
   print-color-adjust: exact;
 }
 
-tr, .card, .stat-card {
+/* thead berulang di setiap halaman cetak (spesifikasi T-22) -- perilaku bawaan
+   browser untuk <table><thead> yang terpotong antar halaman; eksplisit di
+   sini sebagai jaring pengaman, bukan andalan satu-satunya pada default. */
+.data-table thead {
+  display: table-header-group;
+}
+
+tr, .card, .stat-card, .laporan-tandatangan {
   break-inside: avoid;
 }
 
@@ -76,6 +91,18 @@ tr, .card, .stat-card {
   display: none;
 }
 
+/* A4 (spesifikasi T-22) + nomor halaman lewat counter(page)/counter(pages)
+   bawaan CSS Paged Media (bukan JS) -- dukungan margin box @page ("@bottom-
+   center") bervariasi antar versi/engine Chrome; lihat Risiko tersisa T-22.
+   Bila tidak didukung, baris ini DIAM SAJA (tidak tampil) -- laporan tetap
+   lengkap dan terbaca tanpa nomor halaman, bukan rusak/error. */
 @page {
+  size: A4;
   margin: 16mm 14mm;
+
+  @bottom-center {
+    content: "Halaman " counter(page) " dari " counter(pages);
+    font-size: 9pt;
+    color: #000;
+  }
 }

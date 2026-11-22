@@ -141,6 +141,43 @@ function repo_lokasi_list_with_area(): array
     );
 }
 
+/**
+ * Rekap laporan monitoring per periode (FR-22, T-22, Admin saja -- selalu
+ * SEMUA lokasi lintas kontraktor, tidak ada scope). SATU statement SQL dengan
+ * JOIN kontraktor + TIGA scalar subquery agregat per baris (pola yang sama
+ * dengan T-12/T-20/T-21): jumlah aktivitas DALAM periode, tanggal aktivitas
+ * TERAKHIR dalam periode, dan status aktivitas pada tanggal itu. Lokasi tanpa
+ * aktivitas pada periode ini TETAP tampil dengan jumlah=0 dan tanggal/status
+ * NULL (edge case wajib T-22 "periode tanpa data"), bukan hilang dari laporan.
+ *
+ * Nama parameter diberi akhiran 1/2/3 (bukan dipakai ulang) karena MySQL
+ * native prepared statement (EMULATE_PREPARES=false, config/database.php)
+ * tidak mengizinkan satu placeholder bernama dipakai lebih dari sekali dalam
+ * satu statement.
+ * @return array<int, array<string, mixed>>
+ */
+function repo_lokasi_list_for_laporan(string $tanggal_mulai, string $tanggal_akhir): array
+{
+    return db_all(
+        'SELECT lt.id, lt.nama_lokasi, lt.status_izin, k.nama_perusahaan AS kontraktor_nama,
+                (SELECT COUNT(*) FROM aktivitas_tambang a
+                  WHERE a.lokasi_id = lt.id AND a.tanggal_aktivitas BETWEEN :mulai1 AND :akhir1) AS jumlah_aktivitas,
+                (SELECT MAX(a.tanggal_aktivitas) FROM aktivitas_tambang a
+                  WHERE a.lokasi_id = lt.id AND a.tanggal_aktivitas BETWEEN :mulai2 AND :akhir2) AS aktivitas_terakhir_tanggal,
+                (SELECT a.status_aktivitas FROM aktivitas_tambang a
+                  WHERE a.lokasi_id = lt.id AND a.tanggal_aktivitas BETWEEN :mulai3 AND :akhir3
+                  ORDER BY a.tanggal_aktivitas DESC, a.id DESC LIMIT 1) AS aktivitas_terakhir_status
+         FROM lokasi_tambang lt
+         JOIN kontraktor k ON k.id = lt.kontraktor_id
+         ORDER BY lt.nama_lokasi ASC',
+        [
+            'mulai1' => $tanggal_mulai, 'akhir1' => $tanggal_akhir,
+            'mulai2' => $tanggal_mulai, 'akhir2' => $tanggal_akhir,
+            'mulai3' => $tanggal_mulai, 'akhir3' => $tanggal_akhir,
+        ]
+    );
+}
+
 function repo_lokasi_create(array $data): int
 {
     db_exec(

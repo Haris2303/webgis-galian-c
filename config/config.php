@@ -62,3 +62,12 @@ define('SORONG_LAT_MIN', -1.05);
 define('SORONG_LAT_MAX', -0.75);
 define('SORONG_LNG_MIN', 131.15);
 define('SORONG_LNG_MAX', 131.45);
+
+// Pejabat penandatangan laporan monitoring (FR-22, PRD bagian 9 #7, T-22).
+// Dibaca dari SINI (bukan di-hardcode di laporan/index.php) supaya pergantian
+// pejabat tidak perlu sentuh kode. GANTI nilai di bawah sebelum laporan ini
+// dipakai sungguhan -- placeholder sengaja terlihat jelas sebagai placeholder,
+// bukan nama kosong yang bisa lolos tercetak tanpa disadari.
+define('LAPORAN_PEJABAT_JABATAN', 'Kepala Bidang Pertambangan dan Energi');
+define('LAPORAN_PEJABAT_NAMA', '(Isi nama pejabat di config/config.php)');
+define('LAPORAN_PEJABAT_NIP', ''); // opsional -- kosongkan bila tidak perlu dicetak
