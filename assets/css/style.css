@@ -570,6 +570,15 @@ summary:focus-visible {
 }
 .badge--kedaluwarsa::before { background: var(--status-tidak-berizin); }
 
+/* Fallback T-20: status_izin tak terduga/NULL (data rusak di luar tiga nilai
+   enum) -- tetap tampil sebagai badge netral, bukan baris rusak/kosong. */
+.badge--tidak-diketahui {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+.badge--tidak-diketahui::before { background: var(--color-text-muted); }
+
 /* -----------------------------------------------------------------------------
    10. Tombol
    ----------------------------------------------------------------------------- */
@@ -946,6 +955,11 @@ dialog.modal::backdrop {
    T-10) -- menimpa tinggi viewport .map-shell di atas. */
 .map-shell--form {
   height: 360px;
+}
+
+/* Pratinjau peta dashboard (T-20, FR-05: "tinggi ±300px"). */
+.map-shell--preview {
+  height: 300px;
 }
 
 .u-mt-4 {
