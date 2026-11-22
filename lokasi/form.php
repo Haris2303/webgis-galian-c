@@ -192,8 +192,8 @@ require __DIR__ . '/../includes/header.php';
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="nama_lokasi">Nama Lokasi <span class="field__required">*</span></label>
         <input class="input" type="text" id="nama_lokasi" name="nama_lokasi" required maxlength="150"
-          value="<?= e($is_edit ? old('nama_lokasi', (string) $lokasi['nama_lokasi']) : old('nama_lokasi')) ?>">
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="nama_lokasi-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          value="<?= e($is_edit ? old('nama_lokasi', (string) $lokasi['nama_lokasi']) : old('nama_lokasi')) ?>"<?= field_aria($errors, $fn) ?>>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="nama_lokasi-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
 
       <div class="grid-2">
@@ -201,25 +201,25 @@ require __DIR__ . '/../includes/header.php';
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="kontraktor_id">Kontraktor <span class="field__required">*</span></label>
           <?php $kontraktor_terpilih = (int) ($_POST['kontraktor_id'] ?? ($is_edit ? $lokasi['kontraktor_id'] : 0)); ?>
-          <select class="select" id="kontraktor_id" name="kontraktor_id" required>
+          <select class="select" id="kontraktor_id" name="kontraktor_id" required<?= field_aria($errors, $fn) ?>>
             <option value="">— Pilih kontraktor —</option>
             <?php foreach ($daftar_kontraktor as $k): ?>
             <option value="<?= e((string) $k['id']) ?>" <?php if ($kontraktor_terpilih === (int) $k['id']): ?>selected<?php endif; ?>><?= e($k['nama_perusahaan']) ?></option>
             <?php endforeach; ?>
           </select>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="kontraktor_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="kontraktor_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
         <?php $fn = 'material_id'; ?>
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="material_id">Jenis Material <span class="field__required">*</span></label>
           <?php $material_terpilih = (int) ($_POST['material_id'] ?? ($is_edit ? $lokasi['material_id'] : 0)); ?>
-          <select class="select" id="material_id" name="material_id" required>
+          <select class="select" id="material_id" name="material_id" required<?= field_aria($errors, $fn) ?>>
             <option value="">— Pilih material —</option>
             <?php foreach ($daftar_material as $m): ?>
             <option value="<?= e((string) $m['id']) ?>" <?php if ($material_terpilih === (int) $m['id']): ?>selected<?php endif; ?>><?= e($m['nama']) ?></option>
             <?php endforeach; ?>
           </select>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="material_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="material_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
@@ -228,44 +228,44 @@ require __DIR__ . '/../includes/header.php';
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="distrik">Distrik</label>
           <input class="input" type="text" id="distrik" name="distrik" maxlength="100"
-            value="<?= e($is_edit ? old('distrik', (string) ($lokasi['distrik'] ?? '')) : old('distrik')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="distrik-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('distrik', (string) ($lokasi['distrik'] ?? '')) : old('distrik')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="distrik-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
         <?php $fn = 'kelurahan'; ?>
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="kelurahan">Kelurahan</label>
           <input class="input" type="text" id="kelurahan" name="kelurahan" maxlength="100"
-            value="<?= e($is_edit ? old('kelurahan', (string) ($lokasi['kelurahan'] ?? '')) : old('kelurahan')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="kelurahan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('kelurahan', (string) ($lokasi['kelurahan'] ?? '')) : old('kelurahan')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="kelurahan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
       <?php $fn = 'alamat'; ?>
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="alamat">Alamat</label>
-        <textarea class="textarea" id="alamat" name="alamat"><?= e($is_edit ? old('alamat', (string) ($lokasi['alamat'] ?? '')) : old('alamat')) ?></textarea>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="alamat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        <textarea class="textarea" id="alamat" name="alamat"<?= field_aria($errors, $fn) ?>><?= e($is_edit ? old('alamat', (string) ($lokasi['alamat'] ?? '')) : old('alamat')) ?></textarea>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="alamat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
 
       <?php $fn = 'status_izin'; ?>
       <?php $status_terpilih = (string) ($_POST['status_izin'] ?? ($is_edit ? $lokasi['status_izin'] : 'proses')); ?>
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="status_izin">Status Izin <span class="field__required">*</span></label>
-        <select class="select" id="status_izin" name="status_izin" required>
+        <select class="select" id="status_izin" name="status_izin" required<?= field_aria($errors, $fn) ?>>
           <option value="proses" <?php if ($status_terpilih === 'proses'): ?>selected<?php endif; ?>>Proses</option>
           <option value="berizin" <?php if ($status_terpilih === 'berizin'): ?>selected<?php endif; ?>>Berizin</option>
           <option value="tidak_berizin" <?php if ($status_terpilih === 'tidak_berizin'): ?>selected<?php endif; ?>>Tidak Berizin</option>
         </select>
         <p class="field__hint">Status "Berizin" mewajibkan Nomor Izin &amp; Tanggal Berlaku. Status "Tidak Berizin" akan mengosongkan ketiga field izin di bawah.</p>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="status_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="status_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
 
       <?php $fn = 'nomor_izin'; ?>
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="nomor_izin">Nomor Izin (SIPB)</label>
         <input class="input" type="text" id="nomor_izin" name="nomor_izin" maxlength="100"
-          value="<?= e($is_edit ? old('nomor_izin', (string) ($lokasi['nomor_izin'] ?? '')) : old('nomor_izin')) ?>">
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="nomor_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          value="<?= e($is_edit ? old('nomor_izin', (string) ($lokasi['nomor_izin'] ?? '')) : old('nomor_izin')) ?>"<?= field_aria($errors, $fn) ?>>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="nomor_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
 
       <div class="grid-2">
@@ -273,15 +273,15 @@ require __DIR__ . '/../includes/header.php';
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="tanggal_berlaku_izin">Tanggal Berlaku Izin</label>
           <input class="input" type="date" id="tanggal_berlaku_izin" name="tanggal_berlaku_izin"
-            value="<?= e($is_edit ? old('tanggal_berlaku_izin', (string) ($lokasi['tanggal_berlaku_izin'] ?? '')) : old('tanggal_berlaku_izin')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="tanggal_berlaku_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('tanggal_berlaku_izin', (string) ($lokasi['tanggal_berlaku_izin'] ?? '')) : old('tanggal_berlaku_izin')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="tanggal_berlaku_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
         <?php $fn = 'tanggal_berakhir_izin'; ?>
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="tanggal_berakhir_izin">Tanggal Berakhir Izin</label>
           <input class="input" type="date" id="tanggal_berakhir_izin" name="tanggal_berakhir_izin"
-            value="<?= e($is_edit ? old('tanggal_berakhir_izin', (string) ($lokasi['tanggal_berakhir_izin'] ?? '')) : old('tanggal_berakhir_izin')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="tanggal_berakhir_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('tanggal_berakhir_izin', (string) ($lokasi['tanggal_berakhir_izin'] ?? '')) : old('tanggal_berakhir_izin')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="tanggal_berakhir_izin-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
@@ -289,16 +289,16 @@ require __DIR__ . '/../includes/header.php';
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="luas_ha">Luas (ha)</label>
         <input class="input" type="text" id="luas_ha" name="luas_ha"
-          value="<?= e($is_edit ? old('luas_ha', (string) ($lokasi['luas_ha'] ?? '')) : old('luas_ha')) ?>">
+          value="<?= e($is_edit ? old('luas_ha', (string) ($lokasi['luas_ha'] ?? '')) : old('luas_ha')) ?>"<?= field_aria($errors, $fn) ?>>
         <p class="field__hint">Terisi otomatis dari poligon di peta (bila digambar) — boleh diubah manual.</p>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="luas_ha-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="luas_ha-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
 
       <?php $fn = 'keterangan'; ?>
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="keterangan">Keterangan</label>
-        <textarea class="textarea" id="keterangan" name="keterangan"><?= e($is_edit ? old('keterangan', (string) ($lokasi['keterangan'] ?? '')) : old('keterangan')) ?></textarea>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="keterangan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        <textarea class="textarea" id="keterangan" name="keterangan"<?= field_aria($errors, $fn) ?>><?= e($is_edit ? old('keterangan', (string) ($lokasi['keterangan'] ?? '')) : old('keterangan')) ?></textarea>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="keterangan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
     </div>
 
@@ -308,7 +308,14 @@ require __DIR__ . '/../includes/header.php';
       <p class="field__hint" id="peta-picker-fallback" hidden>
         Peta tidak dapat dimuat (kemungkinan CDN Leaflet tidak terjangkau). Isi koordinat secara manual di bawah ini.
       </p>
-      <p class="field__error" id="peta-warning" hidden>Koordinat di luar perkiraan wilayah Kota Sorong — periksa kembali sebelum menyimpan.</p>
+      <p class="field__error" role="alert" id="peta-warning" hidden>Koordinat di luar perkiraan wilayah Kota Sorong — periksa kembali sebelum menyimpan.</p>
+      <!-- Edge case wajib T-25: peta ini bisa digeser/zoom dengan satu jari
+           (dibutuhkan untuk memilih titik), sehingga ikut menangkap gestur
+           gulir satu jari yang dimulai di atasnya. Field latitude/longitude
+           di bawah tetap berfungsi penuh tanpa menyentuh peta sama sekali
+           (edge case wajib T-10), jadi ini sekadar petunjuk, bukan satu-
+           satunya jalan. -->
+      <p class="field__hint">Peta bisa digeser/diperbesar langsung dengan sentuhan. Untuk menggulir halaman di perangkat sentuh, mulai gulir dari luar area peta, atau isi Latitude/Longitude secara manual di bawah.</p>
 
       <div
         id="peta-picker"
@@ -333,22 +340,22 @@ require __DIR__ . '/../includes/header.php';
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="latitude">Latitude <span class="field__required">*</span></label>
           <input class="input" type="text" id="latitude" name="latitude" required
-            value="<?= e($is_edit ? old('latitude', (string) $lokasi['latitude']) : old('latitude')) ?>">
+            value="<?= e($is_edit ? old('latitude', (string) $lokasi['latitude']) : old('latitude')) ?>"<?= field_aria($errors, $fn) ?>>
           <p class="field__hint">Klik peta atau isi manual, lalu tekan Enter/pindah fokus untuk sinkron ke peta.</p>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="latitude-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="latitude-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
         <?php $fn = 'longitude'; ?>
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="longitude">Longitude <span class="field__required">*</span></label>
           <input class="input" type="text" id="longitude" name="longitude" required
-            value="<?= e($is_edit ? old('longitude', (string) $lokasi['longitude']) : old('longitude')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="longitude-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('longitude', (string) $lokasi['longitude']) : old('longitude')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="longitude-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
       <?php $fn = 'area_geojson'; ?>
       <input type="hidden" id="area_geojson" name="area_geojson" value="<?= e($is_edit ? old('area_geojson', (string) ($lokasi['area_geojson'] ?? '')) : old('area_geojson')) ?>">
-      <?php if (isset($errors[$fn])): ?><p class="field__error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+      <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
     </div>
   </div>
 

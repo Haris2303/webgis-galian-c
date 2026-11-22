@@ -1253,7 +1253,11 @@ dialog.modal::backdrop {
 
 .map-search__input {
   display: block;
-  width: 220px;
+  /* Edge case wajib T-25 "zoom browser 200%": 220px tetap bisa melebihi
+     lebar peta yang efektif menyempit drastis pada zoom tinggi + jendela
+     kecil -- min() menyusut mengikuti lebar jendela alih-alih meluber
+     keluar kontainer kontrol Leaflet. */
+  width: min(220px, calc(100vw - var(--space-6) * 2));
   padding: var(--space-2) var(--space-3);
   border: none;
   border-radius: var(--radius-sm);
@@ -1295,6 +1299,62 @@ dialog.modal::backdrop {
 .map-search__option:hover,
 .map-search__option.is-highlighted {
   background: var(--color-bg);
+}
+
+/* -----------------------------------------------------------------------------
+   16b. Target sentuh minimal 44px untuk kontrol peta (T-25, PRD bagian 11).
+   leaflet.css (CDN) dimuat SESUDAH style.css lewat $extra_head
+   (includes/header.php) -- !important di bawah WAJIB supaya aturan kita
+   tidak kalah oleh aturan Leaflet sendiri yang datang belakangan di kaskade
+   dengan spesifisitas sama. Ini satu-satunya tempat !important dipakai di
+   berkas ini, SENGAJA dibatasi untuk mengalahkan stylesheet pihak ketiga
+   yang urutan muatnya tidak bisa kita atur, bukan kebiasaan umum.
+   ----------------------------------------------------------------------------- */
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+}
+
+.leaflet-popup-close-button {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Kontrol KUSTOM (legenda/filter T-13/T-15, bukan bawaan Leaflet) -- target
+   sentuh dinaikkan lewat tinggi BARIS (label/tombol), bukan memperbesar
+   kotak checkbox itu sendiri secara visual (konvensi checkbox tetap kecil,
+   yang penting AREA KLIK-nya memenuhi 44px). */
+.map-legend__checkbox-label {
+  min-height: 44px;
+}
+
+.map-popup__pick-btn {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.map-popup__copy-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.map-search__input {
+  min-height: 44px;
+}
+
+.map-search__option {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
 }
 
 /* -----------------------------------------------------------------------------

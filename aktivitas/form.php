@@ -253,7 +253,7 @@ require __DIR__ . '/../includes/header.php';
       <?php $fn = 'lokasi_id'; ?>
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="lokasi_id">Lokasi <span class="field__required">*</span></label>
-        <select class="select" id="lokasi_id" name="lokasi_id" required>
+        <select class="select" id="lokasi_id" name="lokasi_id" required<?= field_aria($errors, $fn) ?>>
           <option value="">— Pilih lokasi —</option>
           <?php foreach ($daftar_lokasi as $l): ?>
           <option value="<?= e((string) $l['id']) ?>" <?php if ($lokasi_id_terpilih === (int) $l['id']): ?>selected<?php endif; ?>><?= e($l['nama_lokasi']) ?></option>
@@ -262,7 +262,7 @@ require __DIR__ . '/../includes/header.php';
         <?php if ($daftar_lokasi === []): ?>
         <p class="field__hint">Belum ada lokasi yang terdaftar untuk perusahaan Anda. Hubungi admin.</p>
         <?php endif; ?>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="lokasi_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="lokasi_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
 
       <div class="field">
@@ -290,15 +290,15 @@ require __DIR__ . '/../includes/header.php';
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="tanggal_aktivitas">Tanggal Aktivitas <span class="field__required">*</span></label>
           <input class="input" type="date" id="tanggal_aktivitas" name="tanggal_aktivitas" required max="<?= e(date('Y-m-d')) ?>"
-            value="<?= e($is_edit ? old('tanggal_aktivitas', (string) $aktivitas['tanggal_aktivitas']) : old('tanggal_aktivitas')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="tanggal_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('tanggal_aktivitas', (string) $aktivitas['tanggal_aktivitas']) : old('tanggal_aktivitas')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="tanggal_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
         <?php $fn = 'jenis_kegiatan'; ?>
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="jenis_kegiatan">Jenis Kegiatan <span class="field__required">*</span></label>
           <input class="input" type="text" id="jenis_kegiatan" name="jenis_kegiatan" required maxlength="100"
-            value="<?= e($is_edit ? old('jenis_kegiatan', (string) $aktivitas['jenis_kegiatan']) : old('jenis_kegiatan')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="jenis_kegiatan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('jenis_kegiatan', (string) $aktivitas['jenis_kegiatan']) : old('jenis_kegiatan')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="jenis_kegiatan-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
@@ -307,24 +307,24 @@ require __DIR__ . '/../includes/header.php';
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="material_id">Jenis Material <span class="field__required">*</span></label>
           <?php $material_terpilih = (int) ($_POST['material_id'] ?? ($is_edit ? $aktivitas['material_id'] : 0)); ?>
-          <select class="select" id="material_id" name="material_id" required>
+          <select class="select" id="material_id" name="material_id" required<?= field_aria($errors, $fn) ?>>
             <option value="">— Pilih material —</option>
             <?php foreach ($daftar_material as $m): ?>
             <option value="<?= e((string) $m['id']) ?>" <?php if ($material_terpilih === (int) $m['id']): ?>selected<?php endif; ?>><?= e($m['nama']) ?></option>
             <?php endforeach; ?>
           </select>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="material_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="material_id-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
         <?php $fn = 'status_aktivitas'; ?>
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="status_aktivitas">Status Aktivitas <span class="field__required">*</span></label>
           <?php $status_terpilih = (string) ($_POST['status_aktivitas'] ?? ($is_edit ? $aktivitas['status_aktivitas'] : 'aktif')); ?>
-          <select class="select" id="status_aktivitas" name="status_aktivitas" required>
+          <select class="select" id="status_aktivitas" name="status_aktivitas" required<?= field_aria($errors, $fn) ?>>
             <option value="aktif" <?php if ($status_terpilih === 'aktif'): ?>selected<?php endif; ?>>Aktif</option>
             <option value="berhenti_sementara" <?php if ($status_terpilih === 'berhenti_sementara'): ?>selected<?php endif; ?>>Berhenti Sementara</option>
             <option value="selesai" <?php if ($status_terpilih === 'selesai'): ?>selected<?php endif; ?>>Selesai</option>
           </select>
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="status_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="status_aktivitas-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
@@ -333,23 +333,23 @@ require __DIR__ . '/../includes/header.php';
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="jumlah_alat_berat">Jumlah Alat Berat</label>
           <input class="input" type="number" id="jumlah_alat_berat" name="jumlah_alat_berat" min="0" step="1"
-            value="<?= e($is_edit ? old('jumlah_alat_berat', (string) $aktivitas['jumlah_alat_berat']) : old('jumlah_alat_berat', '0')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="jumlah_alat_berat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('jumlah_alat_berat', (string) $aktivitas['jumlah_alat_berat']) : old('jumlah_alat_berat', '0')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="jumlah_alat_berat-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
         <?php $fn = 'jumlah_pekerja'; ?>
         <div class="field <?= e(field_error_class($errors, $fn)) ?>">
           <label class="field__label" for="jumlah_pekerja">Jumlah Pekerja</label>
           <input class="input" type="number" id="jumlah_pekerja" name="jumlah_pekerja" min="0" step="1"
-            value="<?= e($is_edit ? old('jumlah_pekerja', (string) $aktivitas['jumlah_pekerja']) : old('jumlah_pekerja', '0')) ?>">
-          <?php if (isset($errors[$fn])): ?><p class="field__error" id="jumlah_pekerja-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+            value="<?= e($is_edit ? old('jumlah_pekerja', (string) $aktivitas['jumlah_pekerja']) : old('jumlah_pekerja', '0')) ?>"<?= field_aria($errors, $fn) ?>>
+          <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="jumlah_pekerja-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
       <?php $fn = 'deskripsi'; ?>
       <div class="field <?= e(field_error_class($errors, $fn)) ?>">
         <label class="field__label" for="deskripsi">Keterangan</label>
-        <textarea class="textarea" id="deskripsi" name="deskripsi"><?= e($is_edit ? old('deskripsi', (string) ($aktivitas['deskripsi'] ?? '')) : old('deskripsi')) ?></textarea>
-        <?php if (isset($errors[$fn])): ?><p class="field__error" id="deskripsi-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
+        <textarea class="textarea" id="deskripsi" name="deskripsi"<?= field_aria($errors, $fn) ?>><?= e($is_edit ? old('deskripsi', (string) ($aktivitas['deskripsi'] ?? '')) : old('deskripsi')) ?></textarea>
+        <?php if (isset($errors[$fn])): ?><p class="field__error" role="alert" id="deskripsi-error"><?= e($errors[$fn][0]) ?></p><?php endif; ?>
       </div>
     </div>
 
@@ -367,13 +367,17 @@ require __DIR__ . '/../includes/header.php';
           data-existing-count="<?= e((string) count($foto_lama)) ?>"
           data-preview-target="foto-preview-grid"
           data-count-target="foto-preview-count"
+          aria-describedby="foto-preview-count<?= isset($errors[$fn]) ? ' foto-error' : '' ?>"
+          <?= isset($errors[$fn]) ? 'aria-invalid="true"' : '' ?>
         >
-        <p class="field__hint" id="foto-preview-count"></p>
+        <p class="field__hint" id="foto-preview-count" aria-live="polite"></p>
         <ul class="photo-grid" id="foto-preview-grid"></ul>
         <?php if (isset($errors[$fn])): ?>
+        <div id="foto-error" role="alert">
         <?php foreach ($errors[$fn] as $pesan): ?>
         <p class="field__error"><?= e($pesan) ?></p>
         <?php endforeach; ?>
+        </div>
         <?php endif; ?>
       </div>
 
