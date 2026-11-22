@@ -73,6 +73,23 @@ function csp_nonce(): string
  *                              tegas) ditambah unpkg.com (T-10) karena ikon marker
  *                              default Leaflet dimuat lewat path relatif ke CSS-nya
  *                              sendiri di CDN yang sama, bukan dari origin sendiri.
+ *                              blob: ditambah (T-18 UI) untuk pratinjau foto
+ *                              SEBELUM unggah (assets/js/foto-preview.js,
+ *                              URL.createObjectURL() menghasilkan URL blob:,
+ *                              tanpa ini browser diam-diam menolak merendernya).
+ *                              *.google.com/*.googleapis.com/*.gstatic.com
+ *                              ditambah (peta UI) untuk tile satelit
+ *                              (assets/js/map.js) -- endpoint tile Google
+ *                              TANPA kunci API resmi (/vt/lyrs=s...), bukan
+ *                              integrasi Google Maps Platform resmi; domain
+ *                              persis yang dipakai server tile ini tidak
+ *                              didokumentasikan resmi, tiga domain Google
+ *                              ditambahkan sekaligus (bukan hanya *.google.com)
+ *                              setelah satu percobaan nyata diblokir CSP --
+ *                              bisa berhenti bekerja atau diblokir Google
+ *                              tanpa pemberitahuan kapan pun. Ganti ke Google
+ *                              Maps Platform (kunci API + billing) untuk
+ *                              produksi yang butuh SLA/garansi ketersediaan.
  * - connect-src 'self'      : fetch() (PRD bagian 10) hanya ke endpoint sendiri.
  * - object-src 'none'       : blokir <object>/<embed>, tidak ada kebutuhan di app ini.
  * - base-uri 'self'         : cegah <base> disuntik untuk membajak URL relatif.
@@ -99,7 +116,7 @@ function security_headers(): void
         "default-src 'self'; script-src 'self' https://unpkg.com; "
         . "style-src 'self' https://unpkg.com https://fonts.googleapis.com 'nonce-%s'; "
         . "font-src 'self' https://fonts.gstatic.com; "
-        . "img-src 'self' https://tile.openstreetmap.org https://unpkg.com; connect-src 'self'; "
+        . "img-src 'self' blob: https://tile.openstreetmap.org https://unpkg.com https://*.google.com https://*.googleapis.com https://*.gstatic.com; connect-src 'self'; "
         . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
         csp_nonce()
     );

@@ -33,11 +33,7 @@ $total_lokasi = $stat['berizin'] + $stat['tidak_berizin'] + $stat['proses'];
     10
 );
 
-$judul_dashboard = 'Dashboard — Admin Dinas Perindustrian';
-if ($user['role'] === 'kontraktor') {
-    $kontraktor = $kontraktor_id_scope > 0 ? repo_kontraktor_find($kontraktor_id_scope) : null;
-    $judul_dashboard = 'Dashboard — ' . ($kontraktor['nama_perusahaan'] ?? $user['nama_lengkap']);
-}
+$judul_dashboard = 'Dashboard';
 
 /**
  * Markup badge status (teks + warna, PRD bagian 9) untuk satu baris tabel.
@@ -72,8 +68,14 @@ $extra_head = [
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="ds-page">
-  <div class="ds-page-header">
-    <h1 class="ds-page-header__title"><?= e($judul_dashboard) ?></h1>
+  <div class="ds-page-header ds-page-header--row">
+    <div>
+      <span class="ds-page-header__eyebrow">Selamat datang, <?= e($user['nama_lengkap']) ?></span>
+      <h1 class="ds-page-header__title"><?= e($judul_dashboard) ?></h1>
+    </div>
+    <?php if ($user['role'] === 'kontraktor'): ?>
+    <a class="ds-btn ds-btn--primary" href="<?= e(url('aktivitas/form.php')) ?>">+ Input Aktivitas</a>
+    <?php endif; ?>
   </div>
 
   <div class="ds-stat-cols">

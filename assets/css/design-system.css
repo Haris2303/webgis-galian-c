@@ -34,7 +34,7 @@
   --ds-danger-soft: #fef2f2;
 
   /* Tipografi (DESIGN.md "typography") */
-  --ds-font: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ds-font: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Bentuk (DESIGN.md "rounded") */
   --ds-radius-card: 20px;
@@ -69,40 +69,35 @@
   padding: 24px;
   position: relative;
   overflow: hidden;
-  background: var(--ds-dark-surface);
+  background: url(../img/bg-login.webp);
+  background-repeat: no-repeat;
+  background-size: cover;
   font-family: var(--ds-font);
 }
 
-.ds-auth-shell::before,
-.ds-auth-shell::after {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  z-index: 0;
-  background:
-    radial-gradient(40% 35% at 20% 25%, rgba(37, 99, 235, 0.55), transparent 70%),
-    radial-gradient(35% 40% at 80% 20%, rgba(22, 163, 74, 0.35), transparent 70%),
-    radial-gradient(45% 45% at 50% 85%, rgba(29, 78, 216, 0.45), transparent 70%);
-  filter: blur(60px);
-  animation: ds-aurora-drift 22s ease-in-out infinite alternate;
-}
-
-.ds-auth-shell::after {
-  animation-duration: 28s;
-  animation-direction: alternate-reverse;
-  opacity: 0.6;
-}
-
 @keyframes ds-aurora-drift {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(4%, -3%) scale(1.08); }
-  100% { transform: translate(-3%, 4%) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(4%, -3%) scale(1.08);
+  }
+  100% {
+    transform: translate(-3%, 4%) scale(1);
+  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ds-auth-shell::before,
-  .ds-auth-shell::after {
-    animation: none;
+/* Masuk sekali saat halaman dimuat ("hero enters once on load") -- satu kali,
+   bukan animasi berulang/scroll-triggered; dimatikan total di atas lewat
+   prefers-reduced-motion (halaman tetap tampil penuh, bukan tersembunyi). */
+@keyframes ds-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -117,11 +112,13 @@
    Kartu login
    ----------------------------------------------------------------------------- */
 .ds-auth-card {
-  background: var(--ds-surface);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
   color: var(--ds-on-bg);
   border-radius: var(--ds-radius-panel);
   box-shadow: var(--ds-shadow-panel-dark);
   padding: 40px 36px;
+  animation: ds-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (max-width: 480px) {
@@ -188,7 +185,9 @@
   background: var(--ds-surface);
   border: 1.5px solid var(--ds-outline);
   border-radius: var(--ds-radius-input);
-  transition: border-color var(--ds-motion-normal), box-shadow var(--ds-motion-normal);
+  transition:
+    border-color var(--ds-motion-normal),
+    box-shadow var(--ds-motion-normal);
 }
 
 .ds-input:focus-visible {
@@ -212,7 +211,9 @@
   border: none;
   border-radius: var(--ds-radius-pill);
   cursor: pointer;
-  transition: background var(--ds-motion-fast), transform var(--ds-motion-fast);
+  transition:
+    background var(--ds-motion-fast),
+    transform var(--ds-motion-fast);
 }
 
 .ds-btn-primary:hover {
@@ -225,7 +226,9 @@
 
 .ds-btn-primary:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px var(--ds-primary-soft), 0 0 0 1px var(--ds-primary);
+  box-shadow:
+    0 0 0 4px var(--ds-primary-soft),
+    0 0 0 1px var(--ds-primary);
 }
 
 .ds-alert-error {
@@ -258,19 +261,44 @@
 }
 
 /* -----------------------------------------------------------------------------
-   Halaman "app" (topbar+sidebar lama, T-04, BELUM dimigrasi) -- komponen di
-   bawah ini HANYA untuk ISI konten di dalam <main class="app-main"> (mulai
-   dashboard.php), bukan topbar/sidebar itu sendiri. .ds-page jadi pembungkus
-   SATU-SATUNYA yang men-set font-family Roboto -- turunannya warisi otomatis,
-   tidak perlu diulang di setiap kelas.
+   Halaman "app" (topbar+sidebar lama, T-04, BELUM dimigrasi semua) -- komponen
+   di bawah ini HANYA untuk ISI konten di dalam <main class="app-main"> (mulai
+   dashboard.php, aktivitas/index.php), bukan topbar/sidebar itu sendiri.
+   .ds-page jadi pembungkus SATU-SATUNYA yang men-set font-family Roboto --
+   turunannya warisi otomatis, tidak perlu diulang di setiap kelas. Jarak
+   vertikal antar blok langsung di bawah .ds-page SATU aturan saja di sini
+   (bukan diulang per halaman) supaya ritme spasi konsisten di semua halaman.
    ----------------------------------------------------------------------------- */
 .ds-page {
   font-family: var(--ds-font);
   color: var(--ds-on-bg);
+  animation: ds-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.ds-page > * + * {
+  margin-top: 24px;
+}
+
+/* Header dashboard balik jadi header BIASA (bukan hero banner) -- banner gelap
+   sebelumnya membuat konten di bawahnya terasa terdesak/sulit terlihat penuh;
+   glassmorphism dipindah ke KONTEN (.ds-card, .ds-stat-col) saja, bukan header. */
 .ds-page-header {
   margin-bottom: 28px;
+}
+
+.ds-page-header__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-primary);
+  background: var(--ds-primary-soft);
+  padding: 6px 14px;
+  border-radius: var(--ds-radius-pill);
+  margin: 0 0 10px;
 }
 
 .ds-page-header__title {
@@ -288,17 +316,54 @@
   gap: 20px;
 }
 
+/* Cascade masuk HANYA utk pasangan .ds-card langsung (dashboard, form 2 kolom)
+   -- tidak menimpa .ds-grid-2 bersarang yang isinya .ds-field (pasangan input). */
+.ds-grid-2 > .ds-card:nth-child(1) {
+  animation: ds-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ds-grid-2 > .ds-card:nth-child(2) {
+  animation: ds-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 90ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-grid-2 > .ds-card {
+    animation: none;
+  }
+}
+
 @media (max-width: 1024px) {
   .ds-grid-2 {
     grid-template-columns: 1fr;
   }
 }
 
+/* Glassmorphism: latar putih TRANSLUSEN + backdrop-filter blur, bukan putih
+   solid -- border highlight tipis & saturate boost supaya efek "kaca"
+   kebaca walau di atas latar halaman yang terang (bukan gelap/kontras). */
 .ds-card {
-  background: var(--ds-surface);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: var(--ds-radius-card-lg);
   box-shadow: var(--ds-shadow-card);
   padding: 24px;
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  transition:
+    transform var(--ds-motion-normal) cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow var(--ds-motion-normal) ease;
+}
+
+.ds-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-card {
+    transition: none;
+  }
 }
 
 .ds-card__title {
@@ -374,8 +439,53 @@
   border-bottom: none;
 }
 
+.ds-table tbody tr {
+  animation: ds-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: background var(--ds-motion-fast) ease;
+}
+
+/* Masuk bergantian per baris (cascade), ditutup di baris ke-6 supaya daftar
+   panjang tidak menunggu lama -- sisanya tampil bersamaan dengan baris ke-6. */
+.ds-table tbody tr:nth-child(1) {
+  animation-delay: 0ms;
+}
+.ds-table tbody tr:nth-child(2) {
+  animation-delay: 40ms;
+}
+.ds-table tbody tr:nth-child(3) {
+  animation-delay: 80ms;
+}
+.ds-table tbody tr:nth-child(4) {
+  animation-delay: 120ms;
+}
+.ds-table tbody tr:nth-child(5) {
+  animation-delay: 160ms;
+}
+.ds-table tbody tr:nth-child(n + 6) {
+  animation-delay: 200ms;
+}
+
 .ds-table tbody tr:hover {
   background: var(--ds-bg);
+}
+
+.ds-table th a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--ds-motion-fast) ease;
+}
+
+.ds-table th a:hover {
+  color: var(--ds-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-table tbody tr {
+    animation: none;
+  }
 }
 
 /* --- Badge status (warna TETAP sesuai PRD bagian 9, bentuk pil baru) --- */
@@ -398,14 +508,441 @@
   flex-shrink: 0;
 }
 
-.ds-badge--berizin { background: #E8F5EC; color: #1E7A3A; }
-.ds-badge--berizin::before { background: #2E9E4F; }
-.ds-badge--tidak-berizin { background: #FBEAEA; color: #B83A3A; }
-.ds-badge--tidak-berizin::before { background: #D64545; }
-.ds-badge--proses { background: #FDF3DD; color: #8A6512; }
-.ds-badge--proses::before { background: #E5A823; }
-.ds-badge--tidak-diketahui { background: #f1f5f9; color: #64748b; }
-.ds-badge--tidak-diketahui::before { background: #94a3b8; }
+.ds-badge--berizin {
+  background: #e8f5ec;
+  color: #1e7a3a;
+}
+.ds-badge--berizin::before {
+  background: #2e9e4f;
+}
+.ds-badge--tidak-berizin {
+  background: #fbeaea;
+  color: #b83a3a;
+}
+.ds-badge--tidak-berizin::before {
+  background: #d64545;
+}
+.ds-badge--proses {
+  background: #fdf3dd;
+  color: #8a6512;
+}
+.ds-badge--proses::before {
+  background: #e5a823;
+}
+.ds-badge--tidak-diketahui {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.ds-badge--tidak-diketahui::before {
+  background: #94a3b8;
+}
+
+/* Peringatan "perlu pengawasan" (monitoring.php, T-21) -- warna amber yang
+   SAMA dengan status "proses" (dipakai lintas komponen sebagai warna
+   peringatan umum), tapi border putus-putus supaya jelas BUKAN badge status
+   izin/aktivitas, melainkan peringatan operasional terpisah. */
+.ds-badge--perlu-pengawasan {
+  background: #fdf3dd;
+  color: #8a6512;
+  border: 1px dashed #e5a823;
+}
+.ds-badge--perlu-pengawasan::before {
+  background: #e5a823;
+}
+
+/* Penanda "izin kedaluwarsa" (lokasi/index.php, T-09) -- BUKAN badge
+   status_izin kedua, cuma indikator tambahan saat tanggal_berakhir_izin
+   sudah lewat. Warna senada ds-badge--tidak-berizin, border putus-putus
+   membedakannya dari badge status biasa. */
+.ds-badge--kedaluwarsa {
+  background: #fbeaea;
+  color: #b83a3a;
+  border: 1px dashed #d64545;
+}
+.ds-badge--kedaluwarsa::before {
+  background: #d64545;
+}
+
+/* --- Tombol aksi inline (toolbar/tabel) -- BUKAN .ds-btn-primary (tombol
+   submit login, penuh lebar/tinggi tetap); ".ds-btn" di sini untuk aksi
+   sebaris: filter, tambah data, ubah/hapus per baris. */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 18px;
+  font-family: var(--ds-font);
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--ds-radius-pill);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--ds-motion-fast) ease,
+    color var(--ds-motion-fast) ease,
+    border-color var(--ds-motion-fast) ease,
+    transform var(--ds-motion-fast) ease;
+}
+
+.ds-btn:active {
+  transform: translateY(1px);
+}
+
+.ds-btn--sm {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.ds-btn--primary {
+  background: var(--ds-primary);
+  color: #ffffff;
+}
+
+.ds-btn--primary:hover {
+  background: var(--ds-primary-strong);
+}
+
+.ds-btn--primary:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 4px var(--ds-primary-soft),
+    0 0 0 1px var(--ds-primary);
+}
+
+.ds-btn--secondary {
+  background: var(--ds-surface);
+  color: var(--ds-on-bg);
+  border-color: var(--ds-outline);
+}
+
+.ds-btn--secondary:hover {
+  background: var(--ds-bg);
+  border-color: #c7d2e0;
+}
+
+.ds-btn--secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ds-primary-soft);
+}
+
+.ds-btn--danger {
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
+}
+
+.ds-btn--danger:hover {
+  background: #fde2e2;
+}
+
+.ds-btn--danger:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--ds-danger-soft),
+    0 0 0 1px var(--ds-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-btn {
+    transition: none;
+  }
+}
+
+/* --- Select (dropdown filter), setara .ds-input --- */
+.ds-select {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  font-family: var(--ds-font);
+  font-size: 15px;
+  color: var(--ds-on-bg);
+  background: var(--ds-surface);
+  border: 1.5px solid var(--ds-outline);
+  border-radius: var(--ds-radius-input);
+  transition:
+    border-color var(--ds-motion-normal),
+    box-shadow var(--ds-motion-normal);
+}
+
+.ds-select:focus-visible {
+  outline: none;
+  border-color: var(--ds-primary);
+  box-shadow: 0 0 0 4px var(--ds-primary-soft);
+}
+
+.ds-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Form satu baris (input + tombol sejajar) di dalam toolbar -- mis. kotak
+   cari kontraktor/index.php. */
+.ds-inline-form {
+  display: flex;
+  gap: 8px;
+}
+
+/* --- Textarea, setara .ds-input/.ds-select --- */
+.ds-textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 12px 16px;
+  font-family: var(--ds-font);
+  font-size: 15px;
+  color: var(--ds-on-bg);
+  background: var(--ds-surface);
+  border: 1.5px solid var(--ds-outline);
+  border-radius: var(--ds-radius-input);
+  resize: vertical;
+  transition:
+    border-color var(--ds-motion-normal),
+    box-shadow var(--ds-motion-normal);
+}
+
+.ds-textarea:focus-visible {
+  outline: none;
+  border-color: var(--ds-primary);
+  box-shadow: 0 0 0 4px var(--ds-primary-soft);
+}
+
+/* --- Sub-elemen .ds-field: wajib (*), hint, error -- dipakai berdampingan
+   dengan helper PHP bersama (includes/validator.php: field_error_class(),
+   field_aria()) yang mengembalikan nama kelas LAMA ("field--invalid") karena
+   dipakai lintas halaman yang belum semuanya dimigrasi; selector gabungan di
+   bawah menerapkannya ke input/select/textarea BARU tanpa mengubah helper itu. */
+.ds-field__required {
+  color: var(--ds-danger);
+}
+
+.ds-field__hint {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ds-field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-danger);
+}
+
+.ds-field.field--invalid .ds-input,
+.ds-field.field--invalid .ds-select,
+.ds-field.field--invalid .ds-textarea {
+  border-color: var(--ds-danger);
+}
+
+/* --- Grid foto: thumbnail + tombol hapus (dipakai server-rendered di
+   aktivitas/form.php DAN dibuat ulang via JS di foto-preview.js -- keduanya
+   memakai nama kelas yang SAMA, lihat berkas itu). --- */
+.ds-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ds-photo-grid__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-outline);
+  border-radius: var(--ds-radius-card);
+  padding: 8px;
+  transition:
+    transform var(--ds-motion-normal) ease,
+    box-shadow var(--ds-motion-normal) ease;
+}
+
+.ds-photo-grid__item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ds-shadow-card);
+}
+
+.ds-photo-grid__thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-bg);
+}
+
+/* --- Dropzone (unggah foto, aktivitas/form.php) -- input[type=file] bawaan
+   tetap ada & bisa diklik/dinavigasi keyboard (bukan disembunyikan), seret
+   & lepas lewat drag event di assets/js/foto-preview.js hanya tambahan,
+   bukan satu-satunya cara mengunggah. */
+.ds-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 20px;
+  text-align: center;
+  border: 2px dashed var(--ds-outline);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-bg);
+  transition:
+    border-color var(--ds-motion-normal) ease,
+    background var(--ds-motion-normal) ease;
+}
+
+.ds-dropzone.is-dragover {
+  border-color: var(--ds-primary);
+  background: var(--ds-primary-soft);
+}
+
+.ds-dropzone__icon {
+  color: var(--ds-primary);
+}
+
+.ds-dropzone__text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ds-dropzone input[type="file"] {
+  max-width: 100%;
+  font-family: var(--ds-font);
+  font-size: 13px;
+  color: var(--ds-on-bg);
+}
+
+.ds-field.field--invalid .ds-dropzone {
+  border-color: var(--ds-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-dropzone,
+  .ds-photo-grid__item {
+    transition: none;
+  }
+}
+
+/* --- Toolbar daftar (jumlah hasil + aksi utama) --- */
+.ds-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* --- Pagination --- */
+.ds-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.ds-pagination__link {
+  color: var(--ds-primary);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color var(--ds-motion-fast) ease;
+}
+
+.ds-pagination__link:hover {
+  color: var(--ds-primary-strong);
+}
+
+.ds-pagination__link[aria-disabled="true"] {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* --- Floating action button (pembuka popup filter) -- z-index di bawah
+   .ds-sidebar-backdrop (20) sengaja, supaya ikut redup saat sidebar mobile
+   terbuka, bukan "mengambang" di atas overlay-nya. */
+.ds-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 22px;
+  border-radius: var(--ds-radius-pill);
+  border: none;
+  background: var(--ds-primary);
+  color: #ffffff;
+  font-family: var(--ds-font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.35);
+  transition:
+    background var(--ds-motion-fast) ease,
+    transform var(--ds-motion-fast) ease,
+    box-shadow var(--ds-motion-fast) ease;
+}
+
+.ds-fab:hover {
+  background: var(--ds-primary-strong);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.45);
+}
+
+.ds-fab:active {
+  transform: translateY(-1px);
+}
+
+.ds-fab:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 4px var(--ds-primary-soft),
+    0 0 0 1px var(--ds-primary);
+}
+
+/* Aksen saat ada filter aktif -- lingkaran kecil dengan jumlah filter,
+   data nyata (dihitung dari query aktif), bukan hiasan kosong. */
+.ds-fab--active {
+  background: var(--ds-primary-strong);
+}
+
+.ds-fab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--ds-radius-pill);
+  background: #ffffff;
+  color: var(--ds-primary-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-fab {
+    transition: none;
+  }
+}
 
 /* -----------------------------------------------------------------------------
    App shell: topbar TERANG (fokus bisnis flow, tidak berebut perhatian
@@ -424,6 +961,11 @@
   background: var(--ds-bg);
 }
 
+/* Topbar gelap SOLID -- warna sama persis dengan .ds-sidebar (--ds-dark-surface)
+   supaya chrome permanen (topbar+sidebar) terbaca sebagai SATU bidang gelap
+   membungkus kanvas konten terang, bukan dua warna berbeda yang bersaingan.
+   Tidak pakai border, konsisten dengan .ds-sidebar yang juga mengandalkan
+   kontras warna (bukan garis) untuk memisahkan diri dari konten. */
 .ds-topbar {
   position: sticky;
   top: 0;
@@ -433,22 +975,30 @@
   gap: 16px;
   height: 64px;
   padding: 0 20px;
-  background: var(--ds-surface);
-  border-bottom: 1px solid var(--ds-outline);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: var(--ds-dark-surface);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(15, 23, 42, 0.18);
 }
 
 .ds-topbar__brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px;
   font-size: 16px;
   font-weight: 800;
-  color: var(--ds-on-bg);
+  color: var(--ds-dark-on-surface);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ds-topbar__brand:focus-visible,
+.ds-hamburger-btn:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 .ds-topbar__brand-mark {
@@ -477,41 +1027,25 @@
 }
 
 .ds-topbar__user-name {
-  color: var(--ds-on-bg);
+  color: var(--ds-dark-on-surface);
   font-weight: 700;
-}
-
-.ds-btn-text {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  color: #64748b;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  transition: color var(--ds-motion-fast);
-}
-
-.ds-btn-text:hover {
-  color: var(--ds-danger);
 }
 
 .ds-hamburger-btn {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: var(--ds-on-bg);
+  color: var(--ds-dark-on-surface);
   cursor: pointer;
 }
 
 .ds-hamburger-btn:hover {
-  background: var(--ds-bg);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .ds-hamburger-btn__icon,
@@ -520,18 +1054,32 @@
   display: block;
   width: 18px;
   height: 2px;
-  background: var(--ds-on-bg);
+  background: var(--ds-dark-on-surface);
   border-radius: 1px;
   position: relative;
-  transition: transform var(--ds-motion-fast), opacity var(--ds-motion-fast);
+  transition:
+    transform var(--ds-motion-fast),
+    opacity var(--ds-motion-fast);
 }
 
-.ds-hamburger-btn__icon::before { content: ""; top: -5px; }
-.ds-hamburger-btn__icon::after { content: ""; bottom: -5px; }
+.ds-hamburger-btn__icon::before {
+  content: "";
+  top: -5px;
+}
+.ds-hamburger-btn__icon::after {
+  content: "";
+  bottom: -5px;
+}
 
-.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon { background: transparent; }
-.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon::before { transform: translateY(5px) rotate(45deg); }
-.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon::after { transform: translateY(-5px) rotate(-45deg); }
+.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon {
+  background: transparent;
+}
+.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon::before {
+  transform: translateY(5px) rotate(45deg);
+}
+.ds-hamburger-btn[aria-expanded="true"] .ds-hamburger-btn__icon::after {
+  transform: translateY(-5px) rotate(-45deg);
+}
 
 .ds-app-body {
   display: flex;
@@ -541,11 +1089,18 @@
 
 /* Sidebar gelap SOLID (warna dark DESIGN.md) -- sempat memakai gradien/glow
    aurora, dicabut karena terlalu ramai untuk chrome yang dilihat sepanjang
-   hari kerja. Warna gelap tetap dipertahankan sebagai identitas. */
+   hari kerja. Warna gelap tetap dipertahankan sebagai identitas.
+   position:fixed di SEMUA lebar (bukan hanya mobile off-canvas) -- sidebar
+   diam di tempat saat konten .ds-app-main digulir, dengan scroll internal
+   sendiri bila daftar menu lebih tinggi dari viewport. */
 .ds-sidebar {
   width: 248px;
   flex-shrink: 0;
-  position: relative;
+  position: fixed;
+  top: 64px;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
   overflow-y: auto;
   background: var(--ds-dark-surface);
   color: var(--ds-dark-on-surface-muted);
@@ -574,7 +1129,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 14px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 12px;
   color: var(--ds-dark-on-surface-muted);
   text-decoration: none;
@@ -585,7 +1141,9 @@
   border: 0;
   text-align: left;
   cursor: pointer;
-  transition: background var(--ds-motion-fast), color var(--ds-motion-fast);
+  transition:
+    background var(--ds-motion-fast),
+    color var(--ds-motion-fast);
 }
 
 .ds-sidebar__link:hover {
@@ -602,7 +1160,6 @@
   background: rgba(37, 99, 235, 0.22);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: inset 3px 0 0 var(--ds-primary);
 }
 
 .ds-sidebar__link[aria-current="page"] svg {
@@ -616,15 +1173,6 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* .logout-form (assets/css/style.css, T-04) default-nya inline-flex --
-   di dalam sidebar baru ini perlu block/full-width agar sejajar dengan
-   tombol menu lain (dulu ditimpa oleh `.app-sidebar .logout-form`, yang
-   tidak lagi relevan karena kelas pembungkusnya sekarang .ds-sidebar). */
-.ds-sidebar .logout-form {
-  display: block;
-  width: 100%;
-}
-
 .ds-sidebar-backdrop {
   position: fixed;
   inset: 64px 0 0 0;
@@ -633,9 +1181,14 @@
 }
 
 .ds-app-main {
+  --ds-app-main-pad: 28px;
   flex: 1;
   min-width: 0;
-  padding: 28px;
+  /* Offset lebar .ds-sidebar (248px, fixed) -- sejak sidebar lepas dari flex
+     flow .ds-app-body, .ds-app-main perlu margin manual supaya kontennya
+     tidak tertindih sidebar. */
+  margin-left: 248px;
+  padding: var(--ds-app-main-pad);
 }
 
 @media (max-width: 767px) {
@@ -648,11 +1201,6 @@
   }
 
   .ds-sidebar {
-    position: fixed;
-    top: 64px;
-    bottom: 0;
-    left: 0;
-    z-index: 30;
     transform: translateX(-100%);
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
     transition: transform var(--ds-motion-normal);
@@ -663,7 +1211,8 @@
   }
 
   .ds-app-main {
-    padding: 18px;
+    --ds-app-main-pad: 18px;
+    margin-left: 0;
   }
 }
 
@@ -676,6 +1225,20 @@
 .ds-app-main .flash {
   font-family: var(--ds-font);
   border-radius: var(--ds-radius-card);
+}
+
+/* Modifier .ds-page-header: judul (eyebrow+h1, dibungkus div) sejajar SATU
+   BARIS dengan tombol aksi (mis. "+ Input Aktivitas" khusus peran kontraktor
+   di dashboard.php) -- align-items: flex-end supaya tombol sejajar dengan
+   baseline judul, bukan ikut naik ke sejajar eyebrow kecil di atasnya. Hanya
+   dipakai via modifier, bukan default .ds-page-header, supaya halaman lain
+   yang cuma punya satu <h1> di dalamnya (tanpa pembungkus div) tidak terdampak. */
+.ds-page-header--row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 /* -----------------------------------------------------------------------------
@@ -709,8 +1272,39 @@
 }
 
 .ds-stat-col {
-  background: var(--ds-surface);
+  background: rgba(255, 255, 255, 0.6);
   padding: 18px 20px;
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  animation: ds-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: background var(--ds-motion-normal) ease;
+}
+
+/* Masuk bergantian per kolom (cascade), bukan serempak -- "dealt" satu
+   per satu, tetap SATU jenis gerakan yang sama (ds-enter), hanya ditunda. */
+.ds-stat-col:nth-child(1) {
+  animation-delay: 0ms;
+}
+.ds-stat-col:nth-child(2) {
+  animation-delay: 70ms;
+}
+.ds-stat-col:nth-child(3) {
+  animation-delay: 140ms;
+}
+.ds-stat-col:nth-child(4) {
+  animation-delay: 210ms;
+}
+
+.ds-stat-col:hover {
+  background: var(--ds-stat-soft, rgba(37, 99, 235, 0.14));
+}
+
+.ds-stat-col:hover .ds-stat-col__value {
+  transform: scale(1.05);
+}
+
+.ds-stat-col:hover .ds-stat-col__label::before {
+  box-shadow: 0 0 0 5px var(--ds-stat-glow, rgba(37, 99, 235, 0.35));
 }
 
 .ds-stat-col__label {
@@ -732,19 +1326,43 @@
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--ds-stat-accent, var(--ds-primary));
+  transition: box-shadow var(--ds-motion-normal) ease;
 }
 
 .ds-stat-col__value {
+  display: inline-block;
   font-size: 26px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--ds-on-bg);
   margin: 0;
   line-height: 1;
+  transform-origin: left center;
+  transition: transform var(--ds-motion-normal) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Warna aksen TETAP sesuai PRD bagian 9 -- hanya titik kecil di label, bukan
-   latar/ikon besar (konsisten dengan arah "lebih minimalis"). */
-.ds-stat-col--berizin { --ds-stat-accent: #2E9E4F; }
-.ds-stat-col--tidak-berizin { --ds-stat-accent: #D64545; }
-.ds-stat-col--proses { --ds-stat-accent: #E5A823; }
+   latar/ikon besar (konsisten dengan arah "lebih minimalis"); --ds-stat-soft/
+   --ds-stat-glow HANYA dipakai untuk wash/glow saat hover, bukan latar permanen. */
+.ds-stat-col--berizin {
+  --ds-stat-accent: #2e9e4f;
+  --ds-stat-soft: rgba(46, 158, 79, 0.16);
+  --ds-stat-glow: rgba(46, 158, 79, 0.35);
+}
+.ds-stat-col--tidak-berizin {
+  --ds-stat-accent: #d64545;
+  --ds-stat-soft: rgba(214, 69, 69, 0.16);
+  --ds-stat-glow: rgba(214, 69, 69, 0.35);
+}
+.ds-stat-col--proses {
+  --ds-stat-accent: #e5a823;
+  --ds-stat-soft: rgba(229, 168, 35, 0.16);
+  --ds-stat-glow: rgba(229, 168, 35, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-stat-col,
+  .ds-stat-col__value {
+    transition: none;
+  }
+}

@@ -10,6 +10,7 @@
 * {
   box-shadow: none !important;
   text-shadow: none !important;
+  font-family: "Times New Roman", Times, serif !important;
 }
 
 html, body {
@@ -17,11 +18,16 @@ html, body {
   color: #000;
 }
 
-/* Sidebar, topbar, dan semua kontrol interaktif tidak relevan di atas kertas. */
-.app-topbar,
-.app-sidebar,
-.app-sidebar-backdrop,
-.hamburger-btn,
+/* Sidebar, topbar, dan semua kontrol interaktif tidak relevan di atas kertas.
+   Bug nyata (ditemukan saat redesign laporan ini): selector di sini masih
+   menyasar kelas LAMA (.app-topbar/.app-sidebar/.hamburger-btn) dari sebelum
+   migrasi ke namespace ds-* -- chrome aplikasi ikut TERCETAK di kertas sejak
+   migrasi itu, karena aturan sembunyikan di sini sudah tidak pernah kena. */
+.ds-topbar,
+.ds-sidebar,
+.ds-sidebar-backdrop,
+.ds-hamburger-btn,
+.ds-fab,
 .skip-link,
 .flash-list,
 .no-print,
@@ -29,17 +35,40 @@ dialog.modal {
   display: none !important;
 }
 
-.app-body {
+.ds-app-body {
   display: block;
 }
 
-.app-main {
+.ds-app-main {
   padding: 0;
+  margin-left: 0; /* offset lebar sidebar (ds-app-main, desain baru) tidak relevan -- sidebar disembunyikan di atas */
+}
+
+/* Kartu "kaca" (glassmorphism, desain baru) tidak relevan di atas kertas --
+   blur/transparansi tidak tercetak dengan benar di semua printer/engine PDF. */
+.ds-card {
+  background: #fff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: 1px solid #000;
 }
 
 a {
   color: #000;
   text-decoration: none;
+}
+
+/* Dokumen laporan (laporan/index.php) tercetak selebar halaman A4 -- bingkai
+   "kartu" di layar (style.css: box-shadow/radius/max-width terpusat) tidak
+   relevan di atas kertas, konsisten dengan komentar di atas .laporan-dokumen
+   (style.css): SENGAJA bukan .card supaya tidak kena break-inside:avoid. */
+.laporan-dokumen {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
 }
 
 /* Tabel laporan: border tegas + cegah satu baris terpotong antar halaman.
@@ -76,15 +105,19 @@ a {
   display: table-header-group;
 }
 
-tr, .card, .stat-card, .laporan-tandatangan {
+tr, .card, .stat-card, .ds-card, .ds-stat-col, .laporan-tandatangan, .laporan-kop, .laporan-ringkasan {
   break-inside: avoid;
 }
 
-/* Badge dicetak sebagai teks biasa + border, warna latar tidak selalu akurat
-   di printer/PDF hitam-putih — border tetap membedakan status secara visual. */
+/* Badge dicetak sebagai teks polos tanpa warna, SAMA seperti tulisan lain di
+   dokumen (bukan latar/border berwarna) -- layaknya dokumen dinas cetak,
+   bukan tampilan UI warna-warni. */
 .badge {
   background: none !important;
-  border: 1px solid currentColor;
+  color: inherit !important;
+  border: none;
+  padding: 0;
+  border-radius: 0;
 }
 
 .badge::before {

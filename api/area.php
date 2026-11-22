@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 /**
  * api/area.php — FeatureCollection poligon area_geojson (FR-09/17; PRD bagian
- * 10, T-12). Sama seperti api/lokasi.php: semua peran login lihat semua area.
+ * 10, T-12). Sama seperti api/lokasi.php: peran kontraktor ter-scope ke
+ * area miliknya sendiri, admin tetap lihat semua area.
  */
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../includes/api.php';
 require_once __DIR__ . '/../includes/repo/lokasi.php';
 
-api_boot();
+$user = api_boot();
+$kontraktor_id_scope = $user['role'] === 'kontraktor' ? (int) ($user['kontraktor_id'] ?? 0) : null;
 
-$rows = repo_lokasi_list_with_area();
+$rows = repo_lokasi_list_with_area($kontraktor_id_scope);
 
 $features = [];
 foreach ($rows as $row) {

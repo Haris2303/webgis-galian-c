@@ -1,5 +1,5 @@
 /**
- * assets/js/map.js — WebGIS Galian C Kota Sorong (T-13/T-14/T-15, FR-17/18/19/20)
+ * assets/js/map.js: WebGIS Galian C Kota Sorong (T-13/T-14/T-15, FR-17/18/19/20)
  * Modul peta inti: initWebGISMap(containerId, options), dipakai peta.php dan
  * (nanti) pratinjau dashboard. Semua konfigurasi masuk lewat objek options
  * (dibaca pemanggil dari data-* attribute, bukan skrip inline -- CSP proyek
@@ -242,11 +242,114 @@
     }
   }
 
+  // --- Lightbox foto aktivitas: "lihat detail serta di slide" (UI). SATU
+  // instans per peta, dibuat sekali & dipakai ulang lintas popup -- bukan
+  // dibangun ulang tiap kali popup dibuka, karena ia hidup di document.body
+  // (top layer <dialog>), bukan di dalam popup Leaflet yang bisa dibongkar
+  // kapan saja. Gambar pakai ukuran "full" (bukan thumb) -- thumbnail di
+  // popup cukup kecil, lightbox butuh resolusi penuh (media.php?size=full).
+  function buildLightbox() {
+    var dialog = document.createElement('dialog');
+    dialog.className = 'map-lightbox';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'map-lightbox__close';
+    closeBtn.setAttribute('aria-label', 'Tutup pratinjau foto');
+    closeBtn.textContent = '×';
+
+    var prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'map-lightbox__nav map-lightbox__nav--prev';
+    prevBtn.setAttribute('aria-label', 'Foto sebelumnya');
+    prevBtn.textContent = '‹';
+
+    var nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'map-lightbox__nav map-lightbox__nav--next';
+    nextBtn.setAttribute('aria-label', 'Foto berikutnya');
+    nextBtn.textContent = '›';
+
+    var figure = document.createElement('div');
+    figure.className = 'map-lightbox__figure';
+
+    var img = document.createElement('img');
+    img.className = 'map-lightbox__image';
+    figure.appendChild(img);
+
+    var caption = document.createElement('p');
+    caption.className = 'map-lightbox__caption';
+    figure.appendChild(caption);
+
+    var counter = document.createElement('p');
+    counter.className = 'map-lightbox__counter';
+    figure.appendChild(counter);
+
+    dialog.appendChild(closeBtn);
+    dialog.appendChild(prevBtn);
+    dialog.appendChild(figure);
+    dialog.appendChild(nextBtn);
+    document.body.appendChild(dialog);
+
+    var photos = [];
+    var index = 0;
+
+    function render() {
+      var item = photos[index];
+      if (!item) {
+        return;
+      }
+      img.src = item.full;
+      img.alt = item.caption || 'Foto dokumentasi aktivitas';
+      caption.textContent = item.caption || '';
+      counter.textContent = (index + 1) + ' dari ' + photos.length;
+      var multi = photos.length > 1;
+      prevBtn.hidden = !multi;
+      nextBtn.hidden = !multi;
+    }
+
+    function goTo(newIndex) {
+      index = (newIndex + photos.length) % photos.length;
+      render();
+    }
+
+    prevBtn.addEventListener('click', function () { goTo(index - 1); });
+    nextBtn.addEventListener('click', function () { goTo(index + 1); });
+    closeBtn.addEventListener('click', function () { dialog.close(); });
+
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowLeft') {
+        goTo(index - 1);
+      } else if (event.key === 'ArrowRight') {
+        goTo(index + 1);
+      }
+    });
+
+    // Klik di luar .map-lightbox__figure (area kosong dialog sendiri) menutup
+    // juga -- setara klik backdrop, tanpa perlu elemen overlay terpisah.
+    dialog.addEventListener('click', function (event) {
+      if (event.target === dialog) {
+        dialog.close();
+      }
+    });
+
+    return {
+      show: function (list, startIndex) {
+        photos = Array.isArray(list) ? list : [];
+        index = startIndex || 0;
+        render();
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        }
+      },
+    };
+  }
+
   // Konten detail penuh. SETIAP teks dari server masuk lewat textContent --
   // edge case wajib T-14: nama lokasi berisi "<img src=x onerror=alert(1)>"
   // atau "<script>" harus tampil sebagai TEKS APA ADANYA, tidak pernah
   // dieksekusi, karena tidak ada satu pun innerHTML yang menerima data ini.
-  function buildDetailContent(data) {
+  function buildDetailContent(data, lightbox) {
     var wrap = document.createElement('div');
     wrap.className = 'map-popup';
 
@@ -324,26 +427,51 @@
 
       var list = document.createElement('ul');
       list.className = 'map-popup__activity-list';
+      // Daftar gabungan SEMUA foto lintas aktivitas (bukan dibatasi 3/aktivitas
+      // seperti thumbnail popup) -- lightbox slide jalan terus lintas
+      // aktivitas, bukan berhenti di batas satu baris (UI: "di setiap titik").
+      var allPhotosFlat = [];
       data.aktivitas_terakhir.slice(0, 3).forEach(function (akt) {
         var li = document.createElement('li');
         var line = document.createElement('span');
-        line.textContent = akt.tanggal + ' — ' + akt.jenis_kegiatan;
+        line.textContent = akt.tanggal + ': ' + akt.jenis_kegiatan;
         li.appendChild(line);
 
         if (Array.isArray(akt.foto) && akt.foto.length > 0) {
           var thumbWrap = document.createElement('div');
           thumbWrap.className = 'map-popup__thumbs';
-          akt.foto.slice(0, 3).forEach(function (fotoUrl) {
+          akt.foto.forEach(function (fotoItem, fotoIdx) {
+            var flatIndex = allPhotosFlat.length;
+            allPhotosFlat.push({ full: fotoItem.full, caption: akt.tanggal + ': ' + akt.jenis_kegiatan });
+
+            if (fotoIdx >= 3) {
+              return; // thumbnail popup tetap ringkas (maks 3/aktivitas); foto ke-4+ tetap masuk slide lightbox
+            }
+
             // Thumbnail lazy (atribut bawaan browser, bukan IntersectionObserver
             // kustom) + fallback teks bila gagal dimuat (edge case wajib T-14).
             var img = document.createElement('img');
             img.className = 'map-popup__thumb';
             img.loading = 'lazy';
-            img.alt = 'Foto aktivitas';
-            img.src = fotoUrl;
+            img.alt = 'Foto aktivitas ' + akt.jenis_kegiatan + ' -- klik untuk lihat detail';
+            img.src = fotoItem.thumb;
             img.addEventListener('error', function () {
               img.replaceWith(buildThumbFallback());
             });
+            if (lightbox) {
+              img.tabIndex = 0;
+              img.setAttribute('role', 'button');
+              img.classList.add('map-popup__thumb--clickable');
+              img.addEventListener('click', function () {
+                lightbox.show(allPhotosFlat, flatIndex);
+              });
+              img.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  lightbox.show(allPhotosFlat, flatIndex);
+                }
+              });
+            }
             thumbWrap.appendChild(img);
           });
           li.appendChild(thumbWrap);
@@ -362,9 +490,16 @@
     return wrap;
   }
 
+  // renderer EKSPLISIT (bukan hanya opsi "pane") -- Leaflet BISA membuat
+  // renderer SVG per-pane secara otomatis/lazy, tapi menetapkannya langsung
+  // di sini menghilangkan kemungkinan layer gagal dirender (menumpuk di
+  // pane yang benar tapi tanpa elemen SVG apa pun) pada kombinasi urutan
+  // inisialisasi/versi Leaflet tertentu -- satu renderer dipakai BERSAMA oleh
+  // semua fitur geoJSON yang sama, dibuat sekali per pane, bukan per fitur.
   function buildAreaLayer(geojsonData, pane) {
     return L.geoJSON(geojsonData, {
       pane: pane,
+      renderer: L.svg({ pane: pane }),
       style: function (feature) {
         var cfg = statusConfig(feature.properties && feature.properties.status_izin);
         return { color: cfg.color, weight: 2, fillColor: cfg.color, fillOpacity: 0.25 };
@@ -375,6 +510,7 @@
   function buildBoundaryLayer(geojsonData, pane) {
     return L.geoJSON(geojsonData, {
       pane: pane,
+      renderer: L.svg({ pane: pane }),
       interactive: false, // garis referensi saja -- tidak boleh mencuri klik dari marker/area
       style: { color: cssVar('--color-primary', '#1E3A5F'), weight: 2, fill: false, dashArray: '4 4' },
     });
@@ -563,10 +699,22 @@
     map.createPane('wgAreaPane');
     map.getPane('wgAreaPane').style.zIndex = 410;
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Dua basemap: peta jalan (OSM, default) & satelit. Tile satelit lewat
+    // endpoint Google TANPA kunci API resmi (lihat catatan CSP di
+    // includes/auth.php) -- cukup untuk pratinjau visual, TIDAK ada garansi
+    // ketersediaan/SLA; produksi yang butuh itu sebaiknya pindah ke Google
+    // Maps Platform (kunci API + billing) di endpoint ini.
+    var baseJalan = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: MAX_ZOOM,
-    }).addTo(map);
+    });
+    var baseSatelit = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google',
+      maxZoom: MAX_ZOOM,
+    });
+    baseJalan.addTo(map);
+    var baseLayers = isPreview ? null : { 'Peta Jalan': baseJalan, 'Satelit (Google)': baseSatelit };
 
     var markerLayer = L.layerGroup().addTo(map);
     var showToast = createToast(container);
@@ -586,6 +734,10 @@
     var activeStatuses = parseActiveStatusesFromUrl();
     var filterCheckboxes = {};
     var filterCountEl = null;
+    // Lightbox foto: tidak dibuat di mode pratinjau (dashboard) -- klik marker
+    // di sana langsung navigasi ke peta.php (lihat openDetailPopup), popup
+    // detail/lightbox tidak pernah terbuka di mode itu.
+    var lightbox = isPreview ? null : buildLightbox();
 
     function openDetailPopup(marker, id) {
       if (id === undefined || id === null) {
@@ -610,7 +762,7 @@
 
       var cached = detailCache[id];
       if (cached && (Date.now() - cached.at) < DETAIL_CACHE_TTL_MS) {
-        popup.setContent(buildDetailContent(cached.data));
+        popup.setContent(buildDetailContent(cached.data, lightbox));
         return;
       }
 
@@ -624,7 +776,7 @@
             return; // ada klik lain setelah ini -- hasil sudah basi, buang
           }
           detailCache[id] = { data: data, at: Date.now() };
-          popup.setContent(buildDetailContent(data));
+          popup.setContent(buildDetailContent(data, lightbox));
         })
         .catch(function (err) {
           if (err && err.name === 'AbortError') {
@@ -992,7 +1144,7 @@
           return;
         }
         map.setView([data.koordinat.lat, data.koordinat.lng], DEEP_LINK_ZOOM);
-        L.popup([data.koordinat.lat, data.koordinat.lng], { maxHeight: POPUP_MAX_HEIGHT() }).setContent(buildDetailContent(data)).openOn(map);
+        L.popup([data.koordinat.lat, data.koordinat.lng], { maxHeight: POPUP_MAX_HEIGHT() }).setContent(buildDetailContent(data, lightbox)).openOn(map);
       }).catch(function () {
         showToast('Lokasi pada tautan (?lokasi=' + id + ') tidak ditemukan.');
       });
@@ -1045,15 +1197,17 @@
         overlays['Batas Kota Sorong'] = boundaryLayer;
       }
 
-      if (showLayerControl && Object.keys(overlays).length > 0) {
+      if (showLayerControl && baseLayers) {
         // T-25 (edge case "zoom 200% / layar 360px"): collapsed:false (T-13,
         // demi keterbacaan langsung tanpa klik) + kotak cari 220px (topleft)
         // bisa tumpang tindih di kanvas peta yang menyempit -- kolapskan
         // kontrol ini otomatis di bawah 768px/efektif sempit, cukup ikon
         // kecil yang masih memenuhi 44px (lihat .leaflet-control-layers-toggle
-        // di style.css), diperluas lewat klik/tap seperti biasa.
+        // di style.css), diperluas lewat klik/tap seperti biasa. baseLayers
+        // (toggle peta jalan/satelit) selalu ada di sini -- kontrol ini
+        // sekarang TIDAK lagi digerbangi jumlah overlay opsional (area/batas).
         var layerControlCollapsed = window.matchMedia('(max-width: 767px)').matches;
-        L.control.layers(null, overlays, { position: 'topright', collapsed: layerControlCollapsed }).addTo(map);
+        L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: layerControlCollapsed }).addTo(map);
       }
 
       // Deep-link ?lokasi=ID (T-14) -- dijalankan TERAKHIR supaya setView

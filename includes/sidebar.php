@@ -41,13 +41,23 @@ function sidebar_ikon(string $kunci): string
     return '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">' . $path . '</svg>';
 }
 
-// Admin: menu ALUR KERJA dulu (Dashboard -> Aktivitas -> Peta -> Monitoring
-// -> Laporan), BARU grup "Data Master" (Lokasi, Kontraktor) di bagian bawah
-// -- permintaan eksplisit: data master bukan hal yang paling sering dibuka
-// sehari-hari, jadi tidak mengambil posisi teratas yang lebih sering dilihat.
+// Admin: menu ALUR KERJA dulu (Dashboard -> Peta -> Monitoring -> Laporan),
+// BARU grup "Data Master" (Lokasi, Kontraktor) di bagian bawah -- permintaan
+// eksplisit: data master bukan hal yang paling sering dibuka sehari-hari,
+// jadi tidak mengambil posisi teratas yang lebih sering dilihat.
+//
+// "Aktivitas" SENGAJA tidak lagi jadi menu sendiri untuk admin -- Monitoring
+// sudah menampilkan semua aktivitas lintas lokasi, dan tombol "Lihat" di
+// sana (assets/js/monitoring-detail.js) membuka panel detail lengkap
+// (termasuk peta kecil) + tautan Ubah/Hapus ke aktivitas/form.php &
+// aktivitas/hapus.php -- jadi aktivitas/index.php tetap ADA dan tetap
+// dipakai (link Ubah mengarah ke situ), hanya tidak lagi dipromosikan
+// sebagai menu utama admin. Kontraktor TETAP punya menu "Aktivitas Saya"
+// sendiri (lihat $menu_kontraktor_utama) -- halaman itu satu-satunya cara
+// kontraktor input/kelola aktivitasnya, tidak tergantikan oleh Monitoring
+// yang khusus admin (require_role('admin'), monitoring.php).
 $menu_admin_utama = [
     'dashboard' => ['label' => 'Dashboard', 'href' => 'dashboard.php'],
-    'aktivitas' => ['label' => 'Aktivitas', 'href' => 'aktivitas/index.php'],
     'peta' => ['label' => 'Peta Interaktif', 'href' => 'peta.php'],
     'monitoring' => ['label' => 'Monitoring', 'href' => 'monitoring.php'],
     'laporan' => ['label' => 'Laporan', 'href' => 'laporan/index.php'],
@@ -95,10 +105,7 @@ $menu_master = $role === 'kontraktor' ? [] : $menu_admin_master;
     <?php endif; ?>
 
     <li class="ds-sidebar__logout-item">
-      <form method="post" action="<?= e(url('logout.php')) ?>" class="logout-form">
-        <?= csrf_field() ?>
-        <button type="submit" class="ds-sidebar__link">Logout</button>
-      </form>
+      <button type="button" class="ds-sidebar__link" data-dialog-open="dialog-logout">Logout</button>
     </li>
   </ul>
 </nav>

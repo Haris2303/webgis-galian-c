@@ -77,6 +77,46 @@
     });
   }
 
+  /**
+   * Animasi hitung-naik angka statistik dashboard (.ds-stat-col__value) dari
+   * 0 ke nilai aslinya (sudah di-render server-side, JS hanya "memutar
+   * ulang" secara visual) -- dimatikan total di prefers-reduced-motion,
+   * angka langsung tampil final tanpa animasi apa pun.
+   */
+  function initStatCountUp() {
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      return;
+    }
+
+    document.querySelectorAll('.ds-stat-col__value').forEach(function (el) {
+      var target = parseInt(el.textContent, 10);
+      if (isNaN(target)) {
+        return;
+      }
+
+      var duration = 900;
+      var start = null;
+
+      function step(timestamp) {
+        if (start === null) {
+          start = timestamp;
+        }
+        var progress = Math.min((timestamp - start) / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = String(Math.round(eased * target));
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          el.textContent = String(target);
+        }
+      }
+
+      el.textContent = '0';
+      requestAnimationFrame(step);
+    });
+  }
+
   function initFlashDismiss() {
     document.querySelectorAll('.flash__close').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -91,6 +131,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     initSidebarToggle();
     initDialogTriggers();
+    initStatCountUp();
     initFlashDismiss();
   });
 })();

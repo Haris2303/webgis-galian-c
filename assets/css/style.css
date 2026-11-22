@@ -806,6 +806,12 @@ dialog.modal {
   box-shadow: var(--shadow-dialog);
 }
 
+/* Varian lebih lebar untuk popup berisi form bertingkat (mis. filter 2 kolom,
+   aktivitas/index.php) -- dialog konfirmasi hapus/logout tetap 420px. */
+dialog.modal.modal--wide {
+  width: min(560px, calc(100vw - var(--space-5) * 2));
+}
+
 dialog.modal::backdrop {
   background: rgba(16, 24, 40, 0.55);
 }
@@ -883,36 +889,6 @@ dialog.modal::backdrop {
   opacity: 0.5;
 }
 
-/* -----------------------------------------------------------------------------
-   13c. Galeri foto dokumentasi aktivitas (T-17/T-18)
-   ----------------------------------------------------------------------------- */
-.photo-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  list-style: none;
-  margin: var(--space-2) 0 0;
-  padding: 0;
-}
-
-.photo-grid__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.photo-grid__thumb {
-  width: 96px;
-  height: 96px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-}
-
-.photo-grid__hapus-form {
-  margin: 0;
-}
 
 /* -----------------------------------------------------------------------------
    14. Skeleton loader
@@ -961,6 +937,27 @@ dialog.modal::backdrop {
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--color-border);
+  /* Kontrol/popup/pane Leaflet bawaan punya z-index sampai ~1000 (leaflet.css) --
+     tanpa stacking context sendiri, nilai itu "bocor" ke z-index global
+     halaman dan bisa menang melawan topbar/sidebar (z-index 20-40) saat
+     peta digulir. isolation:isolate mengurung semuanya di dalam kotak ini. */
+  isolation: isolate;
+}
+
+/* Bug nyata (ditemukan sesi ini): reset global "img, svg { max-width:100% }"
+   (atas berkas ini, dimaksudkan utk ikon kecil) IKUT mengecilkan elemen <svg>
+   BESAR yang dibuat Leaflet sendiri di dalam .leaflet-pane untuk render
+   layer vektor (area tambang/batas kota, T-13) -- ukuran svg itu diatur lewat
+   atribut width/height (lebih besar dari viewport, buffer panning), BUKAN
+   style CSS, jadi max-width:100% menciutkan KOTAK tampilnya sementara
+   koordinat path di dalamnya tetap dihitung untuk ukuran ASLI -- hasilnya
+   layer "ada" (bounds valid, toggle jalan) tapi tidak pernah tergambar di
+   area yang terlihat. Dikecualikan untuk SEMUA svg di dalam .leaflet-container
+   (termasuk ikon marker/divIcon kita) -- tanpa efek samping di sana karena
+   ikon-ikon itu sudah berukuran pasti (26x26) jauh di bawah lebar container
+   mana pun, max-width:100% tidak pernah benar-benar membatasinya. */
+.leaflet-container svg {
+  max-width: none;
 }
 
 /* Varian tinggi tetap untuk peta di dalam form (bukan peta penuh layar,
@@ -972,6 +969,16 @@ dialog.modal::backdrop {
 /* Pratinjau peta dashboard (T-20, FR-05: "tinggi ±300px"). */
 .map-shell--preview {
   height: 300px;
+}
+
+/* Peta interaktif penuh (peta.php) -- --map-offset dasar (120px) ditambah
+   tinggi .ds-page-header di atasnya (judul + margin, ~62px) supaya peta
+   tetap pas satu layar, tidak memaksa scroll tambahan pada .ds-app-main.
+   Bingkai (radius/shadow) disamakan dengan .ds-card di sekitarnya. */
+.map-shell--peta {
+  --map-offset: 182px;
+  border-radius: var(--ds-radius-card-lg, var(--radius));
+  box-shadow: var(--ds-shadow-card, var(--shadow-card));
 }
 
 .u-mt-4 {
@@ -1059,10 +1066,13 @@ dialog.modal::backdrop {
 }
 
 .map-legend {
-  background: #fff;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  border-radius: var(--ds-radius-card, var(--radius-sm));
+  box-shadow: var(--ds-shadow-card, 0 1px 4px rgba(0, 0, 0, 0.3));
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--ds-font, inherit);
   font-size: 0.8125rem;
   line-height: 1.4;
 }
@@ -1070,7 +1080,8 @@ dialog.modal::backdrop {
 .map-legend__title {
   display: block;
   margin-bottom: var(--space-2);
-  color: var(--color-primary);
+  color: var(--ds-on-bg, var(--color-primary));
+  font-weight: 800;
 }
 
 .map-legend__list {
@@ -1127,8 +1138,9 @@ dialog.modal::backdrop {
 }
 
 .map-popup {
+  font-family: var(--ds-font, inherit);
   font-size: 0.875rem;
-  max-width: 220px;
+  max-width: 260px;
 }
 
 .map-popup__count {
@@ -1234,6 +1246,20 @@ dialog.modal::backdrop {
   border: 1px solid var(--color-border);
 }
 
+/* Thumbnail yang bisa dibuka di lightbox (map-lightbox di bawah) --
+   affordance klik/fokus jelas, tanpa mengubah ukuran dasarnya. */
+.map-popup__thumb--clickable {
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.map-popup__thumb--clickable:hover,
+.map-popup__thumb--clickable:focus-visible {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px var(--ds-primary, var(--color-primary));
+  outline: none;
+}
+
 .map-popup__thumb--fallback {
   display: flex;
   align-items: center;
@@ -1317,6 +1343,37 @@ dialog.modal::backdrop {
   line-height: 44px !important;
 }
 
+/* Bug nyata: tombol toolbar Leaflet Draw (lokasi/form.php, picker peta --
+   gambar titik/poligon) JUGA kena aturan .leaflet-bar di atas (toolbar-nya
+   sendiri punya kelas leaflet-bar), tapi ikonnya dari sprite sheet dengan
+   background-position dihitung untuk kotak 26px bawaan leaflet-draw.css --
+   memaksa width/height ke 44px TANPA menyesuaikan posisi gambar membuat
+   ikon bergeser dari tengah. Aturan di sini SENGAJA ditaruh SESUDAH aturan
+   di atas (spesifisitas sama, urutan sumber jadi penentu) -- kotak ikon
+   dikembalikan ke ukuran ASLI 26px (box-sizing: content-box + background-
+   origin: content-box menjaga posisi sprite tidak ikut bergeser), area klik
+   44px dicapai lewat padding transparan di sekitarnya, bukan memperbesar
+   kotak ikon itu sendiri. */
+.leaflet-draw-toolbar a {
+  box-sizing: content-box !important;
+  width: 26px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  padding: 9px !important;
+  background-origin: content-box !important;
+}
+
+/* leaflet.css sendiri memakai kotak 30px (bukan 26px) di perangkat sentuh
+   (.leaflet-touch .leaflet-bar a), dan leaflet-draw.css menyediakan offset
+   sprite TERPISAH untuk kasus itu -- padding disesuaikan (7px, bukan 9px)
+   supaya total tetap genap 44px tanpa mengubah offset sprite bawaannya. */
+.leaflet-touch .leaflet-draw-toolbar a {
+  width: 30px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  padding: 7px !important;
+}
+
 .leaflet-popup-close-button {
   width: 36px !important;
   height: 36px !important;
@@ -1358,6 +1415,158 @@ dialog.modal::backdrop {
 }
 
 /* -----------------------------------------------------------------------------
+   16c. Lightbox foto aktivitas (peta.php, assets/js/map.js) -- "lihat detail
+   serta di slide" (UI). <dialog> native (showModal()) dibuat SEKALI oleh
+   map.js, diisi/ditampilkan ulang tiap kali thumbnail diklik -- CSS di sini
+   hanya tata letak & tampilan, tidak ada logika.
+   ----------------------------------------------------------------------------- */
+/* display:none harus TEGAS di sini (bukan cuma mengandalkan dialog:not([open])
+   bawaan browser) -- align-items/justify-content di bawah butuh display:flex
+   hanya saat [open], supaya dialog yang BELUM pernah showModal() tidak ikut
+   menutupi seluruh peta dengan latar gelap & mencegat semua klik (bug nyata:
+   lupa menggerbangi display:flex di balik [open], terjadi di sesi ini). */
+.map-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: rgba(10, 14, 22, 0.92);
+}
+
+.map-lightbox[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-lightbox::backdrop {
+  background: transparent; /* .map-lightbox sendiri sudah jadi latar gelap penuh */
+}
+
+.map-lightbox__figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: min(900px, 92vw);
+  max-height: 88vh;
+  padding: var(--space-4);
+}
+
+.map-lightbox__image {
+  max-width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  border-radius: var(--ds-radius-card, var(--radius-sm));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.map-lightbox__caption {
+  margin: 0;
+  color: #fff;
+  font-family: var(--ds-font, inherit);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.map-lightbox__counter {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: var(--ds-font, inherit);
+  font-size: 0.8125rem;
+}
+
+.map-lightbox__close,
+.map-lightbox__nav {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.map-lightbox__close:hover,
+.map-lightbox__nav:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.map-lightbox__close:focus-visible,
+.map-lightbox__nav:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.map-lightbox__close {
+  top: var(--space-4);
+  right: var(--space-4);
+}
+
+.map-lightbox__nav--prev {
+  left: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.map-lightbox__nav--next {
+  right: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.map-lightbox__nav--prev:hover {
+  transform: translateY(-50%) scale(1.08);
+}
+
+.map-lightbox__nav--next:hover {
+  transform: translateY(-50%) scale(1.08);
+}
+
+@media (max-width: 600px) {
+  .map-lightbox__close,
+  .map-lightbox__nav {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+  }
+
+  .map-lightbox__nav--prev { left: var(--space-2); }
+  .map-lightbox__nav--next { right: var(--space-2); }
+  .map-lightbox__close { top: var(--space-2); right: var(--space-2); }
+}
+
+.detail-aktivitas-title {
+  margin: 0 0 var(--space-2);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--ds-on-bg, var(--color-text));
+}
+
+/* --- Peta kecil di panel detail aktivitas (monitoring.php,
+   assets/js/monitoring-detail.js) -- satu lokasi, non-interaktif. --- */
+.detail-aktivitas-map {
+  width: 100%;
+  height: 220px;
+  margin-top: var(--space-3);
+  border-radius: var(--ds-radius-card, var(--radius-sm));
+  isolation: isolate;
+}
+
+/* -----------------------------------------------------------------------------
    17. Laporan cetak (T-22, FR-22) -- tampilan ON-SCREEN. Layout cetak
    sesungguhnya (A4, sembunyikan kontrol, dst.) ada di print.css; kelas di sini
    SENGAJA bukan .card supaya tidak ikut kena aturan break-inside:avoid
@@ -1365,31 +1574,102 @@ dialog.modal::backdrop {
    ----------------------------------------------------------------------------- */
 .laporan-dokumen {
   background: var(--color-surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
+  border-radius: var(--ds-radius-card-lg, var(--radius));
+  box-shadow: var(--ds-shadow-card, var(--shadow-card));
+  padding: var(--space-6) var(--space-5);
+  max-width: 900px;
+  margin: 0 auto;
 }
 
+/* Kop surat (kepala naskah dinas): instansi + garis ganda -- standar umum
+   format surat/laporan resmi pemerintah (Permendagri 54/2009 ttg tata
+   naskah dinas: garis tebal lalu garis tipis tepat di bawahnya). Tanpa
+   logo/lambang -- tidak ada aset resmi untuk itu di proyek ini, bukan
+   dihilangkan sembarangan. */
 .laporan-kop {
   text-align: center;
-  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 3px solid var(--color-text);
+  margin-bottom: 2px;
 }
 
-.laporan-kop__judul {
-  margin: 0 0 var(--space-2);
-  font-size: var(--font-size-xl);
+.laporan-kop::after {
+  display: block;
+  content: "";
+  margin-top: 2px;
+  border-bottom: 1px solid var(--color-text);
+}
+
+.laporan-kop__pemerintah {
+  margin: 0 0 2px;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .laporan-kop__instansi {
-  margin: 0 0 var(--space-3);
-  font-weight: 600;
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.laporan-kop__periode,
-.laporan-kop__cetak {
+.laporan-judul {
+  text-align: center;
+  margin: var(--space-5) 0;
+}
+
+.laporan-judul__teks {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-lg);
+  text-transform: uppercase;
+  text-decoration: underline;
+}
+
+.laporan-judul__periode {
   margin: 0;
   color: var(--color-text-muted);
+}
+
+.laporan-kop__cetak {
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* Ringkasan/rekapitulasi singkat SEBELUM rincian per lokasi -- standar
+   laporan dinas: angka kunci dulu, baru tabel rincian. Dihitung dari data
+   yang SAMA dengan tabel di bawahnya (laporan/index.php), bukan query lain. */
+.laporan-ringkasan {
+  margin-bottom: var(--space-5);
+}
+
+.laporan-ringkasan__judul {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+}
+
+.laporan-ringkasan__tabel {
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.laporan-ringkasan__tabel th,
+.laporan-ringkasan__tabel td {
+  padding: var(--space-1) var(--space-3) var(--space-1) 0;
+  text-align: left;
+  font-weight: 400;
+}
+
+.laporan-ringkasan__tabel th {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.laporan-ringkasan__tabel td {
+  font-weight: 700;
 }
 
 .laporan-tandatangan {
