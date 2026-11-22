@@ -87,6 +87,67 @@ function repo_aktivitas_list(array $filters, int $page, int $per_page, string $s
 }
 
 /**
+ * Daftar aktivitas untuk monitoring.php (FR-21, T-21, khusus Admin). SATU
+ * query dengan JOIN lokasi_tambang + kontraktor + jenis_material, PLUS dua
+ * scalar subquery agregat per baris (jumlah foto & tanggal aktivitas terakhir
+ * lokasi itu) -- keduanya bagian dari SATU statement SQL yang sama (pola yang
+ * sama dengan repo_lokasi_list_for_map(), T-12), BUKAN query terpisah per
+ * baris dari PHP (N+1). paginate() di bawah selalu menjalankan tepat 2 query
+ * (COUNT + SELECT) apa pun jumlah total barisnya -- lihat db_query_count().
+ *
+ * Filter yang dikenali: lokasi_id, kontraktor_id, status_aktivitas,
+ * tanggal_mulai, tanggal_akhir (inklusif, >=/<=). TIDAK ada parameter scope
+ * kontraktor wajib di sini (beda dari repo_aktivitas_list()) karena
+ * monitoring.php khusus Admin (require_role('admin')) -- kontraktor_id di
+ * sini murni salah satu FILTER dropdown, bukan guard kepemilikan data.
+ * @return array{0: array<int, array<string, mixed>>, 1: int} [rows, total]
+ */
+function repo_aktivitas_list_for_monitoring(array $filters, int $page, int $per_page, string $sort_column = 'tanggal_aktivitas', string $sort_direction = 'desc'): array
+{
+    $allowed_columns = ['tanggal_aktivitas', 'status_aktivitas', 'nama_lokasi', 'kontraktor_nama'];
+    $order_by = db_order_by($sort_column, $sort_direction, $allowed_columns, 'tanggal_aktivitas', 'desc');
+
+    $where = [];
+    $params = [];
+
+    if (!empty($filters['lokasi_id'])) {
+        $where[] = 'a.lokasi_id = :lokasi_id';
+        $params['lokasi_id'] = (int) $filters['lokasi_id'];
+    }
+    if (!empty($filters['kontraktor_id'])) {
+        $where[] = 'lt.kontraktor_id = :kontraktor_id';
+        $params['kontraktor_id'] = (int) $filters['kontraktor_id'];
+    }
+    if (!empty($filters['status_aktivitas'])) {
+        $where[] = 'a.status_aktivitas = :status_aktivitas';
+        $params['status_aktivitas'] = $filters['status_aktivitas'];
+    }
+    if (!empty($filters['tanggal_mulai'])) {
+        $where[] = 'a.tanggal_aktivitas >= :tanggal_mulai';
+        $params['tanggal_mulai'] = $filters['tanggal_mulai'];
+    }
+    if (!empty($filters['tanggal_akhir'])) {
+        $where[] = 'a.tanggal_aktivitas <= :tanggal_akhir';
+        $params['tanggal_akhir'] = $filters['tanggal_akhir'];
+    }
+
+    $sql = 'SELECT a.id, a.tanggal_aktivitas, a.jenis_kegiatan, a.status_aktivitas,
+                   lt.id AS lokasi_id, lt.nama_lokasi,
+                   k.nama_perusahaan AS kontraktor_nama,
+                   (SELECT COUNT(*) FROM foto_aktivitas f WHERE f.aktivitas_id = a.id) AS jumlah_foto,
+                   (SELECT MAX(a2.tanggal_aktivitas) FROM aktivitas_tambang a2 WHERE a2.lokasi_id = lt.id) AS lokasi_aktivitas_terakhir
+            FROM aktivitas_tambang a
+            JOIN lokasi_tambang lt ON lt.id = a.lokasi_id
+            JOIN kontraktor k ON k.id = lt.kontraktor_id';
+    if ($where !== []) {
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+    }
+    $sql .= ' ORDER BY ' . $order_by;
+
+    return paginate($sql, $params, $page, $per_page);
+}
+
+/**
  * Edge case wajib T-17: aktivitas ganda untuk lokasi & tanggal yang sama --
  * BUKAN diblokir, hanya dicek di sini supaya form.php bisa menampilkan
  * PERINGATAN sebelum/setelah simpan. $exclude_id dipakai saat mode ubah

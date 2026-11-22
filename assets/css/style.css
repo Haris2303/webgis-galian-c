@@ -570,6 +570,18 @@ summary:focus-visible {
 }
 .badge--kedaluwarsa::before { background: var(--status-tidak-berizin); }
 
+/* Penanda "tanpa aktivitas > 30 hari" (T-21, monitoring.php) -- BUKAN badge
+   status_izin/status_aktivitas, murni kandidat pengawasan tambahan di luar
+   PRD (lihat Keputusan T-21). Warna amber yang sama dengan .flash--warning
+   (status-proses dipakai lintas komponen sebagai warna "peringatan" umum),
+   border putus-putus senada .badge--kedaluwarsa agar jelas BUKAN badge status. */
+.badge--perlu-pengawasan {
+  background: var(--status-proses-bg);
+  color: var(--status-proses-text);
+  border: 1px dashed var(--status-proses);
+}
+.badge--perlu-pengawasan::before { background: var(--status-proses); }
+
 /* Fallback T-20: status_izin tak terduga/NULL (data rusak di luar tiga nilai
    enum) -- tetap tampil sebagai badge netral, bukan baris rusak/kosong. */
 .badge--tidak-diketahui {

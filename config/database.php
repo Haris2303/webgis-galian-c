@@ -87,8 +87,27 @@ function db_run(string $sql, array $params = []): PDOStatement
     }
 
     $stmt->execute();
+    db_query_count(true);
 
     return $stmt;
+}
+
+/**
+ * Hitung jumlah query (db_run()) yang sudah dijalankan pada request ini.
+ * Murni alat debug (T-21): dipakai memverifikasi "jumlah query per halaman
+ * TIDAK bertambah seiring jumlah baris" -- paginate() selalu 2 query (COUNT +
+ * SELECT) berapa pun total barisnya, bukan N+1. $increment=true HANYA
+ * dipanggil dari db_run() di bawah; pemanggil lain membaca saja (default false).
+ */
+function db_query_count(bool $increment = false): int
+{
+    static $count = 0;
+
+    if ($increment) {
+        $count++;
+    }
+
+    return $count;
 }
 
 /** Ambil semua baris hasil query terparameter. */
