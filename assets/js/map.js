@@ -670,20 +670,20 @@
       fetchJson(opts.detailUrl + '?id=' + encodeURIComponent(String(id)), controller ? controller.signal : undefined)
         .then(function (data) {
           if (mySeq !== requestSeq) {
-            return; // a newer click happened; discard this stale result
+            return; // ada klik yang lebih baru; buang hasil basi ini
           }
           detailCache[id] = { data: data, at: Date.now() };
           popup.setContent(buildDetailContent(data, lightbox));
         })
         .catch(function (err) {
           if (err && err.name === 'AbortError') {
-            return; // self-aborted by a newer click, not a real error
+            return; // dibatalkan sendiri oleh klik yang lebih baru, bukan error sungguhan
           }
           if (mySeq !== requestSeq) {
             return;
           }
           if (err && err.status === 401) {
-            // session expired: redirect to login instead of showing a raw JSON error in the popup
+            // sesi berakhir: redirect ke login daripada menampilkan error JSON mentah di popup
             window.location.href = opts.loginUrl || 'login.php';
             return;
           }
@@ -699,7 +699,7 @@
       });
     }
 
-    // first call measures the initial render, later calls (from filter toggles) measure filter response
+    // panggilan pertama mengukur render awal, panggilan selanjutnya (dari toggle filter) mengukur respons filter
     var hasRenderedOnce = false;
     function renderFiltered(shouldFitBounds) {
       var perfStart = performance.now();
@@ -708,7 +708,7 @@
         return activeStatuses.has(f.properties.status_izin);
       });
 
-      // clearLayers also closes any open popup on a removed marker, which is how a filtered-out popup gets dismissed
+      // clearLayers juga menutup popup yang terbuka pada marker yang dihapus, begitulah popup yang difilter keluar jadi tertutup
       markerLayer.clearLayers();
       var groups = groupByCoordinate(filtered);
       renderMarkers(markerLayer, groups, { onOpenDetail: openDetailPopup }, idIndex);
@@ -730,7 +730,7 @@
       hasRenderedOnce = true;
     }
 
-    // legend and filter share one widget so the two can never show different active statuses
+    // legend dan filter berbagi satu widget agar keduanya tidak pernah menampilkan status aktif yang berbeda
     function buildLegendFilterControl() {
       var LegendFilterControl = L.Control.extend({
         options: { position: 'bottomright' },
@@ -757,7 +757,7 @@
               } else {
                 activeStatuses.delete(key);
               }
-              renderFiltered(false); // toggling a filter doesn't pan/zoom the map
+              renderFiltered(false); // toggle filter tidak menggeser/zoom peta
             });
             filterCheckboxes[key] = checkbox;
             label.appendChild(checkbox);
