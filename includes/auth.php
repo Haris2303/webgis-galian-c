@@ -64,7 +64,10 @@ function csp_nonce(): string
  *                              + SATU <style> inline yang masih ada (halaman error
  *                              darurat) lewat nonce per request, bukan 'unsafe-inline'
  *                              blanket.
- * - img-src ... tile.openstreetmap.org : tegas sesuai PRD, hanya tile peta.
+ * - img-src ... tile.openstreetmap.org + unpkg.com : tile peta (PRD bagian 9/11,
+ *                              tegas) ditambah unpkg.com (T-10) karena ikon marker
+ *                              default Leaflet dimuat lewat path relatif ke CSS-nya
+ *                              sendiri di CDN yang sama, bukan dari origin sendiri.
  * - connect-src 'self'      : fetch() (PRD bagian 10) hanya ke endpoint sendiri.
  * - object-src 'none'       : blokir <object>/<embed>, tidak ada kebutuhan di app ini.
  * - base-uri 'self'         : cegah <base> disuntik untuk membajak URL relatif.
@@ -84,7 +87,7 @@ function security_headers(): void
     $csp = sprintf(
         "default-src 'self'; script-src 'self' https://unpkg.com; "
         . "style-src 'self' https://unpkg.com 'nonce-%s'; "
-        . "img-src 'self' https://tile.openstreetmap.org; connect-src 'self'; "
+        . "img-src 'self' https://tile.openstreetmap.org https://unpkg.com; connect-src 'self'; "
         . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
         csp_nonce()
     );
@@ -365,6 +368,26 @@ function client_ip(): string
 function login_throttle_is_blocked(string $username, string $ip_address): bool
 {
     return repo_login_attempt_count_recent($username, $ip_address, LOGIN_THROTTLE_WINDOW_MINUTES) >= LOGIN_THROTTLE_MAX_ATTEMPTS;
+}
+
+/**
+ * Password acak kuat (T-08: pembuatan akun kontraktor & reset password admin).
+ * Admin TIDAK PERNAH mengetik password akun kontraktor sendiri -- sistem selalu
+ * membangkitkannya, supaya "password awal lemah" (edge case T-08) tidak mungkin
+ * terjadi. Alfabet menghindari karakter rupa-mirip (0/O, 1/l/I) supaya mudah
+ * disalin/dibacakan manual; ~14 karakter dari ~70 simbol memberi entropi tinggi.
+ */
+function generate_strong_password(int $length = 14): string
+{
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%&*';
+    $max_index = strlen($alphabet) - 1;
+    $password = '';
+
+    for ($i = 0; $i < $length; $i++) {
+        $password .= $alphabet[random_int(0, $max_index)];
+    }
+
+    return $password;
 }
 
 /** Catat satu percobaan gagal. Dipanggil HANYA setelah verifikasi kredensial gagal, bukan saat sudah terkunci. */

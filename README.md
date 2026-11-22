@@ -25,3 +25,31 @@ Instalasi lengkap (skema database, seed data, dsb.) akan didokumentasikan di T-2
 - Modul lain (`lokasi/`, `kontraktor/`, `aktivitas/`, `laporan/`, `api/`, `database/`,
   `assets/`, `uploads/aktivitas/`) sudah berupa folder kosong sesuai struktur PRD bagian 8,
   isinya menyusul di tugas masing-masing.
+
+## TODO — `assets/geojson/batas_kota_sorong.geojson` (T-11)
+
+**Berkas ini BUKAN shapefile resmi BIG/Pemda Kota Sorong.** Karena data batas
+administrasi resmi dari dinas/BIG tidak tersedia ke AI pada saat T-11
+dikerjakan, berkas ini diturunkan dari **data komunitas OpenStreetMap**
+(relasi OSM `14905729`, diambil lewat Nominatim pada 2026-11-21), lalu
+disederhanakan (Douglas-Peucker, ε≈0.0003°) dan dirapikan arah cincinnya
+sendiri agar sesuai RFC 7946. Ini BUKAN "placeholder poligon kasar" (bentuknya
+nyata, bukan kotak/perkiraan sembarangan) — tapi juga BUKAN data survei resmi
+yang disebut PRD/skripsi.
+
+**Wajib dilakukan sebelum dipakai untuk sidang/laporan resmi:**
+1. Minta shapefile/GeoJSON batas administrasi resmi dari Dinas terkait atau
+   BIG (Badan Informasi Geospasial), lalu ekspor ulang dari QGIS mengikuti
+   langkah di `docs/rules_commit.md`-style: CRS EPSG:4326, simplify ≤150 KB,
+   properti hanya `nama` + `kode_wilayah`, lalu validasi dengan
+   `php database/validate_geojson.php`.
+2. Verifikasi ulang `kode_wilayah` ("91.71" saat ini) terhadap portal resmi
+   Kemendagri ("Kode dan Data Wilayah") — pencarian AI menemukan sumber
+   sekunder yang saling bertentangan (91.71 vs 92.71 vs 96.71) dan tidak bisa
+   dipastikan 100% benar tanpa portal resminya.
+3. **Antarmuka (peta, legenda, dokumentasi) TIDAK BOLEH menyebut layer ini
+   sebagai "batas resmi"** sampai poin 1 selesai — sebut sebagai "referensi"
+   atau "sumber: OpenStreetMap" bila ditampilkan ke pengguna.
+
+Jalankan `php database/validate_geojson.php` kapan pun berkas ini diganti,
+sebelum commit.

@@ -93,6 +93,18 @@ function repo_user_touch_last_login(int $id): bool
     return db_exec('UPDATE users SET last_login = NOW() WHERE id = :id', ['id' => $id]) > 0;
 }
 
+/** Nonaktifkan/aktifkan akun (T-08) tanpa perlu mengirim ulang semua kolom seperti repo_user_update(). */
+function repo_user_set_active(int $id, bool $active): bool
+{
+    return db_exec('UPDATE users SET is_active = :is_active WHERE id = :id', ['is_active' => $active ? 1 : 0, 'id' => $id]) > 0;
+}
+
+/** Akun (biasanya satu) yang terhubung ke satu kontraktor_id. Dipakai kontraktor/index.php (T-08). */
+function repo_user_list_by_kontraktor(int $kontraktor_id): array
+{
+    return db_all('SELECT * FROM users WHERE kontraktor_id = :kontraktor_id ORDER BY id ASC', ['kontraktor_id' => $kontraktor_id]);
+}
+
 function repo_user_delete(int $id): bool
 {
     return db_exec('DELETE FROM users WHERE id = :id', ['id' => $id]) > 0;

@@ -31,6 +31,7 @@ $flash_messages = flash_pull();
 <title><?= e($page_title) ?> — WebGIS Galian C Kota Sorong</title>
 <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
 <link rel="stylesheet" href="<?= e(asset('assets/css/print.css')) ?>" media="print">
+<?= render_raw_tags($extra_head ?? []) ?>
 </head>
 <body>
 <?php if ($layout === 'auth'): ?>
@@ -65,9 +66,13 @@ $flash_messages = flash_pull();
 <?php if ($flash_messages !== []): ?>
 <ul class="flash-list" aria-live="polite">
   <?php foreach ($flash_messages as $flash_item): ?>
-  <?php $flash_type = in_array($flash_item['type'], ['success', 'error', 'warning'], true) ? $flash_item['type'] : 'success'; ?>
+  <?php $flash_type = in_array($flash_item['type'], ['success', 'error', 'warning', 'credential'], true) ? $flash_item['type'] : 'success'; ?>
+  <?php $flash_password = $flash_item['extra']['password'] ?? null; ?>
   <li class="flash flash--<?= e($flash_type) ?>">
     <span class="flash__message"><?= e($flash_item['message']) ?></span>
+    <?php if ($flash_password !== null): ?>
+    <span class="flash__password"><?= e($flash_password) ?></span>
+    <?php endif; ?>
     <button type="button" class="flash__close" aria-label="Tutup pesan">×</button>
   </li>
   <?php endforeach; ?>

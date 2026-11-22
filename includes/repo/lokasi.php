@@ -17,32 +17,43 @@ function repo_lokasi_find(int $id): ?array
 }
 
 /**
- * Filter yang dikenali: status_izin, kontraktor_id, search (nama_lokasi LIKE).
- * $sort_column divalidasi lewat whitelist di db_order_by() — tidak pernah dari input mentah.
+ * Filter yang dikenali: status_izin, kontraktor_id, material_id, search
+ * (cocok di nama_lokasi ATAU kelurahan, T-09). $sort_column divalidasi lewat
+ * whitelist di db_order_by() — tidak pernah dari input mentah. JOIN kontraktor
+ * & jenis_material supaya daftar admin menampilkan nama, bukan ID mentah.
  * @return array{0: array<int, array<string, mixed>>, 1: int} [rows, total]
  */
 function repo_lokasi_list(array $filters, int $page, int $per_page, string $sort_column = 'nama_lokasi', string $sort_direction = 'asc'): array
 {
-    $allowed_columns = ['nama_lokasi', 'status_izin', 'distrik', 'created_at', 'updated_at'];
+    $allowed_columns = ['nama_lokasi', 'status_izin', 'distrik', 'kelurahan', 'tanggal_berakhir_izin', 'created_at', 'updated_at'];
     $order_by = db_order_by($sort_column, $sort_direction, $allowed_columns, 'nama_lokasi');
 
     $where = [];
     $params = [];
 
     if (!empty($filters['status_izin'])) {
-        $where[] = 'status_izin = :status_izin';
+        $where[] = 'l.status_izin = :status_izin';
         $params['status_izin'] = $filters['status_izin'];
     }
     if (!empty($filters['kontraktor_id'])) {
-        $where[] = 'kontraktor_id = :kontraktor_id';
+        $where[] = 'l.kontraktor_id = :kontraktor_id';
         $params['kontraktor_id'] = (int) $filters['kontraktor_id'];
     }
+    if (!empty($filters['material_id'])) {
+        $where[] = 'l.material_id = :material_id';
+        $params['material_id'] = (int) $filters['material_id'];
+    }
     if (!empty($filters['search'])) {
-        $where[] = 'nama_lokasi LIKE :search';
-        $params['search'] = '%' . db_like_escape((string) $filters['search']) . '%';
+        $where[] = '(l.nama_lokasi LIKE :search OR l.kelurahan LIKE :search_kel)';
+        $kata = '%' . db_like_escape((string) $filters['search']) . '%';
+        $params['search'] = $kata;
+        $params['search_kel'] = $kata;
     }
 
-    $sql = 'SELECT * FROM lokasi_tambang';
+    $sql = 'SELECT l.*, k.nama_perusahaan AS kontraktor_nama, m.nama AS material_nama
+            FROM lokasi_tambang l
+            JOIN kontraktor k ON k.id = l.kontraktor_id
+            JOIN jenis_material m ON m.id = l.material_id';
     if ($where !== []) {
         $sql .= ' WHERE ' . implode(' AND ', $where);
     }
@@ -51,10 +62,23 @@ function repo_lokasi_list(array $filters, int $page, int $per_page, string $sort
     return paginate($sql, $params, $page, $per_page);
 }
 
-/** Kartu dashboard (PRD bagian 9 #2). Satu query GROUP BY, memakai idx_status. */
-function repo_lokasi_count_by_status(): array
+/**
+ * Kartu dashboard (PRD bagian 9 #2) & api/statistik.php (T-12). $kontraktor_id
+ * null = semua lokasi (Admin); diisi = ter-scope ke satu kontraktor (FR-04:
+ * "Kontraktor hanya lokasinya"). Tetap satu query GROUP BY, memakai idx_status
+ * (atau idx_status+idx_kontraktor sekaligus saat ter-scope).
+ */
+function repo_lokasi_count_by_status(?int $kontraktor_id = null): array
 {
-    $rows = db_all('SELECT status_izin, COUNT(*) AS jumlah FROM lokasi_tambang GROUP BY status_izin');
+    $sql = 'SELECT status_izin, COUNT(*) AS jumlah FROM lokasi_tambang';
+    $params = [];
+    if ($kontraktor_id !== null) {
+        $sql .= ' WHERE kontraktor_id = :kontraktor_id';
+        $params['kontraktor_id'] = $kontraktor_id;
+    }
+    $sql .= ' GROUP BY status_izin';
+
+    $rows = db_all($sql, $params);
 
     $hasil = ['berizin' => 0, 'tidak_berizin' => 0, 'proses' => 0];
     foreach ($rows as $row) {
@@ -62,6 +86,96 @@ function repo_lokasi_count_by_status(): array
     }
 
     return $hasil;
+}
+
+/**
+ * Titik + properti ringan untuk api/lokasi.php (T-12), termasuk tanggal
+ * aktivitas terakhir lewat subquery (bukan JOIN langsung ke aktivitas_tambang,
+ * supaya tetap SATU baris per lokasi walau aktivitasnya banyak).
+ */
+function repo_lokasi_list_for_map(?string $status_izin): array
+{
+    $where = '';
+    $params = [];
+    if ($status_izin !== null) {
+        $where = 'WHERE l.status_izin = :status_izin';
+        $params['status_izin'] = $status_izin;
+    }
+
+    return db_all(
+        "SELECT l.id, l.nama_lokasi, l.latitude, l.longitude, l.status_izin,
+                k.nama_perusahaan AS kontraktor_nama, m.nama AS material_nama,
+                (SELECT MAX(a.tanggal_aktivitas) FROM aktivitas_tambang a WHERE a.lokasi_id = l.id) AS aktivitas_terakhir
+         FROM lokasi_tambang l
+         JOIN kontraktor k ON k.id = l.kontraktor_id
+         JOIN jenis_material m ON m.id = l.material_id
+         {$where}
+         ORDER BY l.id ASC",
+        $params
+    );
+}
+
+/** MAX(updated_at) + COUNT(*) untuk ETag api/lokasi.php (T-12) -- ter-scope ke filter yang sama dengan query utamanya. */
+function repo_lokasi_etag_meta(?string $status_izin): array
+{
+    $sql = 'SELECT COUNT(*) AS jumlah, MAX(updated_at) AS terakhir FROM lokasi_tambang';
+    $params = [];
+    if ($status_izin !== null) {
+        $sql .= ' WHERE status_izin = :status_izin';
+        $params['status_izin'] = $status_izin;
+    }
+
+    $row = db_one($sql, $params);
+
+    return ['jumlah' => (int) ($row['jumlah'] ?? 0), 'terakhir' => $row['terakhir'] ?? null];
+}
+
+/** Lokasi yang punya area_geojson (poligon), untuk api/area.php (T-12). */
+function repo_lokasi_list_with_area(): array
+{
+    return db_all(
+        "SELECT id, nama_lokasi, status_izin, area_geojson
+         FROM lokasi_tambang
+         WHERE area_geojson IS NOT NULL
+         ORDER BY id ASC"
+    );
+}
+
+/**
+ * Rekap laporan monitoring per periode (FR-22, T-22, Admin saja -- selalu
+ * SEMUA lokasi lintas kontraktor, tidak ada scope). SATU statement SQL dengan
+ * JOIN kontraktor + TIGA scalar subquery agregat per baris (pola yang sama
+ * dengan T-12/T-20/T-21): jumlah aktivitas DALAM periode, tanggal aktivitas
+ * TERAKHIR dalam periode, dan status aktivitas pada tanggal itu. Lokasi tanpa
+ * aktivitas pada periode ini TETAP tampil dengan jumlah=0 dan tanggal/status
+ * NULL (edge case wajib T-22 "periode tanpa data"), bukan hilang dari laporan.
+ *
+ * Nama parameter diberi akhiran 1/2/3 (bukan dipakai ulang) karena MySQL
+ * native prepared statement (EMULATE_PREPARES=false, config/database.php)
+ * tidak mengizinkan satu placeholder bernama dipakai lebih dari sekali dalam
+ * satu statement.
+ * @return array<int, array<string, mixed>>
+ */
+function repo_lokasi_list_for_laporan(string $tanggal_mulai, string $tanggal_akhir): array
+{
+    return db_all(
+        'SELECT lt.id, lt.nama_lokasi, lt.status_izin, k.nama_perusahaan AS kontraktor_nama,
+                (SELECT COUNT(*) FROM aktivitas_tambang a
+                  WHERE a.lokasi_id = lt.id AND a.tanggal_aktivitas BETWEEN :mulai1 AND :akhir1) AS jumlah_aktivitas,
+                (SELECT MAX(a.tanggal_aktivitas) FROM aktivitas_tambang a
+                  WHERE a.lokasi_id = lt.id AND a.tanggal_aktivitas BETWEEN :mulai2 AND :akhir2) AS aktivitas_terakhir_tanggal,
+                (SELECT a.status_aktivitas FROM aktivitas_tambang a
+                  WHERE a.lokasi_id = lt.id AND a.tanggal_aktivitas BETWEEN :mulai3 AND :akhir3
+                  ORDER BY a.tanggal_aktivitas DESC, a.id DESC LIMIT 1) AS aktivitas_terakhir_status
+         FROM lokasi_tambang lt
+         JOIN kontraktor k ON k.id = lt.kontraktor_id
+         ORDER BY lt.nama_lokasi ASC',
+        [
+            'mulai1' => $tanggal_mulai, 'akhir1' => $tanggal_akhir,
+            'mulai2' => $tanggal_mulai, 'akhir2' => $tanggal_akhir,
+            'mulai3' => $tanggal_mulai, 'akhir3' => $tanggal_akhir,
+        ]
+    );
 }
 
 function repo_lokasi_create(array $data): int
@@ -145,4 +259,12 @@ function repo_lokasi_update(int $id, array $data): bool
 function repo_lokasi_delete(int $id): bool
 {
     return db_exec('DELETE FROM lokasi_tambang WHERE id = :id', ['id' => $id]) > 0;
+}
+
+/** Dipakai kontraktor/hapus.php (T-08): kontraktor hanya boleh dihapus bila ini 0 (FK RESTRICT). */
+function repo_lokasi_count_by_kontraktor(int $kontraktor_id): int
+{
+    $row = db_one('SELECT COUNT(*) AS jumlah FROM lokasi_tambang WHERE kontraktor_id = :kontraktor_id', ['kontraktor_id' => $kontraktor_id]);
+
+    return (int) ($row['jumlah'] ?? 0);
 }

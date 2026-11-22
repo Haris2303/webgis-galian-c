@@ -559,6 +559,38 @@ summary:focus-visible {
 }
 .badge--proses::before { background: var(--status-proses); }
 
+/* Peringatan "izin kedaluwarsa" (T-09) -- TERPISAH dari badge status_izin di
+   atas, bukan pengganti. Nilai enum status_izin TIDAK berubah; ini murni
+   indikator visual tambahan saat tanggal_berakhir_izin sudah lewat. Border
+   putus-putus membedakannya dari badge status biasa walau warnanya senada. */
+.badge--kedaluwarsa {
+  background: var(--status-tidak-berizin-bg);
+  color: var(--status-tidak-berizin-text);
+  border: 1px dashed var(--status-tidak-berizin);
+}
+.badge--kedaluwarsa::before { background: var(--status-tidak-berizin); }
+
+/* Penanda "tanpa aktivitas > 30 hari" (T-21, monitoring.php) -- BUKAN badge
+   status_izin/status_aktivitas, murni kandidat pengawasan tambahan di luar
+   PRD (lihat Keputusan T-21). Warna amber yang sama dengan .flash--warning
+   (status-proses dipakai lintas komponen sebagai warna "peringatan" umum),
+   border putus-putus senada .badge--kedaluwarsa agar jelas BUKAN badge status. */
+.badge--perlu-pengawasan {
+  background: var(--status-proses-bg);
+  color: var(--status-proses-text);
+  border: 1px dashed var(--status-proses);
+}
+.badge--perlu-pengawasan::before { background: var(--status-proses); }
+
+/* Fallback T-20: status_izin tak terduga/NULL (data rusak di luar tiga nilai
+   enum) -- tetap tampil sebagai badge netral, bukan baris rusak/kosong. */
+.badge--tidak-diketahui {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+.badge--tidak-diketahui::before { background: var(--color-text-muted); }
+
 /* -----------------------------------------------------------------------------
    10. Tombol
    ----------------------------------------------------------------------------- */
@@ -740,6 +772,28 @@ summary:focus-visible {
   border-color: var(--status-proses);
 }
 
+/* Reveal password satu-kali (T-08: buat akun kontraktor / reset password).
+   monospace + kontras tegas supaya mudah dibaca/disalin SEBELUM flash hilang
+   permanen -- flash ini tidak akan tampil lagi setelah halaman ini ditutup. */
+.flash--credential {
+  background: var(--color-primary-dark);
+  color: #fff;
+  border-color: var(--color-primary);
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.flash--credential .flash__password {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.04em;
+  user-select: all;
+}
+
 /* -----------------------------------------------------------------------------
    13. Modal konfirmasi hapus — elemen <dialog> asli (fokus & Esc otomatis
    ditangani browser lewat showModal(), lihat assets/js/ui.js).
@@ -780,6 +834,84 @@ dialog.modal::backdrop {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+}
+
+/* -----------------------------------------------------------------------------
+   13b. Pagination + toolbar pencarian daftar (T-08)
+   ----------------------------------------------------------------------------- */
+.list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.search-form {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
+
+.pagination {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.pagination__link {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.pagination__link:hover {
+  background: var(--color-bg);
+}
+
+.pagination__link[aria-disabled="true"] {
+  color: var(--color-text-muted);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* -----------------------------------------------------------------------------
+   13c. Galeri foto dokumentasi aktivitas (T-17/T-18)
+   ----------------------------------------------------------------------------- */
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+
+.photo-grid__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.photo-grid__thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.photo-grid__hapus-form {
+  margin: 0;
 }
 
 /* -----------------------------------------------------------------------------
@@ -831,8 +963,398 @@ dialog.modal::backdrop {
   background: var(--color-border);
 }
 
+/* Varian tinggi tetap untuk peta di dalam form (bukan peta penuh layar,
+   T-10) -- menimpa tinggi viewport .map-shell di atas. */
+.map-shell--form {
+  height: 360px;
+}
+
+/* Pratinjau peta dashboard (T-20, FR-05: "tinggi ±300px"). */
+.map-shell--preview {
+  height: 300px;
+}
+
+.u-mt-4 {
+  margin-top: var(--space-4);
+}
+
 /* -----------------------------------------------------------------------------
-   16. Breakpoint responsif
+   16. Peta interaktif penuh (T-13, FR-17/18) — overlay, toast, legenda, popup.
+   .map-shell sudah position:relative lewat .leaflet-container bawaan Leaflet
+   (leaflet.css, dimuat via CDN), jadi overlay di bawah ini cukup position:absolute.
+   ----------------------------------------------------------------------------- */
+.map-overlay {
+  position: absolute;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--color-primary);
+}
+
+.map-overlay--loading {
+  inset: 0;
+  background: rgba(244, 246, 249, 0.85);
+}
+
+/* Leaflet gagal dimuat dari CDN (edge case T-13) -- map.js menulis pesan
+   sebagai textContent biasa ke dalam .map-shell, kelas ini hanya merapikan
+   tampilannya supaya tidak menempel di pojok kiri atas tanpa jarak. */
+.map-shell--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.map-overlay--empty {
+  top: var(--space-3);
+  left: var(--space-3);
+  right: var(--space-3);
+  justify-content: flex-start;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  padding: var(--space-3) var(--space-4);
+  pointer-events: none; /* banner informasi saja -- peta di baliknya tetap bisa digeser/zoom */
+}
+
+.map-overlay__text {
+  margin: 0;
+}
+
+.map-toast-region {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: calc(100vw - var(--space-4) * 2);
+}
+
+.map-toast {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 0.875rem;
+  animation: toast-in 150ms ease;
+}
+
+.map-toast--error {
+  background: var(--status-tidak-berizin-text);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.map-legend {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  padding: var(--space-3);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.map-legend__title {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-primary);
+}
+
+.map-legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.map-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.map-legend__icon {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.map-legend__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* --- Legenda + filter status gabungan (T-15, FR-20) --- */
+.map-legend__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  cursor: pointer;
+}
+
+.map-legend__checkbox {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.map-legend__count {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.map-marker-icon {
+  display: block;
+}
+
+.map-popup {
+  font-size: 0.875rem;
+  max-width: 220px;
+}
+
+.map-popup__count {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.map-popup__title {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.map-popup__meta {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.map-popup__activity {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.map-popup__divider {
+  margin: var(--space-3) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* --- Popup detail lazy-load (T-14, FR-19) --- */
+.map-popup--error {
+  color: var(--status-tidak-berizin-text);
+}
+
+.map-popup__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.map-popup__pick-btn {
+  width: 100%;
+  text-align: left;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.map-popup__pick-btn:hover {
+  background: var(--color-border);
+}
+
+.map-popup__koordinat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.map-popup__copy-btn {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+}
+
+.map-popup__activity--muted {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.map-popup__activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: 0.8125rem;
+}
+
+.map-popup__thumbs {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.map-popup__thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.map-popup__thumb--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  padding: var(--space-1);
+}
+
+/* --- Kotak pencarian lokasi (T-15, FR-20) --- */
+.map-search {
+  background: #fff;
+  position: relative;
+}
+
+.map-search__input {
+  display: block;
+  width: 220px;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.map-search__input:focus {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: -2px;
+}
+
+.map-search__listbox {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.map-search__option {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-search__option:hover,
+.map-search__option.is-highlighted {
+  background: var(--color-bg);
+}
+
+/* -----------------------------------------------------------------------------
+   17. Laporan cetak (T-22, FR-22) -- tampilan ON-SCREEN. Layout cetak
+   sesungguhnya (A4, sembunyikan kontrol, dst.) ada di print.css; kelas di sini
+   SENGAJA bukan .card supaya tidak ikut kena aturan break-inside:avoid
+   print.css yang ditujukan untuk kartu kecil, bukan tabel panjang berhalaman.
+   ----------------------------------------------------------------------------- */
+.laporan-dokumen {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+.laporan-kop {
+  text-align: center;
+  margin-bottom: var(--space-5);
+}
+
+.laporan-kop__judul {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xl);
+}
+
+.laporan-kop__instansi {
+  margin: 0 0 var(--space-3);
+  font-weight: 600;
+}
+
+.laporan-kop__periode,
+.laporan-kop__cetak {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.laporan-tandatangan {
+  margin-top: var(--space-5);
+  margin-left: auto;
+  width: max-content;
+  min-width: 260px;
+  text-align: center;
+}
+
+.laporan-tandatangan p {
+  margin: 0;
+}
+
+.laporan-tandatangan__spasi {
+  height: 64px; /* ruang tanda tangan basah di atas kertas cetak */
+}
+
+.laporan-tandatangan__nama {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* -----------------------------------------------------------------------------
+   18. Breakpoint responsif
    ----------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
   .stat-grid {

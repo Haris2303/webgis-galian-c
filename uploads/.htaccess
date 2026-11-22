@@ -1,0 +1,17 @@
+# uploads/.htaccess — TUTUP TOTAL akses langsung ke direktori ini (T-19, PRD
+# bagian 5 FR-14/19 & 11). Sebelum T-19, baris ini hanya melarang EKSEKUSI PHP
+# (lihat riwayat T-17/T-18) sementara berkas gambar sendiri masih bisa diakses
+# langsung lewat URL -- itu berubah di T-19: satu-satunya jalan membaca foto
+# sekarang adalah media.php (otorisasi per-foto, lihat Keputusan T-19 soal
+# PRD bagian 8). "Require all denied" di sini berlaku untuk SEMUA jenis
+# berkas, bukan hanya .php.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+
+Options -Indexes -ExecCGI

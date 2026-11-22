@@ -175,6 +175,18 @@ register_shutdown_function(static function (): void {
 });
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/validator.php';
+require_once __DIR__ . '/upload_foto.php';
+
+// Edge case wajib T-18: ekstensi GD tidak aktif. Diperiksa SEKALI di sini
+// (log saja, tidak menghentikan aplikasi -- hanya FITUR UNGGAH FOTO yang
+// butuh GD, bukan seluruh aplikasi) supaya admin melihatnya di log server
+// SEBELUM ada pengguna yang melaporkan unggah foto gagal. Pesan yang
+// benar-benar tampil ke pengguna saat mereka mencoba unggah ada di
+// upload_foto_validate() (includes/upload_foto.php).
+if (!upload_gd_tersedia()) {
+    app_log('warning', 'Ekstensi PHP GD tidak aktif/lengkap -- unggah foto dokumentasi aktivitas (FR-14) tidak akan berfungsi. Pasang/aktifkan ekstensi gd di php.ini.');
+}
 
 // Header keamanan + session hardening (T-05, PRD bagian 11). Diletakkan di
 // AKHIR bootstrap.php, setelah error handler di atas terpasang, supaya
