@@ -764,7 +764,7 @@
 
             var icon = document.createElement('span');
             icon.className = 'map-legend__icon';
-            icon.innerHTML = shapeMarkup(cfg.shape, cfg.color, 1); // self-built markup, not API data
+            icon.innerHTML = shapeMarkup(cfg.shape, cfg.color, 1); // markup dibangun sendiri, bukan data API
             label.appendChild(icon);
 
             var text = document.createElement('span');
@@ -784,7 +784,7 @@
       return new LegendFilterControl();
     }
 
-    // combobox/listbox pattern with debounce + abort so a stale response can never overwrite a newer one
+    // pola combobox/listbox dengan debounce + abort agar respons basi tidak pernah menimpa yang lebih baru
     function buildSearchControl() {
       var SearchControl = L.Control.extend({
         options: { position: 'topleft' },
@@ -797,7 +797,7 @@
           input.className = 'map-search__input';
           input.placeholder = 'Cari nama lokasi...';
           input.autocomplete = 'off';
-          input.maxLength = 150; // matches nama_lokasi varchar(150) in database/schema.sql
+          input.maxLength = 150; // sesuai nama_lokasi varchar(150) di database/schema.sql
           input.setAttribute('role', 'combobox');
           input.setAttribute('aria-autocomplete', 'list');
           input.setAttribute('aria-expanded', 'false');
@@ -862,7 +862,7 @@
               li.id = listboxId + '-opt-' + idx;
               li.setAttribute('role', 'option');
               li.className = 'map-search__option';
-              li.textContent = item.nama_lokasi; // textContent avoids XSS from the name field
+              li.textContent = item.nama_lokasi; // textContent menghindari XSS dari field nama
               li.addEventListener('click', function () {
                 pickResult(idx);
               });
