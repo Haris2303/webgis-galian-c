@@ -69,5 +69,5 @@ define('SORONG_LNG_MAX', 131.45);
 // dipakai sungguhan -- placeholder sengaja terlihat jelas sebagai placeholder,
 // bukan nama kosong yang bisa lolos tercetak tanpa disadari.
 define('LAPORAN_PEJABAT_JABATAN', 'Kepala Bidang Pertambangan dan Energi');
-define('LAPORAN_PEJABAT_NAMA', '(Isi nama pejabat di config/config.php)');
+define('LAPORAN_PEJABAT_NAMA', 'Hendra Sandra, S.M., M.M');
 define('LAPORAN_PEJABAT_NIP', ''); // opsional -- kosongkan bila tidak perlu dicetak

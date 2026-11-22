@@ -116,6 +116,20 @@ function db_all(string $sql, array $params = []): array
     return db_run($sql, $params)->fetchAll();
 }
 
+/**
+ * Jalankan $sql tapi KEMBALIKAN PDOStatement mentah, bukan array hasil
+ * fetchAll(). Dipakai HANYA saat pemanggil perlu mengiterasi baris SATU PER
+ * SATU (mis. `while (($row = $stmt->fetch()) !== false) { ... }`) supaya
+ * memori PHP tetap konstan untuk dataset besar -- fetchAll() (db_all()) harus
+ * memuat SELURUH baris ke satu array PHP dulu sebelum pemanggil bisa
+ * memprosesnya, yang untuk ribuan baris bisa jadi signifikan (T-23: ekspor CSV
+ * streaming). Pemanggil WAJIB memanggil ->closeCursor() setelah selesai.
+ */
+function db_cursor(string $sql, array $params = []): PDOStatement
+{
+    return db_run($sql, $params);
+}
+
 /** Ambil satu baris, atau null bila tidak ada hasil. */
 function db_one(string $sql, array $params = []): ?array
 {

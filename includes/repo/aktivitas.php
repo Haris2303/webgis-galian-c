@@ -148,6 +148,34 @@ function repo_aktivitas_list_for_monitoring(array $filters, int $page, int $per_
 }
 
 /**
+ * Statement MENTAH (bukan array) daftar aktivitas dalam periode untuk ekspor
+ * CSV (T-23, laporan/unduh.php) -- dipakai dengan db_cursor() +
+ * `while (($row = $stmt->fetch()) !== false)` supaya memori tetap konstan
+ * untuk ribuan baris (SATU baris di memori pada satu waktu, bukan seluruh
+ * resultset lewat fetchAll()/db_all()). JOIN lokasi_tambang (+ koordinat),
+ * kontraktor, jenis_material -- SEMUA lokasi tanpa scope kontraktor (laporan
+ * Dinas selalu lintas-kontraktor, sama seperti repo_lokasi_list_for_laporan(),
+ * T-22). Pemanggil WAJIB ->closeCursor() setelah selesai.
+ */
+function repo_aktivitas_cursor_for_csv(string $tanggal_mulai, string $tanggal_akhir): PDOStatement
+{
+    return db_cursor(
+        'SELECT a.tanggal_aktivitas, a.jenis_kegiatan, a.status_aktivitas,
+                a.jumlah_alat_berat, a.jumlah_pekerja, a.deskripsi,
+                lt.nama_lokasi, lt.latitude, lt.longitude,
+                k.nama_perusahaan AS kontraktor_nama,
+                m.nama AS material_nama
+         FROM aktivitas_tambang a
+         JOIN lokasi_tambang lt ON lt.id = a.lokasi_id
+         JOIN kontraktor k ON k.id = lt.kontraktor_id
+         JOIN jenis_material m ON m.id = a.material_id
+         WHERE a.tanggal_aktivitas BETWEEN :mulai AND :akhir
+         ORDER BY a.tanggal_aktivitas ASC, a.id ASC',
+        ['mulai' => $tanggal_mulai, 'akhir' => $tanggal_akhir]
+    );
+}
+
+/**
  * Edge case wajib T-17: aktivitas ganda untuk lokasi & tanggal yang sama --
  * BUKAN diblokir, hanya dicek di sini supaya form.php bisa menampilkan
  * PERINGATAN sebelum/setelah simpan. $exclude_id dipakai saat mode ubah
