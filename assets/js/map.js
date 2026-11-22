@@ -874,7 +874,7 @@
           }
 
           function flyToLokasi(item) {
-            // re-enable the status filter if the result is currently filtered out
+            // aktifkan kembali filter status bila hasil ini sedang difilter keluar
             if (!activeStatuses.has(item.status_izin)) {
               activeStatuses.add(item.status_izin);
               syncFilterCheckboxUI();
@@ -909,7 +909,7 @@
             fetchJson(opts.cariUrl + '?q=' + encodeURIComponent(query), controller ? controller.signal : undefined)
               .then(function (data) {
                 if (mySeq !== searchSeq) {
-                  return; // a newer keystroke happened; discard this stale result
+                  return; // ada ketikan yang lebih baru; buang hasil basi ini
                 }
                 results = Array.isArray(data) ? data : [];
                 renderResults();
@@ -936,7 +936,7 @@
               window.clearTimeout(debounceTimer);
             }
             if (query.length < SEARCH_MIN_CHARS) {
-              // below the minimum length: skip the fetch entirely, don't just delay it
+              // di bawah panjang minimum: lewati fetch sepenuhnya, bukan hanya menundanya
               if (searchAbort) {
                 searchAbort.abort();
               }
@@ -991,7 +991,7 @@
     }
 
     function applyDeepLink() {
-      // missing/non-numeric id: ignore silently (stale or mistyped link) rather than erroring
+      // id tidak ada/bukan angka: diamkan saja (tautan basi atau salah ketik) daripada error
       var raw = new URLSearchParams(window.location.search).get('lokasi');
       if (!raw || !/^[1-9][0-9]*$/.test(raw)) {
         return;
