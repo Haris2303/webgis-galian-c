@@ -518,13 +518,32 @@
     // pertama selesai, dicetak di bagian bawah fungsi ini.
     var perfLoadStart = performance.now();
 
+    // Mode 'preview' (T-20, FR-05): pratinjau peta kecil di dashboard.php.
+    // "Kontrol minimal" -> legenda/filter, layer control, dan kotak cari
+    // mati secara default (tetap bisa dipaksa nyala lewat opts.showXxx
+    // eksplisit). Klik marker TIDAK membuka popup detail lazy-load seperti
+    // T-14 -- langsung navigasi ke peta.php?lokasi=ID (lihat openDetailPopup
+    // di bawah), dan interaksi peta (drag/scroll/dbltap zoom) dimatikan
+    // supaya peta kecil ini tidak "menyita" scroll halaman dashboard.
+    var isPreview = opts.mode === 'preview';
+
     var center = opts.center || DEFAULT_CENTER;
     var zoom = opts.zoom || DEFAULT_ZOOM;
-    var showLegend = opts.showLegend !== false;
-    var showLayerControl = opts.showLayerControl !== false;
-    var showSearch = opts.showSearch !== false;
+    var showLegend = opts.showLegend !== undefined ? opts.showLegend : !isPreview;
+    var showLayerControl = opts.showLayerControl !== undefined ? opts.showLayerControl : !isPreview;
+    var showSearch = opts.showSearch !== undefined ? opts.showSearch : !isPreview;
 
-    var map = L.map(container, { tap: true }).setView(center, zoom);
+    var mapOptions = { tap: true };
+    if (isPreview) {
+      mapOptions.zoomControl = false;
+      mapOptions.dragging = false;
+      mapOptions.scrollWheelZoom = false;
+      mapOptions.doubleClickZoom = false;
+      mapOptions.boxZoom = false;
+      mapOptions.keyboard = false;
+      mapOptions.touchZoom = false;
+    }
+    var map = L.map(container, mapOptions).setView(center, zoom);
 
     // Pane kustom untuk batas kota & area tambang, keduanya di BAWAH
     // markerPane bawaan Leaflet (z=600, tidak diubah) -- menjamin klik selalu
@@ -561,6 +580,14 @@
 
     function openDetailPopup(marker, id) {
       if (id === undefined || id === null) {
+        return;
+      }
+
+      if (isPreview) {
+        // Spesifikasi T-20: "klik membuka peta.php?lokasi=ID" -- navigasi
+        // langsung, bukan fetch+popup di tempat (itu urusan peta.php sendiri
+        // lewat T-14 setelah berpindah halaman).
+        window.location.href = (opts.previewUrl || 'peta.php') + '?lokasi=' + encodeURIComponent(String(id));
         return;
       }
 
