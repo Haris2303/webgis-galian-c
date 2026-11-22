@@ -104,7 +104,7 @@ button {
 
 /* 3. Aksesibilitas lintas komponen */
 
-/* :focus-visible, not :focus, so a mouse click doesn't trigger the ring but keyboard nav always does */
+/* :focus-visible, bukan :focus, agar klik mouse tidak memicu ring tapi navigasi keyboard selalu memicunya */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -129,7 +129,7 @@ summary:focus-visible {
   border: 0;
 }
 
-/* lets keyboard/screen-reader users jump past the sidebar menu on every page */
+/* memungkinkan pengguna keyboard/screen-reader melompati menu sidebar di setiap halaman */
 .skip-link {
   position: absolute;
   top: -48px;
@@ -157,7 +157,7 @@ summary:focus-visible {
   }
 }
 
-/* 4. App shell: topbar + sidebar + content (layout="app") */
+/* 4. App shell: topbar + sidebar + konten (layout="app") */
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -212,7 +212,7 @@ summary:focus-visible {
   margin: 0;
 }
 
-/* logout must POST, so it's a <button> inside a <form>, styled to look like a plain link */
+/* logout harus POST, jadi ini <button> di dalam <form>, distyling agar tampak seperti tautan biasa */
 .btn-link {
   background: transparent;
   border: 0;
@@ -267,7 +267,7 @@ summary:focus-visible {
   bottom: -6px;
 }
 
-/* aria-expanded is toggled by assets/js/ui.js */
+/* aria-expanded di-toggle oleh assets/js/ui.js */
 .hamburger-btn[aria-expanded="true"] .hamburger-btn__icon {
   background: transparent;
 }
@@ -316,7 +316,7 @@ summary:focus-visible {
   color: #fff;
 }
 
-/* block/full-width only in the sidebar context; stays inline-flex in the topbar */
+/* block/full-width hanya di konteks sidebar; tetap inline-flex di topbar */
 .app-sidebar .logout-form {
   display: block;
   width: 100%;
@@ -332,7 +332,7 @@ summary:focus-visible {
   cursor: pointer;
 }
 
-/* active page is marked by more than color (bold + left border + aria-current) for colorblind/screen-reader users */
+/* halaman aktif ditandai lebih dari sekadar warna (bold + border kiri + aria-current) untuk pengguna buta warna/screen-reader */
 .app-sidebar__link[aria-current="page"] {
   background: rgba(255, 255, 255, 0.14);
   border-left-color: var(--status-proses);
@@ -381,7 +381,7 @@ summary:focus-visible {
   margin-bottom: var(--space-5);
 }
 
-/* 6. Stat cards */
+/* 6. Kartu statistik */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -412,7 +412,7 @@ summary:focus-visible {
 .stat-card--tidak-berizin .stat-card__value { color: var(--status-tidak-berizin-text); }
 .stat-card--proses .stat-card__value { color: var(--status-proses-text); }
 
-/* 7. Generic card & two-column grid */
+/* 7. Kartu generik & grid dua kolom */
 .card {
   background: var(--color-surface);
   border-radius: var(--radius);
@@ -432,7 +432,7 @@ summary:focus-visible {
   gap: var(--space-4);
 }
 
-/* 8. Tables */
+/* 8. Tabel */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -441,7 +441,7 @@ summary:focus-visible {
 
 .data-table {
   width: 100%;
-  min-width: 560px; /* prevents cramped columns; mobile scrolls horizontally instead */
+  min-width: 560px; /* mencegah kolom sempit; di mobile scroll horizontal saja */
   border-collapse: collapse;
   background: var(--color-surface);
   font-size: var(--font-size-sm);
@@ -479,7 +479,7 @@ summary:focus-visible {
   white-space: nowrap;
 }
 
-/* 9. Status badges */
+/* 9. Badge status */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -518,7 +518,7 @@ summary:focus-visible {
 }
 .badge--proses::before { background: var(--status-proses); }
 
-/* separate from the status_izin badge, not a replacement; dashed border distinguishes it from a regular badge */
+/* terpisah dari badge status_izin, bukan pengganti; border putus-putus membedakannya dari badge biasa */
 .badge--kedaluwarsa {
   background: var(--status-tidak-berizin-bg);
   color: var(--status-tidak-berizin-text);
@@ -526,7 +526,7 @@ summary:focus-visible {
 }
 .badge--kedaluwarsa::before { background: var(--status-tidak-berizin); }
 
-/* reuses the warning amber from .flash--warning; dashed border marks it as not a status badge */
+/* memakai ulang amber peringatan dari .flash--warning; border putus-putus menandai ini bukan badge status */
 .badge--perlu-pengawasan {
   background: var(--status-proses-bg);
   color: var(--status-proses-text);
@@ -534,7 +534,7 @@ summary:focus-visible {
 }
 .badge--perlu-pengawasan::before { background: var(--status-proses); }
 
-/* unexpected/NULL status_izin still renders as a neutral badge, not a broken row */
+/* status_izin tak terduga/NULL tetap dirender sebagai badge netral, bukan baris rusak */
 .badge--tidak-diketahui {
   background: var(--color-bg);
   color: var(--color-text-muted);
@@ -542,7 +542,7 @@ summary:focus-visible {
 }
 .badge--tidak-diketahui::before { background: var(--color-text-muted); }
 
-/* 10. Buttons */
+/* 10. Tombol */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -591,7 +591,7 @@ summary:focus-visible {
   width: 100%;
 }
 
-/* 11. Forms */
+/* 11. Form */
 .field {
   margin-bottom: var(--space-4);
 }
@@ -640,7 +640,7 @@ summary:focus-visible {
   box-shadow: var(--focus-ring);
 }
 
-/* the aria-describedby linking the error text is set in markup, not here */
+/* aria-describedby yang menautkan teks error diset di markup, bukan di sini */
 .field--invalid .input,
 .field--invalid .select,
 .field--invalid .textarea {
@@ -663,7 +663,7 @@ summary:focus-visible {
   margin-top: var(--space-5);
 }
 
-/* 12. Flash messages */
+/* 12. Pesan flash */
 .flash-list {
   list-style: none;
   margin: 0 0 var(--space-5);
@@ -715,7 +715,7 @@ summary:focus-visible {
   border-color: var(--status-proses);
 }
 
-/* shown once; monospace + high contrast for reading/copying before it's gone for good */
+/* ditampilkan sekali; monospace + kontras tinggi untuk dibaca/disalin sebelum hilang selamanya */
 .flash--credential {
   background: var(--color-primary-dark);
   color: #fff;
@@ -735,7 +735,7 @@ summary:focus-visible {
   user-select: all;
 }
 
-/* 13. Delete-confirmation modal; native <dialog> handles focus/Esc via showModal() */
+/* 13. Modal konfirmasi hapus; <dialog> native menangani focus/Esc lewat showModal() */
 dialog.modal {
   width: min(420px, calc(100vw - var(--space-5) * 2));
   padding: 0;
@@ -744,7 +744,7 @@ dialog.modal {
   box-shadow: var(--shadow-dialog);
 }
 
-/* wider variant for multi-field popups; delete/logout confirm stays 420px */
+/* varian lebih lebar untuk popup multi-field; konfirmasi hapus/logout tetap 420px */
 dialog.modal.modal--wide {
   width: min(560px, calc(100vw - var(--space-5) * 2));
 }
@@ -779,7 +779,7 @@ dialog.modal::backdrop {
   }
 }
 
-/* 13b. Pagination + list search toolbar */
+/* 13b. Toolbar paginasi + cari daftar */
 .list-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -852,7 +852,7 @@ dialog.modal::backdrop {
   100% { background-position: 0 0; }
 }
 
-/* purely decorative; shows a static color under reduced motion */
+/* murni dekoratif; menampilkan warna statis saat reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
     animation: none;
@@ -860,25 +860,24 @@ dialog.modal::backdrop {
   }
 }
 
-/* 15. Map utilities */
+/* 15. Utilitas peta */
 .map-shell {
   width: 100%;
   height: calc(100vh - var(--map-offset));
-  height: calc(100dvh - var(--map-offset)); /* ignored by browsers without dvh support */
+  height: calc(100dvh - var(--map-offset)); /* diabaikan browser yang tidak mendukung dvh */
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--color-border);
-  /* contains Leaflet's internal z-index (up to ~1000) so it can't outrank the topbar/sidebar while scrolling */
+  /* mengandung z-index internal Leaflet (sampai ~1000) agar tidak mengungguli topbar/sidebar saat scroll */
   isolation: isolate;
 }
 
-/* the global img,svg max-width:100% reset above also shrinks Leaflet's own large internal SVG layers to invisible;
-   excluded here for all svg inside .leaflet-container, which is safe since our marker icons have fixed sizes anyway */
+/* reset global img,svg max-width:100% di atas juga mengecilkan layer SVG internal Leaflet hingga tak terlihat; dikecualikan di sini untuk semua svg dalam .leaflet-container, aman karena ikon marker kita sudah berukuran fixed */
 .leaflet-container svg {
   max-width: none;
 }
 
-/* fixed height for maps inside forms, overriding the viewport-based height above */
+/* tinggi fixed untuk peta di dalam form, menimpa tinggi berbasis viewport di atas */
 .map-shell--form {
   height: 360px;
 }
@@ -887,7 +886,7 @@ dialog.modal::backdrop {
   height: 300px;
 }
 
-/* offset includes the page header's height so the map still fits one screen */
+/* offset mencakup tinggi header halaman agar peta tetap pas dalam satu layar */
 .map-shell--peta {
   --map-offset: 182px;
   border-radius: var(--ds-radius-card-lg, var(--radius));
@@ -898,8 +897,7 @@ dialog.modal::backdrop {
   margin-top: var(--space-4);
 }
 
-/* 16. Full interactive map: overlay, toast, legend, popup.
-   .map-shell is already position:relative via Leaflet's own .leaflet-container, so overlays below just need position:absolute. */
+/* 16. Peta interaktif penuh: overlay, toast, legend, popup. .map-shell sudah position:relative lewat .leaflet-container milik Leaflet, jadi overlay di bawah cukup position:absolute. */
 .map-overlay {
   position: absolute;
   z-index: 900;
@@ -916,7 +914,7 @@ dialog.modal::backdrop {
   background: rgba(244, 246, 249, 0.85);
 }
 
-/* map.js writes the Leaflet-failed message as plain textContent; this just styles it */
+/* map.js menulis pesan Leaflet-gagal sebagai textContent polos; ini hanya menstylingnya */
 .map-shell--fallback {
   display: flex;
   align-items: center;
@@ -936,7 +934,7 @@ dialog.modal::backdrop {
   border-radius: var(--radius-sm);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   padding: var(--space-3) var(--space-4);
-  pointer-events: none; /* informational banner only; map underneath stays pannable/zoomable */
+  pointer-events: none; /* hanya banner informasi; peta di bawahnya tetap bisa digeser/zoom */
 }
 
 .map-overlay__text {
@@ -1152,7 +1150,7 @@ dialog.modal::backdrop {
   border: 1px solid var(--color-border);
 }
 
-/* clear click/focus affordance without changing the thumbnail's base size */
+/* affordance klik/fokus yang jelas tanpa mengubah ukuran dasar thumbnail */
 .map-popup__thumb--clickable {
   cursor: pointer;
   transition: transform 150ms ease, box-shadow 150ms ease;
@@ -1183,7 +1181,7 @@ dialog.modal::backdrop {
 
 .map-search__input {
   display: block;
-  /* min() keeps the search box from overflowing a narrow/zoomed-in viewport */
+  /* min() mencegah kotak cari meluber di viewport sempit/zoom-in */
   width: min(220px, calc(100vw - var(--space-6) * 2));
   padding: var(--space-2) var(--space-3);
   border: none;
@@ -1228,9 +1226,7 @@ dialog.modal::backdrop {
   background: var(--color-bg);
 }
 
-/* 16b. Minimum 44px touch target for map controls.
-   leaflet.css loads after this file, so !important is needed to win the cascade; the only !important in this file,
-   deliberately scoped to override a third-party stylesheet whose load order we don't control. */
+/* 16b. Target sentuh minimum 44px untuk kontrol peta. leaflet.css dimuat setelah berkas ini, jadi !important diperlukan untuk menang di cascade; satu-satunya !important di berkas ini, sengaja dibatasi untuk menimpa stylesheet pihak ketiga yang urutan muatnya tidak kita kontrol. */
 .leaflet-bar a,
 .leaflet-control-layers-toggle {
   width: 44px !important;
@@ -1238,8 +1234,7 @@ dialog.modal::backdrop {
   line-height: 44px !important;
 }
 
-/* Leaflet Draw's icon sprite is positioned for a 26px box; forcing it to 44px via .leaflet-bar above shifts the icon
-   off-center, so the box is restored to 26px here and the 44px tap target comes from padding instead */
+/* sprite ikon Leaflet Draw diposisikan untuk kotak 26px; memaksanya jadi 44px lewat .leaflet-bar di atas membuat ikon tidak center, jadi kotaknya dikembalikan ke 26px di sini dan target sentuh 44px didapat dari padding. */
 .leaflet-draw-toolbar a {
   box-sizing: content-box !important;
   width: 26px !important;
@@ -1249,7 +1244,7 @@ dialog.modal::backdrop {
   background-origin: content-box !important;
 }
 
-/* leaflet.css uses a 30px box on touch devices with its own separate sprite offset; padding adjusted to keep the 44px total */
+/* leaflet.css memakai kotak 30px di perangkat sentuh dengan offset sprite terpisah; padding disesuaikan agar total tetap 44px */
 .leaflet-touch .leaflet-draw-toolbar a {
   width: 30px !important;
   height: 30px !important;
@@ -1266,7 +1261,7 @@ dialog.modal::backdrop {
   justify-content: center !important;
 }
 
-/* our custom controls get their 44px tap target from row height, not by visually enlarging the checkbox itself */
+/* kontrol custom kita mendapat target sentuh 44px dari tinggi baris, bukan dengan memperbesar checkbox-nya secara visual */
 .map-legend__checkbox-label {
   min-height: 44px;
 }
@@ -1294,8 +1289,8 @@ dialog.modal::backdrop {
   box-sizing: border-box;
 }
 
-/* 16c. Activity photo lightbox; the <dialog> is created once by map.js, this is layout/styling only */
-/* display:flex must stay gated behind [open]; otherwise an unshown dialog still covers the map and blocks clicks */
+/* 16c. Lightbox foto aktivitas; <dialog> dibuat sekali oleh map.js, ini hanya layout/styling. */
+/* display:flex harus tetap digerbang di belakang [open]; kalau tidak, dialog yang belum ditampilkan tetap menutupi peta dan menghalangi klik */
 .map-lightbox {
   display: none;
   position: fixed;
@@ -1317,7 +1312,7 @@ dialog.modal::backdrop {
 }
 
 .map-lightbox::backdrop {
-  background: transparent; /* .map-lightbox itself is already a full dark background */
+  background: transparent; /* .map-lightbox sendiri sudah berupa latar gelap penuh */
 }
 
 .map-lightbox__figure {
@@ -1427,7 +1422,7 @@ dialog.modal::backdrop {
   color: var(--ds-on-bg, var(--color-text));
 }
 
-/* small non-interactive single-location map in the activity detail panel */
+/* peta satu-lokasi kecil yang non-interaktif di panel detail aktivitas */
 .detail-aktivitas-map {
   width: 100%;
   height: 220px;
@@ -1436,8 +1431,7 @@ dialog.modal::backdrop {
   isolation: isolate;
 }
 
-/* 17. Printed report, on-screen view (actual print layout is in print.css).
-   Intentionally not .card, to avoid print.css's break-inside:avoid rule meant for small cards, not a long table. */
+/* 17. Laporan cetak, tampilan di layar (layout cetak sesungguhnya ada di print.css). Sengaja bukan .card, untuk menghindari aturan break-inside:avoid print.css yang dimaksudkan untuk kartu kecil, bukan tabel panjang. */
 .laporan-dokumen {
   background: var(--color-surface);
   border-radius: var(--ds-radius-card-lg, var(--radius));
@@ -1447,7 +1441,7 @@ dialog.modal::backdrop {
   margin: 0 auto;
 }
 
-/* letterhead follows standard Indonesian official document format (thick rule, then a thin rule below it); no logo since none exists for this project */
+/* kop surat mengikuti format dokumen resmi Indonesia standar (garis tebal, lalu garis tipis di bawahnya); tanpa logo karena proyek ini tidak punya */
 .laporan-kop {
   text-align: center;
   padding-bottom: var(--space-3);
@@ -1501,7 +1495,7 @@ dialog.modal::backdrop {
   font-size: var(--font-size-sm);
 }
 
-/* summary figures come from the same data as the table below, not a separate query */
+/* angka ringkasan berasal dari data yang sama dengan tabel di bawah, bukan query terpisah */
 .laporan-ringkasan {
   margin-bottom: var(--space-5);
 }
@@ -1545,7 +1539,7 @@ dialog.modal::backdrop {
 }
 
 .laporan-tandatangan__spasi {
-  height: 64px; /* room for a wet signature on the printed page */
+  height: 64px; /* ruang untuk tanda tangan basah di halaman cetak */
 }
 
 .laporan-tandatangan__nama {
@@ -1553,7 +1547,7 @@ dialog.modal::backdrop {
   text-decoration: underline;
 }
 
-/* 18. Responsive breakpoints */
+/* 18. Breakpoint responsif */
 @media (max-width: 1024px) {
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);
