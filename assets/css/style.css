@@ -1564,10 +1564,10 @@ dialog.modal::backdrop {
   }
 
   .app-topbar__user span.app-topbar__user-name {
-    display: none; /* full name hidden on narrow screens; logout stays */
+    display: none; /* nama lengkap disembunyikan di layar sempit; logout tetap tampil */
   }
 
-  /* fixed position so the off-canvas sidebar doesn't push content and can scroll independently */
+  /* position fixed agar sidebar off-canvas tidak mendorong konten dan bisa scroll independen */
   .app-sidebar {
     position: fixed;
     top: var(--topbar-height);
